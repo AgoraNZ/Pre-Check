@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agora Vat Pre Check</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+  <style>
+    body { background-color: #002B5C; color: #fff; font-family: Arial, sans-serif; padding: 20px; }
+    .container { background-color: #002B5C; padding: 30px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); max-width: 900px; margin: auto; }
+    h1, h2 { color: #a7ab01; text-align: center; }
+    label { margin-top: 10px; }
+    .form-control, .form-select { margin-top: 5px; }
+    button { background-color: #FF851B; color: #FFF; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; margin: 5px; }
+    button:hover { background-color: #FF4136; }
+    .checklist-item { margin-bottom: 20px; }
+    .image-preview { display: none; max-width: 200px; max-height: 200px; margin-top: 5px; border: 2px solid #ccc; }
+    .record-container { background-color: #FFF; color: #000; padding: 20px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.2); max-width: 900px; margin: auto; display: none; }
+    .record-list div { margin-bottom: 10px; }
+    .back-button { background-color: #002B5C; color: #FFF; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="container" id="form-container">
+    <h1>Agora Vat Pre Check</h1>
+    <form id="vat-precheck-form">
+      <!-- Vat Cap -->
+      <div class="checklist-item">
+        <label for="dairyNumber">Dairy Number:</label>
+        <input type="text" id="dairyNumber" name="dairyNumber" class="form-control" required>
+      </div>
+      <div class="checklist-item">
+        <label for="vat-cap">Vat Cap:</label>
+        <select id="vat-cap" name="vat-cap" class="form-select" onchange="togglePhotos('vat-cap')">
+          <option value="available">Available ✓</option>
+          <option value="unavailable">Unavailable ✗</option>
+        </select>
+        <label for="vat-cap-comments">Comments:</label>
+        <input type="text" id="vat-cap-comments" name="vat-cap-comments" class="form-control">
+        <input type="file" id="vat-cap-photo" class="form-control" style="display:none;" accept="image/*" onchange="previewImage(event,'vat-cap-preview')">
+        <img id="vat-cap-preview" class="image-preview">
+      </div>
+      <!-- Gateway Location -->
+      <div class="checklist-item">
+        <label for="gateway-location">Gateway Location:</label>
+        <input type="text" id="gateway-location" name="gateway-location" class="form-control">
+        <label for="gateway-comments">Comments:</label>
+        <input type="text" id="gateway-comments" name="gateway-comments" class="form-control">
+        <input type="file" id="gateway-photo" class="form-control" accept="image/*" onchange="previewImage(event,'gateway-preview')">
+        <img id="gateway-preview" class="image-preview">
+      </div>
+      <!-- Agitator Sensor -->
+      <div class="checklist-item">
+        <label for="agitator-location">Agitator Sensor Location:</label>
+        <input type="text" id="agitator-location" name="agitator-location" class="form-control">
+        <label for="agitator-comments">Comments:</label>
+        <input type="text" id="agitator-comments" name="agitator-comments" class="form-control">
+        <input type="file" id="agitator-photo" class="form-control" accept="image/*" onchange="previewImage(event,'agitator-preview')">
+        <img id="agitator-preview" class="image-preview">
+      </div>
+      <!-- Vat 1 -->
+      <div class="checklist-item">
+        <label for="vat1-capacity">Vat 1 Capacity (L):</label>
+        <input type="number" id="vat1-capacity" name="vat1-capacity" class="form-control">
+        <label for="vat1-comments">Comments (interior width etc.):</label>
+        <input type="text" id="vat1-comments" name="vat1-comments" class="form-control">
+      </div>
+      <!-- Vat 2 -->
+      <div class="checklist-item">
+        <label for="vat2-capacity">Vat 2 Capacity (L):</label>
+        <input type="number" id="vat2-capacity" name="vat2-capacity" class="form-control">
+        <label for="vat2-comments">Comments (interior width etc.):</label>
+        <input type="text" id="vat2-comments" name="vat2-comments" class="form-control">
+      </div>
+      <!-- Current Telemetry -->
+      <div class="checklist-item">
+        <label for="current-telemetry">Current Telemetry:</label>
+        <input type="text" id="current-telemetry" name="current-telemetry" class="form-control">
+        <label for="telemetry-comments">Comments:</label>
+        <input type="text" id="telemetry-comments" name="telemetry-comments" class="form-control">
+      </div>
+      <button type="button" onclick="generatePDF()">Generate PDF</button>
+      <button type="button" onclick="viewRecords()">View All Records</button>
+    </form>
+  </div>
+
+  <div id="record-container" class="record-container">
+    <h2>All Vat Pre Check Records</h2>
+    <div id="record-list"></div>
+    <button class="back-button" onclick="goBack()">Back</button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = { /* your config */ };
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+
+    // Initialize Dexie for offline
+    const db = new Dexie('VatPreCheck');
+    db.version(1).stores({ forms: '++id,dairyNumber' });
+
+    // Helpers
+    function previewImage(e, id) {
+      const img = document.getElementById(id);
+      img.src = URL.createObjectURL(e.target.files[0]);
+      img.style.display = 'block';
+    }
+    function togglePhotos(field) {
+      const sel = document.getElementById(field);
+      const photo = document.getElementById(field + '-photo');
+      const preview = document.getElementById(field + '-preview');
+      if (sel.value === 'unavailable') {
+        photo.style.display = 'block';
+      } else {
+        photo.style.display = preview.style.display = 'none';
+      }
+    }
+
+    // Save form locally and to Firebase
+    async function saveForm() {
+      const form = document.getElementById('vat-precheck-form');
+      const fd = new FormData(form);
+      const data = Object.fromEntries(fd.entries());
+      data.time = Date.now();
+      await db.forms.add(data);
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      await storage.ref(`AgoraVatDetails/${data.dairyNumber}.json`).put(blob);
+    }
+
+    // Generate PDF
+    async function generatePDF() {
+      await saveForm();
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('l','pt','a4');
+      pdf.setFontSize(14);
+      pdf.text('Agora Vat Pre Check', 40, 40);
+      const fd = new FormData(document.getElementById('vat-precheck-form'));
+      const table = [['Field','Value']];
+      for (const [k, v] of fd.entries()) {
+        table.push([k, v]);
+      }
+      pdf.autoTable({
+        startY: 60,
+        head: [table.shift()],
+        body: table,
+        styles: { fontSize: 10, cellPadding: 4 },
+        headStyles: { fillColor: [0,43,92], textColor: 255 }
+      });
+      pdf.save(`VatPreCheck_${fd.get('dairyNumber')}.pdf`);
+    }
+
+    // Record view
+    function viewRecords() {
+      document.getElementById('form-container').style.display = 'none';
+      document.getElementById('record-container').style.display = 'block';
+      loadRecords();
+    }
+    async function loadRecords() {
+      const recs = await db.forms.toArray();
+      const list = document.getElementById('record-list');
+      list.innerHTML = '';
+      recs.forEach(r => {
+        const div = document.createElement('div');
+        div.textContent = `${new Date(r.time).toLocaleString()} — ${r.dairyNumber}`;
+        div.style.cursor = 'pointer';
+        div.onclick = () => window.open(`https://storage.googleapis.com/AgoraVatDetails/${r.dairyNumber}.json`, '_blank');
+        list.appendChild(div);
+      });
+    }
+    function goBack() {
+      document.getElementById('record-container').style.display = 'none';
+      document.getElementById('form-container').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
