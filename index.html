@@ -6,26 +6,24 @@
   <title>Agora Vat Pre Check</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
   <style>
-    body { background: #002B5C; color: #fff; font-family: Arial, sans-serif; padding: 20px; }
-    .container { background: #002B5C; padding: 30px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); max-width: 900px; margin: auto; }
+    body { background: #fff; color: #222; font-family: Arial, sans-serif; padding: 20px; }
+    .container { background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.07); max-width: 900px; margin: auto; }
     h1, h2 { color: #a7ab01; text-align: center; }
     .form-control, .form-select { margin-top: 5px; }
     .checklist-item { margin-bottom: 20px; }
     .image-preview { display:none; max-width:200px; margin-top:5px; border:2px solid #ccc; }
     .big-photo { max-width:700px; max-height:500px; display:block; margin:18px auto; }
     .logo-header { display:block; margin:0 auto 18px auto; max-width:270px; }
-    .record-container { display:none; background:#fff; color:#000; padding:20px; border-radius:10px; max-width:900px; margin:auto; }
-    .record-list { max-height: 400px; overflow-y:auto;}
-    .record-list div { margin-bottom:10px; cursor:pointer; color:#007bff; text-decoration:underline;}
-    .back-button { background:#002B5C; color:#fff; padding:10px 20px; border:none; border-radius:5px; }
-    button { margin:5px; background:#FF851B; color:#fff; border:none; padding:10px 20px; border-radius:5px; }
-    button:hover { background:#FF4136; }
+    .record-container { display:none; background:#fff; color:#222; padding:20px; border-radius:10px; max-width:900px; margin:auto; }
     .summary-table { margin-top: 30px; width:100%; background:#fff; color:#222; border-radius:10px; }
     .summary-table th, .summary-table td { padding: 8px; border: 1px solid #ddd; text-align: left; }
-    .form-view-title {color:#002B5C;font-size:22px;margin-bottom:12px;text-align:center;}
+    .form-view-title {color:#222;font-size:22px;margin-bottom:12px;text-align:center;}
     .photo-section-title {font-size:16px; color:#222;margin:16px 0 8px 0;}
     .summary-controls {display:flex; gap:12px; margin-bottom:12px;}
     .summary-controls input, .summary-controls select {max-width:180px;}
+    button { margin:5px; background:#FF851B; color:#fff; border:none; padding:10px 20px; border-radius:5px; }
+    button:hover { background:#FF4136; }
+    .back-button { background:#002B5C; color:#fff; padding:10px 20px; border:none; border-radius:5px; }
   </style>
 </head>
 <body>
@@ -103,12 +101,12 @@
         <input type="text" id="telemetry-comments" name="telemetry-comments" class="form-control">
       </div>
       <button type="button" onclick="generatePDF()">Generate PDF</button>
-      <button type="button" onclick="viewRecords()">View All Records & Summary</button>
+      <button type="button" onclick="viewRecords()">View Vat Sizes & Summary</button>
     </form>
   </div>
 
   <div id="record-container" class="record-container">
-    <h2>All Vat Pre Check Records</h2>
+    <h2 class="mt-2 mb-2">Vat Sizes & Dimension Summary</h2>
     <div id="summary-controls" class="summary-controls">
       <input type="text" id="summary-search" placeholder="Search Dairy #" class="form-control">
       <select id="filter-cap" class="form-select">
@@ -116,8 +114,6 @@
         <option value="no-cap">No Available Vat Cap</option>
       </select>
     </div>
-    <div id="record-list" class="record-list"></div>
-    <h2 class="mt-4">Vat Sizes & Dimension Summary</h2>
     <div id="summary-table-div"></div>
     <div id="single-form-view" style="margin-top:32px;"></div>
     <button class="back-button" onclick="goBack()">Back</button>
@@ -147,23 +143,30 @@
 
     // --- LOGO (page and PDF)
     let logoBase64 = "";
+    let logoAspect = 1;
     async function loadLogoToHeaderAndPDF() {
       try {
         const logoRef = storage.ref("Agora Logo/2F6-1YdaEP.jpeg");
         const logoUrl = await logoRef.getDownloadURL();
-        document.getElementById("agora-logo-header").src = logoUrl;
-        document.getElementById("agora-logo-header").style.display = "block";
+        const img = document.getElementById("agora-logo-header");
+        img.src = logoUrl;
+        img.style.display = "block";
         // Preload as base64 for PDF
         const res = await fetch(logoUrl);
         const blob = await res.blob();
         const reader = new FileReader();
-        reader.onload = function(e) { logoBase64 = e.target.result; };
+        reader.onload = function(e) { 
+          logoBase64 = e.target.result;
+          // Calculate logo aspect ratio for correct scaling in PDF
+          const tmp = new window.Image();
+          tmp.onload = function() { logoAspect = tmp.width/tmp.height; };
+          tmp.src = logoBase64;
+        };
         reader.readAsDataURL(blob);
       } catch (e) { }
     }
     loadLogoToHeaderAndPDF();
 
-    // --- Helper for Image Preview + Storage (Base64)
     function previewImage(e, id) {
       const img = document.getElementById(id);
       const file = e.target.files[0];
@@ -187,7 +190,6 @@
       }
     }
 
-    // Autofill Dairy Number (Dexie or Firebase)
     document.getElementById('dairyNumber').addEventListener('blur', async function() {
       const num = this.value.trim();
       if (!num) return;
@@ -207,12 +209,10 @@
       }
     });
 
-    // --- SAVE FORM with photo base64 support
     async function saveForm() {
       const form = document.getElementById('vat-precheck-form');
       const fd = new FormData(form);
       const data = Object.fromEntries(fd.entries());
-      // Images as base64
       ['vat1-cap','vat2-cap','gateway','agitator'].forEach(prefix => {
         const img = document.getElementById(prefix+'-preview');
         if(img && img.getAttribute('data-base64')) {
@@ -224,16 +224,17 @@
       await storage.ref(`Pre Check/${data.dairyNumber}.json`).put(new Blob([JSON.stringify(data)], {type:'application/json'}));
     }
 
-    // --- GENERATE PDF (includes logo + all attached photos)
     async function generatePDF() {
       await saveForm();
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF('l', 'pt', 'a4');
       let curY = 40;
       if (logoBase64) {
-        // Add logo at top (centered)
+        // Add logo at top (centered), fixed height 80, auto width
         const pageWidth = pdf.internal.pageSize.getWidth();
-        pdf.addImage(logoBase64, 'JPEG', pageWidth/2-110, 20, 220, 80);
+        const logoHeight = 80;
+        const logoWidth = logoAspect * logoHeight;
+        pdf.addImage(logoBase64, 'JPEG', (pageWidth-logoWidth)/2, 20, logoWidth, logoHeight);
         curY = 110;
       }
       pdf.setFontSize(16);
@@ -250,7 +251,6 @@
         headStyles: { fillColor: [0,43,92], textColor: 255 }
       });
       let afterTableY = pdf.lastAutoTable.finalY + 10;
-      // Attach photos (up to 4, big)
       const photoMap = [
         { label: 'Vat 1 Cap Photo', key: 'vat1-cap-photo-base64' },
         { label: 'Vat 2 Cap Photo', key: 'vat2-cap-photo-base64' },
@@ -271,31 +271,16 @@
       pdf.save('VatPreCheck_' + fd.get('dairyNumber') + '.pdf');
     }
 
-    // --- RECORDS + SUMMARY
     function viewRecords() {
       document.getElementById('form-container').style.display = 'none';
       document.getElementById('record-container').style.display = 'block';
-      loadRecords();
       loadVatSummary();
     }
 
-    // --- SEARCH AND FILTER CONTROLS ---
     document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('summary-search').addEventListener('input', loadVatSummary);
       document.getElementById('filter-cap').addEventListener('change', loadVatSummary);
     });
-
-    async function loadRecords() {
-      const recs = await db.forms.toArray();
-      const list = document.getElementById('record-list');
-      list.innerHTML = '';
-      recs.forEach(r => {
-        const div = document.createElement('div');
-        div.textContent = new Date(r.timestamp).toLocaleString() + ' — ' + r.dairyNumber;
-        div.onclick = ()=>viewSingleForm(r.dairyNumber);
-        list.appendChild(div);
-      });
-    }
 
     async function loadVatSummary() {
       const summaryDiv = document.getElementById('summary-table-div');
@@ -361,7 +346,6 @@
       document.getElementById("single-form-view").innerHTML = "";
     }
 
-    // --- View a single form from summary or record
     async function viewSingleForm(dairyNumber) {
       let rec = await db.forms.where('dairyNumber').equals(dairyNumber).first();
       if (!rec) {
@@ -384,7 +368,6 @@
         html += `<tr><th>${k.replace(/-/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</th><td>${v}</td></tr>`;
       }
       html += '</tbody></table>';
-      // Any photos
       let photoFields = ['vat1-cap','vat2-cap','gateway','agitator'];
       let photoAdded = false;
       photoFields.forEach(f=>{
