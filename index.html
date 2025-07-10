@@ -100,8 +100,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
   <script>
-    // Firebase config
-    const firebaseConfig = { /* your config */ };
+    // ====== PUT YOUR ACTUAL FIREBASE CONFIG HERE ======
+    const firebaseConfig = {
+      apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
+      authDomain: "dairy-farm-record-system.firebaseapp.com",
+      projectId: "dairy-farm-record-system",
+      storageBucket: "dairy-farm-record-system.appspot.com",
+      messagingSenderId: "422124188212",
+      appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
+    };
     firebase.initializeApp(firebaseConfig);
     const storage = firebase.storage();
     // Dexie for offline
@@ -138,7 +145,6 @@
         } catch {}
       }
       if (rec) {
-        // Autofill fields
         for (const k in rec) {
           if (document.getElementsByName(k)[0]) document.getElementsByName(k)[0].value = rec[k];
         }
@@ -151,9 +157,7 @@
       const fd = new FormData(form);
       const data = Object.fromEntries(fd.entries());
       data.timestamp = Date.now();
-      // Save local
       await db.forms.add({dairyNumber:data.dairyNumber, ...data});
-      // Save cloud
       await storage.ref(`Pre Check/${data.dairyNumber}.json`).put(new Blob([JSON.stringify(data)], {type:'application/json'}));
     }
 
