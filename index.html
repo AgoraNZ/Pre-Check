@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Agora Vat Pre-Check — Final</title>
+<title>Agora Vat Pre-Check • Field Ready</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js"></script>
@@ -12,38 +12,37 @@
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
 <style>
   :root{
-    --bg:#f8faff; --ink:#001F3F; --accent:#FF851B; --muted:#6b7a90;
-    --ok:#2ECC40; --warn:#FF4136; --info:#1E88E5; --card:#ffffff; --ring:#edf1f7;
-    --maxw:1100px; --radius:14px; --shadow:0 2px 28px rgba(0,0,0,.06);
+    --bg:#f8faff; --ink:#001F3F; --accent:#FF851B; --muted:#6b7a90; --ok:#2ECC40; --bad:#FF4136; --info:#1E88E5;
+    --ring:#edf1f7; --card:#fff; --shadow:0 2px 28px rgba(0,0,0,.06); --radius:14px; --maxw:1100px;
   }
-  body{background:var(--bg); color:var(--ink); font-family:system-ui, Segoe UI, Arial, sans-serif;}
-  .shell{max-width:var(--maxw); margin:28px auto 60px; background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px;}
-  .brand{display:block; margin:0 auto 6px; max-width:200px}
-  h1{font-size:1.8rem; color:var(--accent); text-align:center; margin:6px 0 14px}
-  h2.section{font-size:1.2rem; color:var(--ink); margin:18px 0 6px}
-  .sub{font-size:.92rem; color:var(--muted)}
-  .btn-ag{background:var(--accent); color:#fff; border:none; font-weight:600; border-radius:8px}
-  .btn-ag:hover{opacity:.9}
+  body{background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Arial,sans-serif}
+  .shell{max-width:var(--maxw);margin:28px auto 60px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+  .brand{display:block;margin:0 auto 6px;max-width:200px}
+  h1{font-size:1.8rem;color:var(--accent);text-align:center;margin:6px 0 14px}
+  h2.section{font-size:1.2rem;color:var(--ink);margin:18px 0 6px}
+  .sub{font-size:.92rem;color:var(--muted)}
+  .btn-ag{background:var(--accent);color:#fff;border:none;font-weight:600;border-radius:8px}
+  .btn-ag:hover{opacity:.92}
   .btn-outline{background:#fff;border:1px solid var(--accent);color:var(--ink);border-radius:8px}
-  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
-  .cardy{border:1px solid var(--ring); border-radius:12px; padding:12px; background:#fff}
-  .chips{display:flex; gap:6px; flex-wrap:wrap}
-  .chip{border:1px solid var(--ring); border-radius:999px; padding:2px 8px; font-size:.86rem}
-  .chip.ok{background:#e8f7ee; border-color:#c7edd4}
-  .chip.bad{background:#ffeaea; border-color:#ffd0d0}
-  .chip.info{background:#eaf2ff; border-color:#cfe0ff}
-  .img-thumb{width:86px; height:86px; object-fit:cover; border-radius:8px; border:1px solid #eee}
-  .kv{display:grid; grid-template-columns:130px 1fr; gap:8px; align-items:center}
-  .kpi{border:1px solid var(--ring); border-radius:12px; padding:10px; text-align:center}
-  .kpi .n{font-weight:800; font-size:1.3rem}
-  .kpi .l{font-size:.9rem; color:var(--muted)}
-  .sticky-filters{position:sticky; top:10px; z-index:20; background:#fff; padding:10px; border:1px solid var(--ring); border-radius:12px}
-  .photo-inline{display:flex; gap:8px; flex-wrap:wrap}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .cardy{border:1px solid var(--ring);border-radius:12px;padding:12px;background:#fff}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{border:1px solid var(--ring);border-radius:999px;padding:2px 8px;font-size:.86rem}
+  .chip.ok{background:#e8f7ee;border-color:#c7edd4}
+  .chip.bad{background:#ffeaea;border-color:#ffd0d0}
+  .chip.info{background:#eaf2ff;border-color:#cfe0ff}
+  .img-thumb{width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid #eee}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center}
+  .kpi{border:1px solid var(--ring);border-radius:12px;padding:10px;text-align:center}
+  .kpi .n{font-weight:800;font-size:1.2rem}
+  .kpi .l{font-size:.9rem;color:var(--muted)}
+  .sticky-filters{position:sticky;top:10px;z-index:20;background:#fff;padding:10px;border:1px solid var(--ring);border-radius:12px}
+  .photo-inline{display:flex;gap:8px;flex-wrap:wrap}
   .small{font-size:.92rem}
   .admin-only{display:none}
-  footer{text-align:center; color:#96a2b7; font-size:.85rem; margin-top:16px}
-  @media (max-width:900px){ .grid-2,.grid-3{grid-template-columns:1fr} }
+  footer{text-align:center;color:#96a2b7;font-size:.85rem;margin-top:16px}
+  @media (max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -51,8 +50,7 @@
   <img id="logo" class="brand" style="display:none" alt="Agora Logo">
   <h1>Agora Vat Pre-Check</h1>
 
-  <!-- ROLE SWITCH -->
-  <script>window.AGORA_ROLE = 'service'; /* set to 'admin' to reveal Admin page */</script>
+  <script>window.AGORA_ROLE='service'; /* set to 'admin' to reveal Admin tab */</script>
 
   <!-- NAV -->
   <div class="d-flex gap-2 justify-content-center mb-2">
@@ -61,25 +59,8 @@
     <button class="btn btn-outline admin-only" id="nav-admin">Admin</button>
   </div>
 
-  <!-- ========== FORM (order: Vats → Agitator → Gateway → Telemetry → Rubberware) ========== -->
+  <!-- ========= FORM (Vat 1 → Vat 2 → Agitator → Gateway → Telemetry → Rubberware) ========= -->
   <div id="page-form">
-    <!-- Telemetry (basic) -->
-    <div class="cardy">
-      <div class="grid-3">
-        <div>
-          <label class="form-label">Dairy Number</label>
-          <input class="form-control" id="dairyNumber" name="dairyNumber" required>
-        </div>
-        <div>
-          <label class="form-label">Current Telemetry (brand)</label>
-          <input class="form-control" id="current-telemetry" name="current-telemetry" placeholder="Levno / Halo / None">
-        </div>
-        <div>
-          <label class="form-label">Telemetry Comments</label>
-          <input class="form-control" id="telemetry-comments" name="telemetry-comments">
-        </div>
-      </div>
-    </div>
 
     <!-- Vat 1 -->
     <h2 class="section">Vat 1</h2>
@@ -90,7 +71,7 @@
           <option value="available">Available ✓</option>
           <option value="unavailable">Unavailable ✗</option>
         </select>
-        <input class="form-control mt-1" id="vat1-cap-comments" name="vat1-cap-comments" placeholder="Comments">
+        <input class="form-control mt-1" id="vat1-cap-comments" name="vat1-cap-comments" placeholder="e.g., grey reducer/adaptor">
         <input type="file" id="vat1-cap-photo" accept="image/*" class="form-control mt-1">
       </div>
       <div>
@@ -113,9 +94,9 @@
       </div>
     </div>
 
-    <!-- Vat 2 (with NA options) -->
+    <!-- Vat 2 -->
     <h2 class="section">Vat 2</h2>
-    <div class="sub">NA options enabled for cap and condition.</div>
+    <div class="sub">NA options enabled for cap & condition.</div>
     <div class="cardy grid-3">
       <div>
         <label class="form-label">Cap</label>
@@ -124,7 +105,7 @@
           <option value="available">Available ✓</option>
           <option value="unavailable">Unavailable ✗</option>
         </select>
-        <input class="form-control mt-1" id="vat2-cap-comments" name="vat2-cap-comments" placeholder="Comments">
+        <input class="form-control mt-1" id="vat2-cap-comments" name="vat2-cap-comments" placeholder="e.g., grey reducer/adaptor">
         <input type="file" id="vat2-cap-photo" accept="image/*" class="form-control mt-1">
       </div>
       <div>
@@ -174,7 +155,7 @@
       </div>
       <div>
         <label class="form-label">Comments</label>
-        <input class="form-control" id="gateway-comments" name="gateway-comments" placeholder="Bars/Carrier/Power point needs">
+        <input class="form-control" id="gateway-comments" name="gateway-comments" placeholder="bars/dBm, carrier, distance to outlet (m)">
       </div>
       <div>
         <label class="form-label">Photo</label>
@@ -182,9 +163,22 @@
       </div>
     </div>
 
+    <!-- Telemetry (free text; AI parser handles details) -->
+    <h2 class="section">Telemetry</h2>
+    <div class="cardy grid-3">
+      <div>
+        <label class="form-label">Brand</label>
+        <input class="form-control" id="current-telemetry" name="current-telemetry" placeholder="Levno / Halo / DTS / None">
+      </div>
+      <div class="col-span-2">
+        <label class="form-label">Telemetry Notes</label>
+        <input class="form-control" id="telemetry-comments" name="telemetry-comments" placeholder="e.g., 2 bars Spark -104 dBm, 4G, needs UPS, 25m to outlet">
+      </div>
+    </div>
+
     <!-- Rubberware -->
     <h2 class="section">Rubberware</h2>
-    <div class="sub">Door seals & RJT step seals. Door-seal size captured. “Delivered” counts 2 if two vats.</div>
+    <div class="sub">Door seals & RJT step seals. Door-seal “Delivered” counts 2 if two vats.</div>
     <div class="cardy grid-3">
       <div>
         <label class="form-label">Vat Door Seal</label>
@@ -232,7 +226,7 @@
     </div>
   </div>
 
-  <!-- ========== SUMMARY ========== -->
+  <!-- ========= SUMMARY ========= -->
   <div id="page-summary" style="display:none">
     <div class="grid-3 mb-2">
       <div class="kpi"><div class="n" id="kpi-total">0</div><div class="l">Total Farms</div></div>
@@ -240,10 +234,16 @@
       <div class="kpi"><div class="n" id="kpi-cap-missing">0</div><div class="l">Cap Unavailable</div></div>
     </div>
 
+    <div class="grid-3 mb-2">
+      <div class="kpi"><div class="n" id="kpi-power">0</div><div class="l">Power Outlet Needed</div></div>
+      <div class="kpi"><div class="n" id="kpi-antenna">0</div><div class="l">Antenna Recommended</div></div>
+      <div class="kpi"><div class="n" id="kpi-dual">0</div><div class="l">Dual-Vat Farms</div></div>
+    </div>
+
     <div class="grid-2">
       <div class="sticky-filters">
         <div class="fw-bold mb-2">Filters</div>
-        <input class="form-control mb-2" id="filter-search" placeholder="Search Dairy # / Serial / Telemetry">
+        <input class="form-control mb-2" id="filter-search" placeholder="Search Dairy # / Serial / Telemetry / Carrier / Notes">
         <select class="form-select mb-2" id="filter-ready">
           <option value="">Any readiness</option>
           <option value="ready">Install-ready</option>
@@ -258,7 +258,13 @@
           <option value="">Any telemetry</option>
           <option value="Levno">Levno</option>
           <option value="Halo">Halo</option>
+          <option value="DTS">DTS</option>
           <option value="None">None</option>
+        </select>
+        <select class="form-select mb-2" id="filter-antenna">
+          <option value="">Antenna (any)</option>
+          <option value="yes">Recommended</option>
+          <option value="no">Not needed</option>
         </select>
         <button class="btn btn-ag w-100" id="btn-apply">Apply</button>
       </div>
@@ -280,7 +286,7 @@
     </div>
   </div>
 
-  <!-- ========== ADMIN (exports only) ========== -->
+  <!-- ========= ADMIN (exports only) ========= -->
   <div id="page-admin" style="display:none">
     <div class="cardy">
       <div class="fw-bold mb-2">Exports</div>
@@ -306,13 +312,13 @@ const FB = {
 if (!firebase.apps.length) firebase.initializeApp(FB);
 const storage = firebase.storage();
 const FOLDER = "Pre Check";
-const db = new Dexie("VatPreCheckV2");
+const db = new Dexie("VatPreCheckV3");
 db.version(1).stores({ forms: "++id,dairyNumber" });
 
-// Optional: change to false to disable demo seed when no data anywhere
+// Toggle to false to disable demo when no data anywhere
 const USE_DEMO_WHEN_EMPTY = true;
 
-// Logo (cloud)
+// Logo
 (async function loadLogo(){
   try{
     const ref = storage.ref("Agora Logo/2F6-1YdaEP.jpeg");
@@ -322,23 +328,62 @@ const USE_DEMO_WHEN_EMPTY = true;
   }catch{}
 })();
 
-/* ================= LIGHT “AI” NORMALISER ================= */
+/* ================= LIGHT “AI” NORMALISERS ================= */
 const NORM = {
-  replace:[
+  cleanMap:[
     [/tru[\s\-]?test/gi,"Tru-Test"],
     [/\bd\.?t\.?s\b/gi,"DTS"],
-    [/\bhalo\b/gi,"Halo"],
+    [/\bh[ao]lo\b/gi,"Halo"],
     [/\blevno\b/gi,"Levno"],
-    [/\bgrey\b/gi,"gray"],
-    [/\b4\s*g\b/gi,"4G"],
-    [/\b5\s*g\b/gi,"5G"],
-    [/power[\s\-]?point|powerpoint|plug(?!ged)/gi,"power outlet"],
+    [/\bvodafone\b|\bone\s?nz\b|\b2 ?degrees\b/gi, m => ({'vodafone':'One NZ','one nz':'One NZ','2degrees':'2degrees'}[m.toLowerCase()] || m)],
+    [/\bpower[\s\-]?point|powerpoint|power p[oi]nt/gi,"power outlet"],
+    [/\bgrey\b/gi,"gray"], // unify spelling
   ],
-  clean(s){ let t=String(s||""); this.replace.forEach(([re,to])=>t=t.replace(re,to)); return t.trim(); },
-  teleBrand(s){ s=(s||"").toLowerCase(); if(s.includes("levno")) return "Levno"; if(s.includes("halo")) return "Halo"; if(!s || s.includes("none")) return "None"; return s.replace(/^\w/,c=>c.toUpperCase()); },
+  clean(s){ let t=String(s||""); this.cleanMap.forEach(([re,to])=>{ t=t.replace(re,to); }); return t.trim(); },
+  teleBrand(s){ s=(s||"").toLowerCase(); if(s.includes("levno")) return "Levno"; if(s.includes("halo")) return "Halo"; if(s.includes("dts")) return "DTS"; if(!s || s.includes("none")) return "None"; return s.replace(/^\w/,c=>c.toUpperCase()); },
   capVal(s){ s=(s||"").toLowerCase(); if(s.includes("unavail")) return "unavailable"; if(s.includes("avail")) return "available"; if(s.includes("na")) return "na"; return s||""; },
   condVal(s){ s=(s||"").toLowerCase(); if(s.includes("att")) return "attention"; if(s.includes("ok")) return "ok"; if(s.includes("na")) return "na"; return s||""; }
 };
+
+// Parse telemetry/gateway strings for metrics
+function parseTelemetry(text){
+  const t = NORM.clean(String(text||""));
+  const r = {
+    bars:null, dbm:null, net:null, carrier:null,
+    ups:false, solar:false, ethernet:false, wifi:false,
+    distanceM:null, antennaHint:false, noCoverage:false,
+    dtsCard:null
+  };
+  // bars: "2 bars" or "3/5"
+  let m = t.match(/(\d)\s*\/\s*5\s*bars?/i) || t.match(/(\d)\s*\/\s*5/i) || t.match(/(\d+)\s*bars?/i);
+  if(m){ r.bars = Math.max(0, Math.min(5, parseInt(m[1],10))); }
+  // dBm
+  m = t.match(/-1\d{2}\s*d\s*bm|-9\d\s*d\s*bm/gi);
+  if(m){ r.dbm = parseInt(m[0].replace(/[^\-\d]/g,''),10); }
+  // net gen
+  m = t.match(/\b(5g|4g|lte|3g)\b/i); if(m){ r.net = (m[1].toUpperCase()==='LTE'?'4G':m[1].toUpperCase()); }
+  // carriers
+  m = t.match(/\b(spark|one ?nz|vodafone|2degrees|2 degrees)\b/i); if(m){ r.carrier = m[1].toLowerCase().includes('vodafone')?'One NZ':(m[1].toLowerCase().includes('2')?'2degrees':m[1].replace(/ +/g,' ').replace(/^\w/,c=>c.toUpperCase())); }
+  // infra keywords
+  r.ups = /\bups\b|battery backup/i.test(t);
+  r.solar = /\bsolar\b/i.test(t);
+  r.ethernet = /\bethernet\b|rj45/i.test(t);
+  r.wifi = /\bwi-?fi\b|wifi/i.test(t);
+  // distance (e.g., "25m", "15 m", "approx 12 metres")
+  m = t.match(/(\d+)\s*m(et(res?)?)?/i); if(m){ r.distanceM = parseInt(m[1],10); }
+  // coverage / antenna
+  r.noCoverage = /no (signal|coverage)|dead spot|zero bars/i.test(t);
+  r.antennaHint = /antenna|yagi|external aerial|booster/i.test(t);
+  // DTS card
+  if(/\bDTS\b/i.test(t)){ const c = t.match(/\bcard\s*#?\s*([0-9]{5,10})\b/i); if(c){ r.dtsCard = c[1]; } }
+  return r;
+}
+
+// Cap reducer / grey adaptor detection
+function detectReducingCap(...txt){
+  const s = NORM.clean(txt.filter(Boolean).join(' | '));
+  return /(reducing|reducer|adaptor|adapter|insert|bush|small cap|step cap|sensor cap|gray cap|grey cap)/i.test(s);
+}
 
 /* ================= HELPERS ================= */
 const $ = (id)=>document.getElementById(id);
@@ -346,26 +391,14 @@ function show(id){ $(id).style.display=''; }
 function hide(id){ $(id).style.display='none'; }
 function val(id){ return $(id)?.value||''; }
 function twoVatsPresent(rec){
-  const v2Cap = (rec['vat2-cap']||'').toLowerCase();
-  const v2Size = (rec['vat2-capacity']||'').trim();
-  return (v2Cap && v2Cap!=='na') || (!!v2Size && v2Size.toLowerCase()!=='na');
+  const cap2 = (rec['vat2-cap']||'').toLowerCase();
+  const size2 = (rec['vat2-capacity']||'').toLowerCase();
+  return (cap2 && cap2!=='na') || (size2 && size2!=='na');
 }
-function toBase64Input(file, cb){
-  const reader = new FileReader();
-  reader.onload = e => cb(e.target.result);
-  reader.readAsDataURL(file);
-}
-function attachBase64OnChange(id, key){
-  const input = $(id);
-  if(!input) return;
-  input.addEventListener('change', e=>{
-    const f = e.target.files?.[0];
-    if(!f) return;
-    toBase64Input(f, b64 => { input.dataset.base64 = b64; input.dataset.key = key; });
-  });
-}
+function toBase64Input(file, cb){ const fr=new FileReader(); fr.onload=e=>cb(e.target.result); fr.readAsDataURL(file); }
+function attachBase64OnChange(id,key){ const el=$(id); if(!el) return; el.addEventListener('change',e=>{ const f=e.target.files?.[0]; if(!f) return; toBase64Input(f,b64=>{ el.dataset.base64=b64; el.dataset.key=key; }); }); }
 
-/* ================= FORM: FILE INPUTS → BASE64 ================= */
+/* FILE INPUTS -> BASE64 */
 [
   ['vat1-cap-photo','vat1-cap-photo-base64'],
   ['vat2-cap-photo','vat2-cap-photo-base64'],
@@ -378,53 +411,43 @@ function attachBase64OnChange(id, key){
   ['chiller-condition-photo','chiller-condition-photo-base64'],
 ].forEach(([id,key])=>attachBase64OnChange(id,key));
 
-/* ================= SAVE (Firebase JSON + Dexie) ================= */
+/* ================= SAVE ================= */
 async function saveForm(){
   const fields = [
-    'dairyNumber','current-telemetry','telemetry-comments',
+    'dairyNumber',
     'vat1-cap','vat1-cap-comments','vat1-capacity','vat1-comments','vat1-condition','vat1-condition-comments','vat1-serial',
     'vat2-cap','vat2-cap-comments','vat2-capacity','vat2-comments','vat2-condition','vat2-condition-comments','vat2-serial',
     'agitator-location','agitator-comments','gateway-location','gateway-comments',
-    'vat-door-seal','vat-door-seal-size','vat-door-seal-comments','rjt-seal','rjt-seal-size','rjt-seal-comments',
-    'chiller-condition','chiller-condition-comments'
+    'current-telemetry','telemetry-comments',
+    'vat-door-seal','vat-door-seal-size','vat-door-seal-comments','rjt-seal','rjt-seal-size','rjt-seal-comments','chiller-condition','chiller-condition-comments'
   ];
-  const data = {};
-  fields.forEach(k=> data[k] = val(k));
-  // collect base64 photos
+  const data={}; fields.forEach(k=>data[k]=val(k));
+  // photos
   ['vat1-cap-photo','vat2-cap-photo','gateway-photo','agitator-photo','vat1-condition-photo','vat2-condition-photo','vat-door-seal-photo','rjt-seal-photo','chiller-condition-photo']
-    .forEach(id=>{
-      const el = $(id);
-      const key = el?.dataset.key; const b64 = el?.dataset.base64;
-      if(key && b64) data[key] = b64;
-    });
-  if(!data.dairyNumber){ alert('Please enter a Dairy Number'); return; }
+    .forEach(id=>{ const el=$(id); if(el?.dataset.key && el?.dataset.base64){ data[el.dataset.key]=el.dataset.base64; } });
+  if(!data.dairyNumber){ alert('Enter a Dairy Number.'); return; }
 
-  // Light normalisation before save
-  data['current-telemetry'] = NORM.teleBrand(data['current-telemetry']);
-  ['telemetry-comments','gateway-comments','agitator-comments','vat1-cap-comments','vat2-cap-comments'].forEach(k=>{
-    if(data[k]) data[k] = NORM.clean(data[k]);
-  });
+  // clean some text
+  ['telemetry-comments','gateway-comments','agitator-comments','vat1-cap-comments','vat2-cap-comments'].forEach(k=>{ if(data[k]) data[k]=NORM.clean(data[k]); });
+  data['current-telemetry']=NORM.teleBrand(data['current-telemetry']);
+  data.timestamp=Date.now();
 
-  data.timestamp = Date.now();
-
-  // Offline
+  // local
   await db.forms.put({ dairyNumber:data.dairyNumber, ...data });
 
-  // Cloud
+  // cloud
   try{
-    const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
+    const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
     await storage.ref(`${FOLDER}/${data.dairyNumber}.json`).put(blob);
-  }catch(e){
-    console.warn('[Save] Cloud save failed (offline or rules). Data still saved locally.', e);
-  }
+  }catch(e){ console.warn('[Save] Cloud save failed (rules/offline). Local OK.', e); }
 
   alert('Saved.');
 }
 
-/* ================= LOAD (Cloud + Dexie merge) ================= */
-async function fetchAllFromCloud(){
+/* ================= LOAD (Cloud list → Index fallback → Dexie) ================= */
+async function listFromFolder(){
   const folderRef = storage.ref(FOLDER);
-  const list = await folderRef.listAll(); // may fail with strict rules
+  const list = await folderRef.listAll();
   const out=[];
   for(const item of list.items){
     if(!item.name.endsWith('.json')) continue;
@@ -432,21 +455,44 @@ async function fetchAllFromCloud(){
       const url = await item.getDownloadURL();
       const rec = await fetch(url).then(r=>r.json());
       out.push(rec);
-    }catch(e){ console.warn('[Cloud] bad json', item.name, e); }
+    }catch(e){ console.warn('[Cloud/listAll] bad json', item.name, e); }
   }
   return out;
 }
 
-/* Build summary record with derived flags */
+async function listFromIndex(){
+  try{
+    const url = await storage.ref(`${FOLDER}/_index.json`).getDownloadURL();
+    const arr = await fetch(url).then(r=>r.json()); // array of "12345.json" or {path:"Pre Check/12345.json"}
+    const files = Array.isArray(arr)?arr:[];
+    const out=[];
+    for(const it of files){
+      const path = typeof it==='string' ? `${FOLDER}/${it.replace(/^Pre Check\//,'')}` : (it.path||'');
+      if(!path.endsWith('.json')) continue;
+      try{
+        const u = await storage.ref(path).getDownloadURL();
+        const rec = await fetch(u).then(r=>r.json());
+        out.push(rec);
+      }catch(e){ console.warn('[Cloud/index] bad item', it, e); }
+    }
+    return out;
+  }catch(e){
+    console.warn('[Cloud] no _index.json', e);
+    return [];
+  }
+}
+
+/* Summarise to card model */
 function summarise(rec){
-  const r = {...rec};
+  const r={...rec};
   const dairy = (r.dairyNumber||'').toString().trim();
 
-  ['telemetry-comments','gateway-comments','agitator-comments','vat1-cap-comments','vat2-cap-comments'].forEach(k=>{
-    if(r[k]) r[k]=NORM.clean(r[k]);
-  });
+  ['telemetry-comments','gateway-comments','agitator-comments','vat1-cap-comments','vat2-cap-comments'].forEach(k=>{ if(r[k]) r[k]=NORM.clean(r[k]); });
 
   const teleBrand = NORM.teleBrand(r['current-telemetry']);
+  const teleText = [r['telemetry-comments'], r['gateway-comments']].filter(Boolean).join(' • ');
+  const tele = parseTelemetry(teleText);
+
   const v1Cap = NORM.capVal(r['vat1-cap']);
   const v2Cap = NORM.capVal(r['vat2-cap']);
   const v1Cond = NORM.condVal(r['vat1-condition']);
@@ -454,9 +500,19 @@ function summarise(rec){
   const chiller = NORM.condVal(r['chiller-condition']);
   const twoVats = twoVatsPresent(r);
 
+  // Power need (keywords)
+  const needsPower = /\bno power|no outlet|power outlet needed|needs power|no socket|no gpo\b/i.test(teleText);
+
+  // Antenna recommendation
+  const antennaRecommended = tele.noCoverage || tele.antennaHint || (tele.bars!==null && tele.bars<=2) || (tele.dbm!==null && tele.dbm<=-102);
+
+  // Reducing cap detection
+  const reducingCapV1 = detectReducingCap(r['vat1-cap-comments'], r['vat1-comments']);
+  const reducingCapV2 = detectReducingCap(r['vat2-cap-comments'], r['vat2-comments']);
+
   // Readiness rules
   let ready = true;
-  const issues = [];
+  const issues=[];
   if(v1Cap!=='available'){ ready=false; if(v1Cap) issues.push('Cap needed (Vat 1)'); }
   if(v1Cond==='attention'){ ready=false; issues.push('Attention: Vat 1'); }
   if(twoVats){
@@ -464,10 +520,8 @@ function summarise(rec){
     if(v2Cond==='attention'){ ready=false; issues.push('Attention: Vat 2'); }
   }
   if(chiller==='attention'){ ready=false; issues.push('Chiller attention'); }
-
-  const gw = (r['gateway-comments']||'');
-  const needsPower = /power outlet|no power|outlet needed/i.test(gw);
   if(needsPower){ ready=false; issues.push('Outlet needed'); }
+  if(antennaRecommended){ issues.push('Antenna recommended'); }
 
   // Rubberware delivered logic
   const doorDelivered = (r['vat-door-seal']==='delivered');
@@ -476,7 +530,7 @@ function summarise(rec){
   const rjtSize = r['rjt-seal-size']||'';
   const deliveredDoorCount = doorDelivered ? (twoVats?2:1) : 0;
 
-  // Thumbs
+  // Photos
   const photoKeys = [
     'vat1-cap-photo-base64','vat2-cap-photo-base64','gateway-photo-base64','agitator-photo-base64',
     'vat1-condition-photo-base64','vat2-condition-photo-base64','vat-door-seal-photo-base64','rjt-seal-photo-base64','chiller-condition-photo-base64'
@@ -486,16 +540,19 @@ function summarise(rec){
   return {
     dairy,
     teleBrand,
+    tele, // parsed metrics
     v1Cap, v2Cap,
     v1Cond, v2Cond, chiller,
     v1Serial: r['vat1-serial']||'',
     v2Serial: r['vat2-serial']||'',
     v1Capacity: r['vat1-capacity']||'',
     v2Capacity: r['vat2-capacity']||'',
+    reducingCapV1, reducingCapV2,
     twoVats,
     doorDelivered, deliveredDoorCount, doorSize,
     rjtDelivered, rjtSize,
     needsPower,
+    antennaRecommended,
     issues,
     ready,
     thumbs,
@@ -505,97 +562,53 @@ function summarise(rec){
 
 let ALL=[], FILTERED=[];
 let charts={};
-function destroyCharts(){ try{ charts.tele?.destroy(); charts.cap?.destroy(); }catch{} charts={}; }
+function destroyCharts(){ try{charts.tele?.destroy(); charts.cap?.destroy();}catch{} charts={}; }
 
-/* === FINAL PATCHED LOADER (Dexie-first, cloud merge, demo seed, banner) === */
+/* Patched loader (Dexie→Cloud list→Index→Demo) */
 async function loadAll(){
-  // 1) Dexie first (freshly saved forms appear immediately)
-  let localList = [];
-  try {
-    localList = (await db.forms.toArray()).map(({id, ...rest}) => rest);
-    console.log('[Summary] Dexie items:', localList.length);
-  } catch (e) {
-    console.warn('[Summary] Dexie error', e);
+  let localList=[];
+  try{ localList=(await db.forms.toArray()).map(({id,...rest})=>rest); }catch(e){ console.warn('Dexie error', e); }
+
+  let cloudList=[]; let cloudErr=null;
+  try{ cloudList = await listFromFolder(); }catch(e){ cloudErr=e; }
+  if(!cloudList.length){
+    try{ const idx = await listFromIndex(); cloudList = idx; }catch(e){ console.warn('Index fallback failed', e); }
   }
 
-  // 2) Cloud second (merge)
-  let cloudList = [];
-  let cloudErr = null;
-  try {
-    cloudList = await fetchAllFromCloud();   // requires list permission
-    console.log('[Summary] Cloud items:', cloudList.length);
-  } catch (e) {
-    cloudErr = e;
-    console.warn('[Summary] Cloud fetch error', e);
-  }
+  const byDairy=new Map();
+  [...cloudList, ...localList].forEach(rec=>{ if(rec && rec.dairyNumber){ byDairy.set(rec.dairyNumber, { ...(byDairy.get(rec.dairyNumber)||{}), ...rec }); }});
+  let data=[...byDairy.values()];
 
-  // 3) Merge: prefer local fields, add cloud items not present
-  const byDairy = new Map();
-  [...cloudList, ...localList].forEach(rec => {
-    if (!rec || !rec.dairyNumber) return;
-    byDairy.set(rec.dairyNumber, { ...(byDairy.get(rec.dairyNumber) || {}), ...rec });
-  });
-
-  let data = [...byDairy.values()];
-
-  // 4) Optional DEMO seed if still empty
-  if (!data.length && USE_DEMO_WHEN_EMPTY) {
-    console.log('[Summary] Seeding demo data (no local/cloud records)');
-    data = [{
-      dairyNumber: '12345',
-      'current-telemetry': 'Levno',
-      'telemetry-comments': 'good signal, power outlet nearby',
-      'vat1-cap': 'available',
-      'vat1-capacity': '14500',
-      'vat1-condition': 'ok',
-      'vat1-serial': 'V1-ABC-001',
-      'vat2-cap': 'unavailable',
-      'vat2-capacity': '12000',
-      'vat2-condition': 'attention',
-      'vat2-serial': 'V2-XYZ-009',
-      'gateway-comments': 'needs power point in shed (no outlet)',
-      'rjt-seal': 'delivered',
-      'rjt-seal-size': 'Large',
-      'vat-door-seal': 'delivered',
-      'vat-door-seal-size': 'Small',
-      'chiller-condition': 'ok'
+  if(!data.length && USE_DEMO_WHEN_EMPTY){
+    data=[{
+      dairyNumber:'12345',
+      'vat1-cap':'available','vat1-capacity':'14500','vat1-condition':'ok','vat1-serial':'V1-ABC-001','vat1-cap-comments':'gray reducer present',
+      'vat2-cap':'unavailable','vat2-capacity':'12000','vat2-condition':'attention','vat2-serial':'V2-XYZ-009','vat2-cap-comments':'adaptor needed',
+      'gateway-comments':'2 bars Spark -104 dBm, 4G, 25m to power outlet',
+      'current-telemetry':'Levno','telemetry-comments':'Halo gateway in office; UPS recommended',
+      'rjt-seal':'delivered','rjt-seal-size':'Large','vat-door-seal':'delivered','vat-door-seal-size':'Small',
+      'chiller-condition':'ok'
     }];
   }
 
-  // 5) Persist merged data back to Dexie (offline-first)
-  for (const rec of data) {
-    try { await db.forms.put({ dairyNumber: rec.dairyNumber, ...rec }); } catch {}
-  }
+  for(const rec of data){ try{ await db.forms.put({dairyNumber:rec.dairyNumber, ...rec}); }catch{} }
 
-  // 6) Build summary records
-  ALL = data.map(summarise);
+  ALL=data.map(summarise);
 
-  // 7) Cloud banner when nothing reachable
-  const summaryCardsHost = document.getElementById('cards');
-  if (summaryCardsHost) {
-    const warnId = 'cloud-warn-banner';
-    const old = document.getElementById(warnId);
-    if (old) old.remove();
-    if ((!cloudList || !cloudList.length) && !localList.length) {
-      const banner = document.createElement('div');
-      banner.id = warnId;
-      banner.className = 'cardy mb-2';
-      banner.innerHTML = `
-        <div class="small">
-          <b>Heads up:</b> No records found in local storage or cloud.
-          ${cloudErr ? ' Cloud listing may be blocked by Firebase Storage rules.' : ' Save a form first to populate local records.'}
-        </div>`;
-      summaryCardsHost.parentElement.prepend(banner);
+  // Cloud banner
+  const host=$('cards'); if(host){
+    const id='cloud-warn'; const old=$(id); if(old) old.remove();
+    if(!cloudList.length && !localList.length){
+      const d=document.createElement('div'); d.id=id; d.className='cardy mb-2';
+      d.innerHTML='<div class="small"><b>Heads up:</b> No records found locally or in cloud. Cloud listing may be blocked—save a form to see it here.</div>';
+      host.parentElement.prepend(d);
     }
   }
 }
 
-/* Empty-state helper */
+/* Empty state */
 function showEmptyStateIfNeeded(){
-  const wrap = document.getElementById('cards');
-  if (wrap && !ALL.length) {
-    wrap.innerHTML = '<div class="text-muted">No data yet. Save a form, or check Firebase Storage permissions for listing.</div>';
-  }
+  const wrap=$('cards'); if(wrap && !ALL.length){ wrap.innerHTML='<div class="text-muted">No data yet. Save a form, or check Firebase Storage listing permissions.</div>'; }
 }
 
 /* ================= SUMMARY RENDER ================= */
@@ -604,57 +617,88 @@ function applyFilters(){
   const fReady = val('filter-ready');
   const fCap = val('filter-cap');
   const fTele = val('filter-tele');
+  const fAnt = val('filter-antenna');
+
   FILTERED = ALL.filter(x=>{
-    const hay = [x.dairy, x.teleBrand, x.v1Serial, x.v2Serial, x.v1Capacity, x.v2Capacity].join(' ').toLowerCase();
+    const hay = [
+      x.dairy, x.teleBrand, x.v1Serial, x.v2Serial, x.v1Capacity, x.v2Capacity,
+      x.tele.carrier, x.raw['gateway-location'], x.raw['gateway-comments'], x.raw['telemetry-comments']
+    ].filter(Boolean).join(' ').toLowerCase();
     if(q && !hay.includes(q)) return false;
     if(fReady==='ready' && !x.ready) return false;
     if(fReady==='notready' && x.ready) return false;
     if(fCap && !([x.v1Cap,x.v2Cap].some(v=>v===fCap))) return false;
     if(fTele && x.teleBrand!==fTele) return false;
+    if(fAnt==='yes' && !x.antennaRecommended) return false;
+    if(fAnt==='no' && x.antennaRecommended) return false;
     return true;
   });
 }
 
 function renderKPIs(){
-  const total = ALL.length;
-  const ready = ALL.filter(x=>x.ready).length;
-  const capMissing = ALL.filter(x=>x.v1Cap==='unavailable' || x.v2Cap==='unavailable').length;
-  $('kpi-total').textContent = total;
-  $('kpi-ready').textContent = ready;
-  $('kpi-cap-missing').textContent = capMissing;
+  const total=ALL.length;
+  const ready=ALL.filter(x=>x.ready).length;
+  const capMissing=ALL.filter(x=>x.v1Cap==='unavailable' || x.v2Cap==='unavailable').length;
+  const powerNeed=ALL.filter(x=>x.needsPower).length;
+  const antenna=ALL.filter(x=>x.antennaRecommended).length;
+  const dual=ALL.filter(x=>x.twoVats).length;
+  $('kpi-total').textContent=total;
+  $('kpi-ready').textContent=ready;
+  $('kpi-cap-missing').textContent=capMissing;
+  $('kpi-power').textContent=powerNeed;
+  $('kpi-antenna').textContent=antenna;
+  $('kpi-dual').textContent=dual;
 }
 
 function renderCards(){
-  const wrap = $('cards');
-  wrap.innerHTML='';
+  const wrap=$('cards'); wrap.innerHTML='';
   if(!FILTERED.length){ wrap.innerHTML='<div class="text-muted">No farms match filters.</div>'; return; }
 
   FILTERED.forEach(x=>{
-    const chips = [];
+    const chips=[];
     chips.push(`<span class="chip ${x.ready?'ok':'bad'}">${x.ready?'Install-ready':'Needs work'}</span>`);
-    if(x.needsPower) chips.push(`<span class="chip bad">Outlet needed</span>`);
-    if(x.v1Cap==='unavailable') chips.push(`<span class="chip bad">Cap retrofit (V1)</span>`);
-    if(x.v2Cap==='unavailable') chips.push(`<span class="chip bad">Cap retrofit (V2)</span>`);
-    if(x.v1Cond==='attention') chips.push(`<span class="chip bad">Attention: Vat 1</span>`);
-    if(x.v2Cond==='attention') chips.push(`<span class="chip bad">Attention: Vat 2</span>`);
-    if(x.chiller==='attention') chips.push(`<span class="chip bad">Chiller</span>`);
-    if(x.teleBrand) chips.push(`<span class="chip info">${x.teleBrand}</span>`);
-    if(x.doorDelivered) chips.push(`<span class="chip ok">Door seals: ${x.deliveredDoorCount}${x.doorSize? ' • '+x.doorSize:''}</span>`);
+    if(x.needsPower) chips.push(`<span class="chip bad">Power outlet needed</span>`);
+    if(x.antennaRecommended){
+      let sigTxt='Antenna recommended';
+      if(x.tele.dbm!==null) sigTxt+=` (${x.tele.dbm} dBm)`;
+      else if(x.tele.bars!==null) sigTxt+=` (${x.tele.bars}/5 bars)`;
+      chips.push(`<span class="chip bad">${sigTxt}</span>`);
+    }
+    if(x.reducingCapV1) chips.push(`<span class="chip info">Reducing cap (V1)</span>`);
+    if(x.twoVats && x.reducingCapV2) chips.push(`<span class="chip info">Reducing cap (V2)</span>`);
+    if(x.tele.carrier) chips.push(`<span class="chip info">${x.tele.carrier}</span>`);
+    if(x.tele.net) chips.push(`<span class="chip info">${x.tele.net}</span>`);
+    if(x.tele.ups) chips.push(`<span class="chip info">UPS</span>`);
+    if(x.tele.solar) chips.push(`<span class="chip info">Solar</span>`);
+    if(x.doorDelivered) chips.push(`<span class="chip ok">Door seals: ${x.deliveredDoorCount}${x.doorSize?' • '+x.doorSize:''}</span>`);
     if(x.rjtDelivered) chips.push(`<span class="chip ok">RJT: ${x.rjtSize||'Delivered'}</span>`);
 
     const photos = x.thumbs.map(b64=>`<img class="img-thumb" src="${b64}" loading="lazy" alt="">`).join('');
 
+    const telBits = [
+      x.teleBrand||'-',
+      x.tele.carrier? ' • '+x.tele.carrier : '',
+      x.tele.net? ' • '+x.tele.net : '',
+      (x.tele.bars!==null)? ` • ${x.tele.bars}/5 bars` : '',
+      (x.tele.dbm!==null)? ` • ${x.tele.dbm} dBm` : '',
+      (x.tele.distanceM!==null)? ` • ${x.tele.distanceM}m to outlet` : ''
+    ].join('').replace(/^ • /,'');
+
+    const dtsLine = (x.teleBrand==='DTS' || /DTS/.test(x.raw['telemetry-comments']||'')) && x.tele.dtsCard
+      ? `<div class="kv"><div class="text-muted">DTS</div><div>Card #${x.tele.dtsCard}</div></div>` : '';
+
     const kv = `
-      <div class="kv"><div class="text-muted">Vat 1 Cap</div><div>${x.v1Cap||'-'} • ${x.v1Capacity||''}</div></div>
-      ${x.twoVats?`<div class="kv"><div class="text-muted">Vat 2 Cap</div><div>${x.v2Cap||'-'} • ${x.v2Capacity||''}</div></div>`:''}
-      <div class="kv"><div class="text-muted">Condition</div><div>V1: ${x.v1Cond||'-'}${x.twoVats? ' • V2: '+(x.v2Cond||'-'):''} • Chiller: ${x.chiller||'-'}</div></div>
+      <div class="kv"><div class="text-muted">Vat 1</div><div>${x.v1Cap||'-'} • ${x.v1Capacity||''} • ${x.v1Cond||'-'}</div></div>
+      ${x.twoVats?`<div class="kv"><div class="text-muted">Vat 2</div><div>${x.v2Cap||'-'} • ${x.v2Capacity||''} • ${x.v2Cond||'-'}</div></div>`:''}
+      <div class="kv"><div class="text-muted">Chiller</div><div>${x.chiller||'-'}</div></div>
       <div class="kv"><div class="text-muted">Serials</div><div>${x.v1Serial||'-'}${x.v2Serial? ' • '+x.v2Serial:''}</div></div>
-      <div class="kv"><div class="text-muted">Telemetry</div><div>${x.teleBrand||'-'}</div></div>
+      <div class="kv"><div class="text-muted">Telemetry</div><div>${telBits||'-'}</div></div>
+      ${dtsLine}
     `;
 
-    const card = document.createElement('div');
+    const card=document.createElement('div');
     card.className='cardy mb-2';
-    card.innerHTML = `
+    card.innerHTML=`
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <div class="fw-bold">Dairy #${x.dairy}</div>
@@ -671,122 +715,103 @@ function renderCards(){
 
 function renderCharts(){
   destroyCharts();
-  // By Telemetry
-  const teleCount = {};
+  // Telemetry counts
+  const teleCount={};
   ALL.forEach(x=>{ const k=x.teleBrand||'Unknown'; teleCount[k]=(teleCount[k]||0)+1; });
-  charts.tele = new Chart($('chartTele').getContext('2d'), {
+  charts.tele=new Chart($('chartTele').getContext('2d'),{
     type:'doughnut',
-    data:{ labels:Object.keys(teleCount), datasets:[{ data:Object.values(teleCount) }] },
+    data:{labels:Object.keys(teleCount),datasets:[{data:Object.values(teleCount)}]},
     options:{plugins:{legend:{position:'bottom'}}}
   });
-  // Cap availability (both vats contribute)
-  const caps = { available:0, unavailable:0, na:0 };
+  // Cap availability (both vats)
+  const caps={available:0,unavailable:0,na:0};
   ALL.forEach(x=>{
     if(x.v1Cap) caps[x.v1Cap]=(caps[x.v1Cap]||0)+1;
     if(x.v2Cap) caps[x.v2Cap]=(caps[x.v2Cap]||0)+1;
   });
-  charts.cap = new Chart($('chartCap').getContext('2d'), {
+  charts.cap=new Chart($('chartCap').getContext('2d'),{
     type:'bar',
-    data:{ labels:Object.keys(caps), datasets:[{ data:Object.values(caps) }] },
-    options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
+    data:{labels:Object.keys(caps),datasets:[{data:Object.values(caps)}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
   });
 }
 
 /* ================= ADMIN EXPORTS ================= */
 function exportRows(){
   return ALL.map(x=>({
-    DairyNumber: x.dairy,
-    Telemetry: x.teleBrand,
-    Vat1_Cap: x.v1Cap, Vat1_CapacityL: x.v1Capacity, Vat1_Condition: x.v1Cond, Vat1_Serial: x.v1Serial,
-    Vat2_Cap: x.v2Cap, Vat2_CapacityL: x.v2Capacity, Vat2_Condition: x.v2Cond, Vat2_Serial: x.v2Serial,
-    Chiller: x.chiller,
-    DoorSeal_DeliveredCount: x.deliveredDoorCount, DoorSeal_Size: x.doorSize || '',
-    RJT_Delivered: x.rjtDelivered ? 'Yes':'', RJT_Size: x.rjtSize || '',
-    NeedsPower: x.needsPower ? 'Yes':'',
-    Ready: x.ready ? 'Yes':'No'
+    DairyNumber:x.dairy,
+    Telemetry:x.teleBrand,
+    Carrier:x.tele.carrier||'',
+    Network:x.tele.net||'',
+    Bars:x.tele.bars??'',
+    dBm:x.tele.dbm??'',
+    DistanceToOutletM:x.tele.distanceM??'',
+    PowerOutletNeeded:x.needsPower?'Yes':'',
+    AntennaRecommended:x.antennaRecommended?'Yes':'',
+    Vat1_Cap:x.v1Cap, Vat1_CapacityL:x.v1Capacity, Vat1_Condition:x.v1Cond, Vat1_Serial:x.v1Serial,
+    Vat2_Cap:x.v2Cap, Vat2_CapacityL:x.v2Capacity, Vat2_Condition:x.v2Cond, Vat2_Serial:x.v2Serial,
+    Chiller:x.chiller,
+    ReducingCap_V1:x.reducingCapV1?'Yes':'',
+    ReducingCap_V2:(x.twoVats && x.reducingCapV2)?'Yes':'',
+    DoorSeal_DeliveredCount:x.deliveredDoorCount, DoorSeal_Size:x.doorSize||'',
+    RJT_Delivered:x.rjtDelivered?'Yes':'', RJT_Size:x.rjtSize||'',
+    Ready:x.ready?'Yes':'No',
+    DTS_Card:x.tele.dtsCard||''
   }));
 }
 function exportCSV(){
-  const rows = exportRows();
-  if(!rows.length){ alert('Nothing to export'); return; }
-  const headers = Object.keys(rows[0]);
-  const quote = v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const csv = '\uFEFF' + [headers.join(',')].concat(rows.map(r=>headers.map(h=>quote(r[h])).join(','))).join('\r\n');
-  const blob = new Blob([csv],{type:"text/csv;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='vat_precheck_summary.csv'; document.body.appendChild(a); a.click();
-  setTimeout(()=>{a.remove(); URL.revokeObjectURL(url)}, 600);
+  const rows=exportRows(); if(!rows.length){ alert('Nothing to export'); return; }
+  const headers=Object.keys(rows[0]);
+  const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const csv='\uFEFF'+[headers.join(',')].concat(rows.map(r=>headers.map(h=>quote(r[h])).join(','))).join('\r\n');
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='vat_precheck_summary.csv'; document.body.appendChild(a); a.click();
+  setTimeout(()=>{a.remove(); URL.revokeObjectURL(url)},600);
 }
 function exportXLSX(){
-  const rows = exportRows();
-  if(!rows.length){ alert('Nothing to export'); return; }
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "Summary");
-  XLSX.writeFile(wb, 'vat_precheck_summary.xlsx');
+  const rows=exportRows(); if(!rows.length){ alert('Nothing to export'); return; }
+  const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, "Summary"); XLSX.writeFile(wb,'vat_precheck_summary.xlsx');
 }
 
 /* ================= NAV / WIRING ================= */
-function setRoleUI(){
-  if(window.AGORA_ROLE==='admin'){
-    document.querySelectorAll('.admin-only').forEach(el=>el.style.display='inline-block');
-  }
-}
-function showPage(id){
-  ['page-form','page-summary','page-admin'].forEach(pid=> hide(pid));
-  show(id);
-}
-async function refreshSummary(){
-  await loadAll();
-  renderKPIs();
-  applyFilters();
-  renderCards();
-  renderCharts();
-  showEmptyStateIfNeeded();
-}
+function setRoleUI(){ if(window.AGORA_ROLE==='admin'){ document.querySelectorAll('.admin-only').forEach(el=>el.style.display='inline-block'); } }
+function showPage(id){ ['page-form','page-summary','page-admin'].forEach(pid=>hide(pid)); show(id); }
+async function refreshSummary(){ await loadAll(); renderKPIs(); applyFilters(); renderCards(); renderCharts(); showEmptyStateIfNeeded(); }
 
-// Event listeners
-document.getElementById('nav-form').addEventListener('click', ()=>showPage('page-form'));
-document.getElementById('nav-summary').addEventListener('click', async()=>{ showPage('page-summary'); await refreshSummary(); });
-document.getElementById('nav-admin').addEventListener('click', ()=>showPage('page-admin'));
+// Events
+$('nav-form').addEventListener('click', ()=>showPage('page-form'));
+$('nav-summary').addEventListener('click', async()=>{ showPage('page-summary'); await refreshSummary(); });
+$('nav-admin').addEventListener('click', ()=>showPage('page-admin'));
+$('btn-save').addEventListener('click', async()=>{ await saveForm(); });
+$('btn-view').addEventListener('click', async()=>{ await saveForm(); showPage('page-summary'); await refreshSummary(); });
+$('btn-apply').addEventListener('click', ()=>{ applyFilters(); renderCards(); });
+$('btn-csv')?.addEventListener('click', exportCSV);
+$('btn-xlsx')?.addEventListener('click', exportXLSX);
+$('filter-search').addEventListener('keydown', e=>{ if(e.key==='Enter'){ applyFilters(); renderCards(); }});
 
-document.getElementById('btn-save').addEventListener('click', async()=>{ await saveForm(); });
-document.getElementById('btn-view').addEventListener('click', async()=>{ await saveForm(); showPage('page-summary'); await refreshSummary(); });
-
-document.getElementById('btn-apply').addEventListener('click', ()=>{ applyFilters(); renderCards(); });
-
-document.getElementById('btn-csv')?.addEventListener('click', exportCSV);
-document.getElementById('btn-xlsx')?.addEventListener('click', exportXLSX);
-
-// Live filtering on enter key
-document.getElementById('filter-search').addEventListener('keydown', e=>{ if(e.key==='Enter'){ applyFilters(); renderCards(); }});
-
-// Auto-load record into form on blur of dairyNumber
-document.getElementById('dairyNumber').addEventListener('blur', async function(){
-  const num = this.value.trim(); if(!num) return;
-  let rec = await db.forms.where('dairyNumber').equals(num).first();
+// Load record into form by Dairy #
+$('dairyNumber')?.addEventListener('blur', async function(){
+  const num=this.value.trim(); if(!num) return;
+  let rec=await db.forms.where('dairyNumber').equals(num).first();
   if(!rec){
     try{
-      const ref = storage.ref(`${FOLDER}/${num}.json`);
-      const url = await ref.getDownloadURL();
-      const res = await fetch(url);
-      if(res.ok) rec = await res.json();
+      const ref=storage.ref(`${FOLDER}/${num}.json`);
+      const url=await ref.getDownloadURL();
+      const res=await fetch(url);
+      if(res.ok) rec=await res.json();
     }catch{}
   }
   if(rec){
     Object.entries(rec).forEach(([k,v])=>{
-      const el = document.getElementById(k);
-      if(el && (el.tagName==='INPUT' || el.tagName==='SELECT')) el.value = v;
-      if(k.endsWith('-photo-base64')){
-        const id = k.replace('-photo-base64','-photo');
-        const inp = document.getElementById(id);
-        if(inp){ inp.dataset.base64 = v; inp.dataset.key = k; }
-      }
+      const el=$(k); if(el && (el.tagName==='INPUT'||el.tagName==='SELECT')) el.value=v;
+      if(k.endsWith('-photo-base64')){ const id=k.replace('-photo-base64','-photo'); const inp=$(id); if(inp){ inp.dataset.base64=v; inp.dataset.key=k; } }
     });
   }
 });
 
-// Initial UI state
+// Init
 setRoleUI();
 showPage('page-form');
 </script>
