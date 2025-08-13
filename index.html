@@ -1,219 +1,817 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Agora Vat Pre Check — AI Sample Export</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8" />
+<title>Agora Vat Pre Check — Flash</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 <style>
-  :root{ --accent:#FF851B; --primary:#001F3F; }
-  body{ background:#f8faff; font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif; color:#001F3F; }
-  .wrap{ max-width:860px; margin:32px auto; background:#fff; border-radius:16px; padding:22px; box-shadow:0 2px 32px #001F3F11; }
-  h1{ font-size:1.6rem; color:var(--accent); margin-bottom:4px; text-align:center; }
-  .lead{ text-align:center; color:#6b7280; margin-bottom:18px; }
-  .btn-agora{ background:var(--accent); color:#fff; border:none; border-radius:10px; padding:.65rem 1rem; font-weight:600; }
-  .btn-agora:hover{ background:#ff6d00; }
-  .btn-alt{ background:#fff; color:var(--primary); border:1px solid var(--accent); border-radius:10px; padding:.55rem .9rem; font-weight:600; }
-  .grid{ display:grid; grid-template-columns:1fr; gap:14px; }
-  .card{ border:1px solid #eee; border-radius:12px; padding:14px; background:#fff; }
-  .status{ min-height:22px; color:#6b7280; }
-  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:.92rem; }
-  .small{ font-size:.9rem; color:#6b7280; }
-  .badge-ok{ background:#e8f5e9; color:#1b5e20; border-radius:8px; padding:.2rem .5rem; font-weight:700; }
-  .badge-warn{ background:#ffebee; color:#b71c1c; border-radius:8px; padding:.2rem .5rem; font-weight:700; }
+  :root{
+    --bg:#f8faff; --primary:#001F3F; --accent:#FF851B;
+    --danger:#FF4136; --success:#2ECC40; --muted:#6b7280;
+    --card:#ffffff; --shadow:0 2px 32px #001F3F11; --chip:#eef3ff;
+    --maxw:980px; --logo:220px; --h1:2rem; --table-font:.95rem;
+  }
+  body{background:var(--bg);color:var(--primary);font-family:'Segoe UI',Arial,sans-serif}
+  .container-main{background:var(--card);border-radius:18px;max-width:var(--maxw);margin:28px auto 44px;padding:22px 16px 28px;box-shadow:var(--shadow)}
+  .logo-header{max-width:var(--logo);display:block;margin:0 auto 8px}
+  h1{color:var(--accent);font-size:var(--h1);text-align:center;margin-bottom:6px}
+  .nav-line{display:flex;gap:8px;justify-content:center;margin:10px 0 14px;flex-wrap:wrap}
+  .btn-agora{background:var(--accent);color:#fff;border:none;border-radius:8px;font-weight:600;padding:.55rem .9rem}
+  .btn-agora:hover{background:#ff6d00}
+  .btn-outline{background:#fff;color:var(--primary);border:1px solid var(--accent);border-radius:8px;font-weight:600}
+  .btn-outline:hover{background:var(--accent);color:#fff}
+  .btn-admin{background:var(--primary);color:#fff;border:none;border-radius:8px;font-weight:600;padding:.55rem .9rem}
+  .btn-admin:hover{background:#173559}
+  .form-label{color:var(--primary);font-weight:600}
+  .form-control,.form-select{border-radius:8px}
+  .small-note{font-size:.9em;color:#666}
+  footer{text-align:center;color:#999;font-size:.85em;margin-top:18px}
+
+  /* Cards / KPIs */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .kpi{border:1px solid #eee;border-radius:12px;padding:12px;text-align:center;background:#fff}
+  .kpi .num{font-size:1.35rem;font-weight:800}
+  .kpi .label{font-size:.9rem;color:#666}
+  .chip{display:inline-block;padding:4px 10px;border:1px solid #ddd;border-radius:14px;margin-right:6px;cursor:pointer;user-select:none;background:#fff}
+  .chip.active{border-color:var(--accent);color:var(--accent);font-weight:600}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+
+  .cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .card-farm{border:1px solid #eee;border-radius:12px;padding:12px;background:#fff;box-shadow:0 1px 8px #0000000a}
+  .c-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .c-title{font-weight:800}
+  .c-badges{display:flex;gap:6px;flex-wrap:wrap}
+  .badge-attn{background:#ffebee;color:#b71c1c;border-radius:8px;padding:2px 6px;font-weight:700}
+  .badge-ok{background:#e8f5e9;color:#1b5e20;border-radius:8px;padding:2px 6px;font-weight:700}
+  .tag{display:inline-block;background:var(--chip);border:1px solid #d7def0;border-radius:12px;padding:2px 8px;margin:2px 4px 0 0;font-size:.85em}
+  .thumbs{margin-top:6px}
+  .thumbs img{width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid #eee;margin:3px}
+  .rowline{display:flex;gap:10px;flex-wrap:wrap;color:#374151}
+  .rowline b{color:#111827}
+  .card-actions{display:flex;gap:6px;margin-top:6px}
+  .summary-line{margin-top:6px;color:#111;font-weight:600}
+
+  /* Table */
+  .table-area{display:block}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .table,.table *{font-size:var(--table-font)!important}
+  .table thead th{position:sticky;top:0;background:#fff;z-index:1}
+
+  /* Admin */
+  .admin-note{font-size:.92rem;color:#6b7280}
+
+  /* Overlay */
+  .screen-overlay{position:fixed;inset:0;background:#ffffffdd;display:none;align-items:center;justify-content:center;z-index:9999}
+  .loader{width:90px;height:90px;border-radius:50%;border:8px solid #eee;border-top-color:var(--accent);animation:spin 1s linear infinite;margin-bottom:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .overlay-box{text-align:center;color:#173559}
+
+  /* Responsive */
+  @media (max-width:900px){ .kpi-grid{grid-template-columns:repeat(2,1fr)} .cards-grid{grid-template-columns:1fr} }
+  @media (max-width:600px){
+    .container-main{padding:12px}
+    .logo-header{max-width:120px}
+    h1{font-size:1.35rem}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Agora Vat Pre Check — AI Sample Export</h1>
-  <div class="lead">Exports real records (without photos) from <span class="mono">Pre Check/</span> for AI rule tuning.</div>
+<div class="container-main" id="mainbox">
+  <img id="logo-img" class="logo-header" style="display:none" alt="Agora Logo">
+  <h1>Agora Vat Pre Check</h1>
 
-  <div class="grid">
-    <!-- Firebase Config (pre-filled to match your app) -->
-    <div class="card">
-      <div class="fw-bold mb-1">Firebase config</div>
-      <div class="small mb-2">These are copied from your app so you shouldn’t need to change anything.</div>
-      <div class="row g-2">
-        <div class="col-md-6"><label class="form-label small">apiKey</label><input id="apiKey" class="form-control" value="AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI"></div>
-        <div class="col-md-6"><label class="form-label small">authDomain</label><input id="authDomain" class="form-control" value="dairy-farm-record-system.firebaseapp.com"></div>
-        <div class="col-md-6"><label class="form-label small">projectId</label><input id="projectId" class="form-control" value="dairy-farm-record-system"></div>
-        <div class="col-md-6"><label class="form-label small">storageBucket</label><input id="storageBucket" class="form-control" value="dairy-farm-record-system.appspot.com"></div>
-        <div class="col-md-6"><label class="form-label small">messagingSenderId</label><input id="messagingSenderId" class="form-control" value="422124188212"></div>
-        <div class="col-md-6"><label class="form-label small">appId</label><input id="appId" class="form-control" value="1:422124188212:web:1bd31bee8d6e91e301d061"></div>
+  <div class="nav-line">
+    <button class="btn-agora" id="btn-form">Form</button>
+    <button class="btn-outline" id="btn-summary">Records & Summary</button>
+    <button class="btn-admin" id="btn-admin">Admin</button>
+  </div>
+
+  <!-- FORM VIEW -->
+  <div id="form-view">
+    <form id="vat-precheck-form" autocomplete="off">
+      <div class="mb-2">
+        <label class="form-label">Dairy Number</label>
+        <input id="dairyNumber" name="dairyNumber" class="form-control" required>
       </div>
-      <div class="small mt-2">Path: <span class="mono">Pre Check/</span></div>
+
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label class="form-label">Vat 1 Cap</label>
+          <select id="vat1-cap" name="vat1-cap" class="form-select" onchange="togglePhotos('vat1-cap')">
+            <option value="available">Available ✓</option>
+            <option value="unavailable">Unavailable ✗</option>
+          </select>
+          <label class="form-label mt-1">Comments</label>
+          <input id="vat1-cap-comments" name="vat1-cap-comments" class="form-control">
+          <input type="file" id="vat1-cap-photo" class="form-control mt-1" style="display:none" accept="image/*" onchange="previewImage(event,'vat1-cap-preview')">
+          <img id="vat1-cap-preview" class="mt-1" style="display:none;max-width:200px;border-radius:8px;border:1px solid #eee">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Vat 2 Cap</label>
+          <select id="vat2-cap" name="vat2-cap" class="form-select" onchange="togglePhotos('vat2-cap')">
+            <option value="na">N/A</option>
+            <option value="available">Available ✓</option>
+            <option value="unavailable">Unavailable ✗</option>
+          </select>
+          <label class="form-label mt-1">Comments</label>
+          <input id="vat2-cap-comments" name="vat2-cap-comments" class="form-control">
+          <input type="file" id="vat2-cap-photo" class="form-control mt-1" style="display:none" accept="image/*" onchange="previewImage(event,'vat2-cap-preview')">
+          <img id="vat2-cap-preview" class="mt-1" style="display:none;max-width:200px;border-radius:8px;border:1px solid #eee">
+        </div>
+      </div>
+
+      <div class="row g-2 mt-1">
+        <div class="col-md-6">
+          <label class="form-label">Gateway Location</label>
+          <input id="gateway-location" name="gateway-location" class="form-control">
+          <label class="form-label mt-1">Comments</label>
+          <input id="gateway-comments" name="gateway-comments" class="form-control">
+          <input type="file" id="gateway-photo" class="form-control mt-1" accept="image/*" onchange="previewImage(event,'gateway-preview')">
+          <img id="gateway-preview" class="mt-1" style="display:none;max-width:200px;border-radius:8px;border:1px solid #eee">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Agitator Sensor Location</label>
+          <input id="agitator-location" name="agitator-location" class="form-control">
+          <label class="form-label mt-1">Comments</label>
+          <input id="agitator-comments" name="agitator-comments" class="form-control">
+          <input type="file" id="agitator-photo" class="form-control mt-1" accept="image/*" onchange="previewImage(event,'agitator-preview')">
+          <img id="agitator-preview" class="mt-1" style="display:none;max-width:200px;border-radius:8px;border:1px solid #eee">
+        </div>
+      </div>
+
+      <div class="row g-2 mt-1">
+        <div class="col-md-6">
+          <label class="form-label">Vat 1 Capacity (L)</label>
+          <input id="vat1-capacity" name="vat1-capacity" class="form-control" oninput="showVat2Serial()">
+          <label class="form-label mt-1">Comments (interior width etc.)</label>
+          <input id="vat1-comments" name="vat1-comments" class="form-control">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Vat 2 Capacity (L)</label>
+          <input id="vat2-capacity" name="vat2-capacity" class="form-control" oninput="showVat2Serial()">
+          <label class="form-label mt-1">Comments (interior width etc.)</label>
+          <input id="vat2-comments" name="vat2-comments" class="form-control">
+        </div>
+      </div>
+
+      <div class="row g-2 mt-1">
+        <div class="col-md-6">
+          <label class="form-label">Vat 1 Condition</label>
+          <select id="vat1-condition" name="vat1-condition" class="form-select" onchange="toggleVatCondition('vat1-condition')">
+            <option value="ok">OK</option>
+            <option value="attention">Attention Required</option>
+          </select>
+          <div id="vat1-condition-extra" class="mt-1" style="display:none">
+            <label class="form-label">Comments</label>
+            <input id="vat1-condition-comments" name="vat1-condition-comments" class="form-control">
+            <input type="file" id="vat1-condition-photo" class="form-control mt-1" accept="image/*" onchange="previewImage(event,'vat1-condition-preview')">
+            <img id="vat1-condition-preview" class="mt-1" style="display:none;max-width:200px;border-radius:8px;border:1px solid #eee">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Vat 2 Condition</label>
+          <select id="vat2-condition" name="vat2-condition" class="form-select" onchange="toggleVatCondition('vat2-condition')">
+            <option value="ok">OK</option>
+            <option value="attention">Attention Required</option>
+          </select>
+          <div id="vat2-condition-extra" class="mt-1" style="display:none">
+            <label class="form-label">Comments</label>
+            <input id="vat2-condition-comments" name="vat2-condition-comments" class="form-control">
+            <input type="file" id="vat2-condition-photo" class="form-control mt-1" accept="image/*" onchange="previewImage(event,'vat2-condition-preview')">
+            <img id="vat2-condition-preview" class="mt-1" style="display:none;max-width:200px;border-radius:8px;border:1px solid #eee">
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-2 mt-1">
+        <div class="col-md-6">
+          <label class="form-label">Vat 1 Serial Number</label>
+          <input id="vat1-serial" name="vat1-serial" class="form-control">
+        </div>
+        <div class="col-md-6" id="vat2-serial-section" style="display:none">
+          <label class="form-label">Vat 2 Serial Number</label>
+          <input id="vat2-serial" name="vat2-serial" class="form-control">
+        </div>
+      </div>
+
+      <div class="row g-2 mt-1">
+        <div class="col-md-6">
+          <label class="form-label">Current Telemetry</label>
+          <input id="current-telemetry" name="current-telemetry" class="form-control">
+          <label class="form-label mt-1">Comments</label>
+          <input id="telemetry-comments" name="telemetry-comments" class="form-control">
+        </div>
+      </div>
+
+      <div class="mt-3"><div class="fw-bold mb-1">Rubberware</div></div>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label class="form-label">Vat Door Seal</label>
+          <select id="vat-door-seal" name="vat-door-seal" class="form-select" onchange="toggleVatDoorSeal()">
+            <option value="notdelivered">Not Delivered</option>
+            <option value="delivered">Delivered</option>
+          </select>
+          <div id="vat-door-seal-extra" class="mt-1" style="display:none">
+            <label class="form-label">Comments</label>
+            <input id="vat-door-seal-comments" name="vat-door-seal-comments" class="form-control">
+            <input type="file" id="vat-door-seal-photo" class="form-control mt-1" accept="image/*" onchange="previewImage(event,'vat-door-seal-preview')">
+            <img id="vat-door-seal-preview" class="mt-1" style="display:none;max-width:200px;border-radius:8px;border:1px solid #eee">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">RJT Step Seal</label>
+          <select id="rjt-seal" name="rjt-seal" class="form-select" onchange="toggleRjtSeal()">
+            <option value="notdelivered">Not Delivered</option>
+            <option value="delivered">Delivered</option>
+          </select>
+          <div id="rjt-seal-extra" class="mt-1" style="display:none">
+            <label class="form-label">Comments</label>
+            <input id="rjt-seal-comments" name="rjt-seal-comments" class="form-control">
+            <input type="file" id="rjt-seal-photo" class="form-control mt-1" accept="image/*" onchange="previewImage(event,'rjt-seal-preview')">
+            <img id="rjt-seal-preview" class="mt-1" style="display:none;max-width:200px;border-radius:8px;border:1px solid #eee">
+            <label class="form-label mt-1">Step Seal Size</label>
+            <select id="rjt-seal-size" name="rjt-seal-size" class="form-select" style="display:none">
+              <option value="">Select Size</option>
+              <option value="small">Small</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3 d-flex gap-2">
+        <button type="button" class="btn-agora" id="btn-save">Save</button>
+        <button type="button" class="btn-outline" id="btn-pdf">Generate PDF</button>
+        <button type="button" class="btn-outline" id="btn-to-summary">View Records & Summary</button>
+      </div>
+
+      <!-- Immediate summary preview for this Dairy -->
+      <div id="instant-summary" class="mt-3"></div>
+
+      <div id="save-msg" class="small-note mt-1"></div>
+    </form>
+  </div>
+
+  <!-- RECORDS / SUMMARY VIEW -->
+  <div id="summary-view" class="hidden">
+    <div class="filters">
+      <input class="form-control" id="search" placeholder="Search Dairy # or text…">
+      <select class="form-select" id="f-cap" style="max-width:180px">
+        <option value="">Cap: Any</option>
+        <option value="nocap">No cap available</option>
+      </select>
+      <select class="form-select" id="f-attn" style="max-width:210px">
+        <option value="">Attention: Any</option>
+        <option value="yes">Any Attention</option>
+        <option value="chiller">Chiller Attention</option>
+        <option value="vat">Vat Attention</option>
+      </select>
+      <select class="form-select" id="f-deliver" style="max-width:210px">
+        <option value="">Deliveries: Any</option>
+        <option value="door-delivered">Door Seal Delivered</option>
+        <option value="rjt-delivered">RJT Delivered</option>
+      </select>
+      <button class="btn-agora" id="btn-refresh"><i class="fa-solid fa-rotate"></i> Refresh</button>
     </div>
 
-    <!-- Quick export -->
-    <div class="card">
-      <div class="fw-bold mb-1">Option A — Quick sample</div>
-      <div class="small mb-2">Pulls the first N JSON files from <span class="mono">Pre Check/</span>, removes any <span class="mono">*-photo-base64</span> fields, and downloads a single JSON.</div>
+    <div class="kpi-grid mb-2" id="kpis"></div>
+
+    <div class="mb-2">
+      <span class="chip active" data-view="cards">Cards</span>
+      <span class="chip" data-view="table">Table</span>
+    </div>
+
+    <div id="cards-wrap" class="cards-grid"></div>
+    <div id="table-area" class="table-area hidden"><div class="table-wrap" id="table-inner"></div></div>
+
+    <div class="mt-3">
+      <div class="fw-bold mb-1">Recurring Tags</div>
+      <div id="recurring"></div>
+    </div>
+
+    <div id="single-view" class="mt-3"></div>
+
+    <div class="mt-3">
+      <button class="btn-admin" id="btn-back-form">Back to Form</button>
+    </div>
+  </div>
+
+  <!-- ADMIN (download only) -->
+  <div id="admin-view" class="hidden">
+    <div class="mb-2 admin-note">Admin panel provides <b>only</b> a data export tool to gather a scrubbed sample (no photos) from <code>Pre Check/</code> for AI rule tuning.</div>
+    <div class="border rounded p-3 mb-2">
+      <div class="fw-bold mb-1">Quick sample</div>
+      <div class="small mb-2">Pull first N JSON files (no <code>*-photo-base64</code>) and download as a single JSON.</div>
       <div class="row g-2 align-items-end">
         <div class="col-md-3">
           <label class="form-label small">Max records</label>
           <input id="maxCount" type="number" class="form-control" value="60" min="1" max="500">
         </div>
         <div class="col-md-9">
-          <button id="btnExport" class="btn-agora w-100">Export sample for AI</button>
+          <button id="btnExport" class="btn-admin w-100">Export sample for AI</button>
         </div>
       </div>
-      <div id="statusA" class="status mt-2"></div>
+      <div id="statusA" class="small mt-2" style="min-height:22px;color:#6b7280"></div>
     </div>
 
-    <!-- Targeted export -->
-    <div class="card">
-      <div class="fw-bold mb-1">Option B — Specific Dairy Numbers</div>
-      <div class="small mb-2">Paste one Dairy Number per line to export exactly those records.</div>
-      <textarea id="dairyList" rows="5" class="form-control mono" placeholder="e.g.\n12345\n67890"></textarea>
+    <div class="border rounded p-3 mb-3">
+      <div class="fw-bold mb-1">Specific Dairy Numbers</div>
+      <div class="small mb-2">Paste one Dairy Number per line.</div>
+      <textarea id="dairyList" rows="5" class="form-control" placeholder="e.g.&#10;12345&#10;67890"></textarea>
       <div class="d-flex gap-2 mt-2">
-        <button id="btnExportList" class="btn-alt">Export selected Dairy Numbers</button>
-        <button id="btnClearList" class="btn-alt">Clear</button>
+        <button id="btnExportList" class="btn-outline">Export selected</button>
+        <button id="btnClearList" class="btn-outline">Clear</button>
       </div>
-      <div id="statusB" class="status mt-2"></div>
+      <div id="statusB" class="small mt-2" style="min-height:22px;color:#6b7280"></div>
     </div>
 
-    <!-- Notes -->
-    <div class="card">
-      <div class="fw-bold mb-1">What’s included</div>
-      <ul class="small mb-0">
-        <li><span class="badge-ok">Yes</span> All key fields (caps, conditions, comments, serials, etc.)</li>
-        <li><span class="badge-warn">No</span> Image data: any <span class="mono">*-photo-base64</span> fields are removed to keep files small</li>
-        <li>We also add <span class="mono">__file</span> (original JSON name) and small boolean hints like <span class="mono">__hints.hasChillerAttention</span> to help me tune rules faster.</li>
-      </ul>
-    </div>
+    <button class="btn-outline" id="btn-admin-back">Back</button>
+  </div>
+
+  <footer>Agora Vat Pre Check — Flash v3.1 (2025‑08‑13)</footer>
+</div>
+
+<!-- Overlay -->
+<div id="overlay" class="screen-overlay">
+  <div class="overlay-box">
+    <div class="loader"></div>
+    <div id="overlay-text">Loading…</div>
   </div>
 </div>
 
-<!-- Firebase SDK -->
+<!-- Libs -->
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
 <script>
-const byId = id => document.getElementById(id);
-let appInit = false, storage = null;
+/* ====== CONFIG ====== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
+  authDomain: "dairy-farm-record-system.firebaseapp.com",
+  projectId: "dairy-farm-record-system",
+  storageBucket: "dairy-farm-record-system.appspot.com",
+  messagingSenderId: "422124188212",
+  appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
+};
+firebase.initializeApp(firebaseConfig);
+const storage = firebase.storage();
 
-function getConfigFromInputs(){
-  return {
-    apiKey: byId('apiKey').value.trim(),
-    authDomain: byId('authDomain').value.trim(),
-    projectId: byId('projectId').value.trim(),
-    storageBucket: byId('storageBucket').value.trim(),
-    messagingSenderId: byId('messagingSenderId').value.trim(),
-    appId: byId('appId').value.trim()
+const FOLDER = "Pre Check";
+const DB = new Dexie("VatPreCheckV3_Flash");
+DB.version(1).stores({ forms:"++id,dairyNumber" });
+
+const $ = id => document.getElementById(id);
+
+/* ====== LOGO ====== */
+let logoBase64="", logoAspect=1;
+(async function initLogo(){
+  try{
+    const ref=storage.ref("Agora Logo/2F6-1YdaEP.jpeg");
+    const url=await ref.getDownloadURL();
+    const img=$("logo-img"); img.src=url; img.style.display="block";
+    const res=await fetch(url); const blob=await res.blob();
+    const reader=new FileReader();
+    reader.onload=e=>{
+      logoBase64=e.target.result;
+      const tmp=new Image(); tmp.onload=()=>logoAspect=tmp.width/tmp.height; tmp.src=logoBase64;
+    };
+    reader.readAsDataURL(blob);
+  }catch{}
+})();
+
+/* ====== UTIL / UI ====== */
+function showOverlay(t){$("overlay-text").textContent=t||"Loading…";$("overlay").style.display="flex";}
+function hideOverlay(){ $("overlay").style.display="none"; }
+function previewImage(e, id){ const img=$(id); const f=e.target.files?.[0]; if(!f) return; img.src=URL.createObjectURL(f); img.style.display="block"; const r=new FileReader(); r.onload=ev=>img.setAttribute("data-base64", ev.target.result); r.readAsDataURL(f); }
+function togglePhotos(id){ const show=($(id).value==="unavailable"); $(`${id}-photo`).style.display= show? "block":"none"; const p=$(`${id}-preview`); if(!show){p.style.display="none"; p.removeAttribute("data-base64");} }
+function toggleVatCondition(which){ const extra=$(`${which}-extra`); extra.style.display = ($(which).value==="attention")?"block":"none"; }
+function toggleChillerCondition(){ $("chiller-condition-extra").style.display = ($("chiller-condition").value==="attention")?"block":"none"; }
+function toggleVatDoorSeal(){ $("vat-door-seal-extra").style.display = ($("vat-door-seal").value==="delivered")?"block":"none"; }
+function toggleRjtSeal(){ const v=$("rjt-seal").value==="delivered"; $("rjt-seal-extra").style.display=v?"block":"none"; $("rjt-seal-size").style.display=v?"block":"none"; }
+function showVat2Serial(){ const has=$("vat2-capacity").value.trim(); $("vat2-serial-section").style.display=has? "block":"none"; }
+
+/* ====== SAVE / LOAD ONE ====== */
+$("dairyNumber").addEventListener("blur", restoreByDairy);
+async function restoreByDairy(){
+  const num=$("dairyNumber").value.trim(); if(!num) return;
+  let rec = await DB.forms.where("dairyNumber").equals(num).first();
+  if(!rec){
+    try{
+      const ref=storage.ref(`${FOLDER}/${num}.json`);
+      const url=await ref.getDownloadURL();
+      rec=await fetch(url).then(r=>r.json());
+    }catch{}
+  }
+  if(rec){
+    for(const [k,v] of Object.entries(rec)){
+      const el=document.getElementsByName(k)[0];
+      if(el) el.value=v;
+    }
+    showVat2Serial();
+    renderInstantSummary(rec);
+  }
+}
+
+async function collectForm(){
+  const fd=new FormData($("vat-precheck-form"));
+  const data=Object.fromEntries(fd.entries());
+  const prefixes=["vat1-cap","vat2-cap","gateway","agitator","vat1-condition","vat2-condition","vat-door-seal","rjt-seal","chiller-condition"];
+  prefixes.forEach(p=>{
+    const img = $(`${p}-preview`);
+    const b64 = img?.getAttribute("data-base64");
+    if(b64) data[`${p}-photo-base64`]=b64;
+  });
+  data.timestamp = Date.now();
+  return data;
+}
+
+async function saveForm(){
+  const data=await collectForm();
+  await DB.forms.put({ dairyNumber:data.dairyNumber, ...data });
+  await storage.ref(`${FOLDER}/${data.dairyNumber}.json`).put(new Blob([JSON.stringify(data)],{type:"application/json"}));
+  $("save-msg").textContent="Saved.";
+  setTimeout(()=>{$("save-msg").textContent=""}, 1600);
+  renderInstantSummary(data); // immediate customer-friendly summary
+}
+
+async function generatePDF(){
+  await saveForm();
+  const data=await collectForm();
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('l','pt','a4');
+  let curY=40;
+  if(logoBase64){
+    const W=pdf.internal.pageSize.getWidth();
+    const H=80, LW=logoAspect*H;
+    pdf.addImage(logoBase64,'JPEG',(W-LW)/2,20,LW,H);
+    curY=110;
+  }
+  pdf.setFontSize(16);
+  pdf.text('Agora Vat Pre Check', 40, curY);
+  curY+=14;
+  const body=[];
+  for(const [k,v] of Object.entries(data)){
+    if(k.endsWith("base64")||k==="timestamp") continue;
+    body.push([k.replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase()), String(v||'')]);
+  }
+  pdf.autoTable({ startY:curY+8, head:[['Field','Value']], body, styles:{fontSize:10,cellPadding:4}, headStyles:{fillColor:[0,31,63],textColor:255} });
+  let y=pdf.lastAutoTable.finalY+10;
+  const photos = Object.entries(data).filter(([k])=>k.endsWith("photo-base64"));
+  for(const [k,b64] of photos){
+    if(!b64) continue; if(y+170>580){ pdf.addPage(); y=60; }
+    const label = k.replace("-photo-base64","").replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
+    pdf.setFontSize(13); pdf.text(label, 40, y+22);
+    pdf.addImage(b64,"JPEG",40,y+28,420,140); y+=170;
+  }
+  pdf.save(`VatPreCheck_${data.dairyNumber||'Unknown'}.pdf`);
+}
+
+/* ====== AI‑STYLE NORMALIZER (rule-based, no API) ====== */
+const LEXICON = [
+  { rx:/(power[\s-]?point|power ?pt|powerpoint|pp|socket|outlet)/i, tag:"Needs Power Point" },
+  { rx:/(reducing\s*cap|reducer|dts\s*cap|dts|step\s*down\s*cap)/i, tag:"DTS Reducing Cap" },
+  { rx:/\bhalo(\s*sensor)?\b/i, tag:"Halo Sensor" },
+  { rx:/\b(grey|gray)\s*halo\b/i, tag:"Grey Halo" },
+  { rx:/\bsensor\b.*\b(loc|mount|bracket)\b/i, tag:"Sensor Location Noted" },
+  { rx:/\b(signal|coverage|booster|antenna)\b/i, tag:"May Need Booster" },
+  { rx:/\b(telemetry|router|gateway)\b/i, tag:"Telemetry Present" },
+  { rx:/\b(no\s*cap|cap\s*missing)\b/i, tag:"No Cap" },
+  { rx:/\b(chiller)\b.*\b(attention|fault|issue|broken|leak|repair)\b/i, tag:"Chiller Attention" },
+  { rx:/\b(door\s*seal)\b.*\b(delivered)\b/i, tag:"Door Seal Delivered" },
+  { rx:/\b(door\s*seal)\b.*\b(not\s*delivered|missing)\b/i, tag:"Door Seal Not Delivered" },
+  { rx:/\b(RJT)\b.*\b(delivered)\b/i, tag:"RJT Delivered" },
+  { rx:/\b(RJT)\b.*\b(not\s*delivered|missing)\b/i, tag:"RJT Not Delivered" },
+  { rx:/\b(capacity|size|litres|liters|l)[^\d]*(\d{3,5})\b/i, tagFn:(m)=>`Mentions Size ${m[2]}L` },
+];
+const TEXT_FIELDS = [
+  "vat1-cap-comments","vat2-cap-comments","gateway-location","gateway-comments",
+  "agitator-location","agitator-comments","vat1-comments","vat2-comments",
+  "vat1-condition-comments","vat2-condition-comments","telemetry-comments",
+  "vat-door-seal-comments","rjt-seal-comments","chiller-condition-comments"
+];
+function normalizeRecord(rec){
+  const tags = new Set();
+  const hay = TEXT_FIELDS.map(k=>(rec[k]||"")).join(" | ");
+
+  // status-derived
+  if((rec["vat1-cap"]||"").toLowerCase()==="unavailable") tags.add("No Cap");
+  if((rec["vat2-cap"]||"").toLowerCase()==="unavailable") tags.add("No Cap");
+  if((rec["chiller-condition"]||"")==="attention") tags.add("Chiller Attention");
+  if((rec["vat1-condition"]||"")==="attention" || (rec["vat2-condition"]||"")==="attention") tags.add("Vat Attention");
+  if((rec["vat-door-seal"]||"")==="delivered") tags.add("Door Seal Delivered");
+  if((rec["rjt-seal"]||"")==="delivered") tags.add("RJT Delivered");
+
+  // lexicon
+  LEXICON.forEach(rule=>{
+    const m = hay.match(rule.rx);
+    if(m){
+      if(rule.tag) tags.add(rule.tag);
+      if(rule.tagFn) tags.add(rule.tagFn(m));
+    }
+  });
+
+  // metrics
+  const metrics = {
+    vat1L: rec["vat1-capacity"]||"",
+    vat2L: rec["vat2-capacity"]||"",
+    vat1Serial: rec["vat1-serial"]||"",
+    vat2Serial: rec["vat2-serial"]||"",
+    cap1: rec["vat1-cap"]||"",
+    cap2: rec["vat2-cap"]||"",
+    chiller: rec["chiller-condition"]||"",
+    doorSeal: rec["vat-door-seal"]||"",
+    rjt: rec["rjt-seal"]||""
   };
-}
-function ensureFirebase(){
-  if(appInit) return;
-  const cfg = getConfigFromInputs();
-  firebase.initializeApp(cfg);
-  storage = firebase.storage();
-  appInit = true;
+
+  // priority
+  const important = [];
+  if(tags.has("No Cap")) important.push("Vat cap required");
+  if(tags.has("Chiller Attention")) important.push("Chiller requires attention");
+  if(tags.has("Vat Attention")) important.push("Vat condition attention");
+  if(tags.has("Needs Power Point")) important.push("Power point required");
+  if(tags.has("DTS Reducing Cap")) important.push("DTS reducing cap needed");
+
+  // short customer‑friendly summary (1–2 lines)
+  const tagList = [...tags];
+  const headlineBits = [];
+  if(tagList.includes("No Cap")) headlineBits.push("Cap missing");
+  if(tagList.includes("DTS Reducing Cap")) headlineBits.push("DTS cap needed");
+  if(tagList.includes("Needs Power Point")) headlineBits.push("Power point needed");
+  if(tagList.includes("Chiller Attention")) headlineBits.push("Chiller attention");
+  if(tagList.includes("Vat Attention")) headlineBits.push("Vat condition attention");
+  if(tagList.includes("Halo Sensor")) headlineBits.push("Halo sensor");
+  const headline = headlineBits.length ? headlineBits.join(" • ") : "All OK";
+
+  const sizeTxt = [metrics.vat1L, metrics.vat2L].filter(Boolean).join(" / ");
+  const line2Parts = [];
+  if(sizeTxt) line2Parts.push(`Vat sizes: ${sizeTxt}L`);
+  if(metrics.doorSeal) line2Parts.push(`Door seal: ${metrics.doorSeal}`);
+  if(metrics.rjt) line2Parts.push(`RJT: ${metrics.rjt}`);
+  const line2 = line2Parts.join(" · ");
+
+  // thumbnails (max 3)
+  const photoKeys=["vat1-cap","vat2-cap","chiller-condition","vat-door-seal","rjt-seal","gateway","agitator","vat1-condition","vat2-condition"];
+  const thumbs=[];
+  for(const k of photoKeys){
+    const b64 = rec[`${k}-photo-base64`];
+    if(b64){ thumbs.push({label:k,url:b64}); if(thumbs.length>=3) break; }
+  }
+
+  return { tags:tagList, metrics, important, headline, line2, thumbs };
 }
 
+/* ====== INSTANT SUMMARY (current form) ====== */
+function renderInstantSummary(data){
+  const norm = normalizeRecord(data);
+  const el = $("instant-summary");
+  el.innerHTML = `
+    <div class="card-farm">
+      <div class="c-head">
+        <div class="c-title">#${data.dairyNumber||'-'}</div>
+        <div class="c-badges">
+          ${ (norm.tags.includes("Chiller Attention") || norm.tags.includes("Vat Attention") || norm.tags.includes("No Cap"))
+              ? `<span class="badge-attn">Attention</span>` : `<span class="badge-ok">OK</span>` }
+        </div>
+      </div>
+      <div class="summary-line">${norm.headline}</div>
+      ${norm.line2? `<div class="small mt-1">${norm.line2}</div>`:''}
+      <div class="mt-1">${norm.tags.map(t=>`<span class="tag">${t}</span>`).join(' ')}</div>
+      ${norm.thumbs.length? `<div class="thumbs">${norm.thumbs.map(t=>`<img src="${t.url}" alt="${t.label}">`).join('')}</div>`:''}
+    </div>
+  `;
+}
+
+/* ====== RECORDS / SUMMARY ====== */
+const state = { all:[], rows:[], view:"cards" };
+function cardHTML(row){
+  const d=row.data, n=row.norm;
+  const attn = n.tags.includes("Chiller Attention") || n.tags.includes("Vat Attention") || n.tags.includes("No Cap");
+  return `<div class="card-farm">
+    <div class="c-head">
+      <div class="c-title">#${d.dairyNumber||'-'}</div>
+      <div class="c-badges">${attn?`<span class="badge-attn">Attention</span>`:`<span class="badge-ok">OK</span>`}</div>
+    </div>
+    <div class="rowline mt-1"><div><b>Vat1:</b> ${n.metrics.vat1L||'-'}L</div><div><b>Vat2:</b> ${n.metrics.vat2L||'-'}L</div><div><b>Chiller:</b> ${n.metrics.chiller||'-'}</div></div>
+    <div class="summary-line">${n.headline}</div>
+    ${n.line2? `<div class="small mt-1">${n.line2}</div>`:''}
+    <div class="mt-1">${n.tags.map(t=>`<span class="tag">${t}</span>`).join(' ')}</div>
+    ${n.thumbs.length? `<div class="thumbs">${n.thumbs.map(t=>`<img src="${t.url}" alt="${t.label}">`).join('')}</div>`:''}
+    <div class="card-actions">
+      <button class="btn-outline btn-sm" onclick="drill('${d.dairyNumber}')"><i class="fa-regular fa-eye"></i> View</button>
+      <button class="btn-outline btn-sm" onclick="downloadOne('${d.dairyNumber}')"><i class="fa-solid fa-file-arrow-down"></i> PDF</button>
+    </div>
+  </div>`;
+}
+function tableHTML(rows){
+  const header = `<table class="table table-bordered table-sm">
+    <thead><tr><th>Dairy #</th><th>Vat1 (L)</th><th>Vat2 (L)</th><th>Cap1</th><th>Cap2</th><th>Chiller</th><th>Door Seal</th><th>RJT</th><th>Headline</th></tr></thead><tbody>`;
+  const body = rows.map(r=>{
+    const d=r.data, n=r.norm;
+    return `<tr>
+      <td><a href="#" onclick="drill('${d.dairyNumber}');return false;">${d.dairyNumber||''}</a></td>
+      <td>${n.metrics.vat1L||''}</td><td>${n.metrics.vat2L||''}</td>
+      <td>${n.metrics.cap1||''}</td><td>${n.metrics.cap2||''}</td>
+      <td>${n.metrics.chiller||''}</td>
+      <td>${n.metrics.doorSeal||''}</td>
+      <td>${n.metrics.rjt||''}</td>
+      <td>${n.headline}</td>
+    </tr>`;
+  }).join('');
+  return header + body + `</tbody></table>`;
+}
+function kpiHTML(rows){
+  const anyAttn=rows.filter(r=>r.norm.tags.includes("Chiller Attention")||r.norm.tags.includes("Vat Attention")||r.norm.tags.includes("No Cap")).length;
+  const noCap=rows.filter(r=>r.norm.tags.includes("No Cap")).length;
+  const door=rows.filter(r=>(r.data["vat-door-seal"]||"")==="delivered").length;
+  const rjt=rows.filter(r=>(r.data["rjt-seal"]||"")==="delivered").length;
+  return [
+    {label:"Farms Loaded",value:rows.length},
+    {label:"Any Attention",value:anyAttn},
+    {label:"No Cap",value:noCap},
+    {label:"Door Seals Delivered",value:door},
+    {label:"RJT Delivered",value:rjt},
+  ].map(k=>`<div class="kpi"><div class="num">${k.value}</div><div class="label">${k.label}</div></div>`).join('');
+}
+async function listAllForms(){
+  showOverlay("Loading records…");
+  try{
+    const folderRef=storage.ref(FOLDER);
+    const res=await folderRef.listAll();
+    const cloud=[];
+    for(const ref of res.items){
+      try{
+        const url=await ref.getDownloadURL();
+        const data=await fetch(url).then(r=>r.json());
+        cloud.push(data);
+      }catch{}
+    }
+    const locals=await DB.forms.toArray();
+    const mapCloud=new Map(cloud.map(r=>[r.dairyNumber,r]));
+    locals.forEach(loc=>{ if(!mapCloud.has(loc.dairyNumber)) cloud.push(loc); });
+    state.all = cloud.filter(x=>x&&x.dairyNumber);
+  }finally{ hideOverlay(); }
+}
+function applyFilters(){
+  const q=$("search").value.trim().toLowerCase();
+  const fCap=$("f-cap").value, fAttn=$("f-attn").value, fDel=$("f-deliver").value;
+  let rows = state.all.map(d=>({data:d, norm:normalizeRecord(d)}));
+  if(q){ rows = rows.filter(r=>JSON.stringify(r.data).toLowerCase().includes(q) || (r.data.dairyNumber||"").toLowerCase().includes(q)); }
+  if(fCap==="nocap"){ rows = rows.filter(r=>r.norm.tags.includes("No Cap")); }
+  if(fAttn==="yes"){ rows = rows.filter(r=>r.norm.tags.includes("Chiller Attention") || r.norm.tags.includes("Vat Attention")); }
+  if(fAttn==="chiller"){ rows = rows.filter(r=>r.norm.tags.includes("Chiller Attention")); }
+  if(fAttn==="vat"){ rows = rows.filter(r=>r.norm.tags.includes("Vat Attention")); }
+  if(fDel==="door-delivered"){ rows = rows.filter(r=>(r.data["vat-door-seal"]||"")==="delivered"); }
+  if(fDel==="rjt-delivered"){ rows = rows.filter(r=>(r.data["rjt-seal"]||"")==="delivered"); }
+
+  state.rows = rows;
+  $("kpis").innerHTML = kpiHTML(rows);
+
+  if(state.view==="cards"){
+    $("cards-wrap").innerHTML = rows.map(cardHTML).join('');
+    $("cards-wrap").classList.remove("hidden");
+    $("table-area").classList.add("hidden");
+  }else{
+    $("table-inner").innerHTML = tableHTML(rows);
+    $("table-area").classList.remove("hidden");
+    $("cards-wrap").classList.add("hidden");
+  }
+
+  // recurring tags
+  const tagCount={}; rows.forEach(r=>r.norm.tags.forEach(t=>tagCount[t]=(tagCount[t]||0)+1));
+  const top=Object.entries(tagCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  $("recurring").innerHTML = top.length? `<ul class="mb-0">${top.map(([t,c])=>`<li><b>${t}</b> — ${c}</li>`).join('')}</ul>` : `<i>No recurring tags yet.</i>`;
+}
+async function loadSummaryUI(){ await listAllForms(); applyFilters(); }
+
+async function drill(dairy){
+  let rec = await DB.forms.where("dairyNumber").equals(dairy).first();
+  if(!rec){
+    try{ const ref=storage.ref(`${FOLDER}/${dairy}.json`); const url=await ref.getDownloadURL(); rec=await fetch(url).then(r=>r.json()); }catch{}
+  }
+  if(!rec){ $("single-view").innerHTML=`<em>No form for #${dairy}</em>`; return; }
+  let html = `<div class="fw-bold mb-1">Vat Pre Check for #${dairy}</div><table class="table table-bordered table-sm"><tbody>`;
+  for(const [k,v] of Object.entries(rec)){ if(k.endsWith("base64")||k==="timestamp"||k==="id"||k==="dairyNumber") continue;
+    html += `<tr><th>${k.replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase())}</th><td>${v||''}</td></tr>`; }
+  html += `</tbody></table>`;
+  const ph=["vat1-cap","vat2-cap","gateway","agitator","vat1-condition","vat2-condition","vat-door-seal","rjt-seal","chiller-condition"];
+  let photos = ph.filter(k=>rec[`${k}-photo-base64`]);
+  if(photos.length){
+    html += `<div class="mt-2 fw-bold">Photos</div>`;
+    photos.forEach(k=>{
+      html += `<div class="mb-2"><div class="small text-muted">${k.replace(/-/g,' ')}</div>
+        <img src="${rec[`${k}-photo-base64`]}" style="max-width:680px;max-height:480px;border-radius:8px;border:1px solid #eee"></div>`;
+    });
+  }
+  $("single-view").innerHTML = html;
+  $("single-view").scrollIntoView({behavior:"smooth"});
+}
+async function downloadOne(dairy){
+  try{
+    const ref=storage.ref(`${FOLDER}/${dairy}.json`);
+    const url=await ref.getDownloadURL();
+    const data=await fetch(url).then(r=>r.json());
+    for(const [k,v] of Object.entries(data)){ const el=document.getElementsByName(k)[0]; if(el) el.value=v; }
+    await generatePDF();
+  }catch{ alert("Could not load record for PDF."); }
+}
+
+/* ====== ADMIN — DOWNLOAD ONLY ====== */
 function scrubRecord(rec){
-  const clean = {...rec};
-  // drop any base64 photo fields
+  const clean={...rec};
   Object.keys(clean).forEach(k=>{ if(k.endsWith('photo-base64')) delete clean[k]; });
-  // add simple derived flags
   clean.__hints = {
-    hasVat1CapUnavailable: (clean['vat1-cap']||'').toLowerCase()==='unavailable',
-    hasVat2CapUnavailable: (clean['vat2-cap']||'').toLowerCase()==='unavailable',
-    hasChillerAttention: (clean['chiller-condition']||'')==='attention',
-    hasVatAttention: (clean['vat1-condition']==='attention'||clean['vat2-condition']==='attention')
+    hasVat1CapUnavailable:(clean['vat1-cap']||'').toLowerCase()==='unavailable',
+    hasVat2CapUnavailable:(clean['vat2-cap']||'').toLowerCase()==='unavailable',
+    hasChillerAttention:(clean['chiller-condition']||'')==='attention',
+    hasVatAttention:(clean['vat1-condition']==='attention'||clean['vat2-condition']==='attention')
   };
   return clean;
 }
-
-async function listAllInFolder(folderPath){
-  // NOTE: Firebase Storage listAll() may return at most 1000 items per call; good for our use.
-  const folderRef = storage.ref(folderPath);
-  const res = await folderRef.listAll();
-  return res.items || [];
+async function listAllInFolder(path){ const folderRef=storage.ref(path); const res=await folderRef.listAll(); return res.items||[]; }
+async function downloadJSONFile(filename,obj){
+  const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{a.remove(); URL.revokeObjectURL(url);}, 400);
 }
-
-async function downloadJSONFile(filename, obj){
-  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 400);
-}
-
-/* ========== Option A ========== */
-byId('btnExport').addEventListener('click', async ()=>{
-  ensureFirebase();
-  const status = byId('statusA');
-  const maxCount = Math.max(1, Math.min(500, Number(byId('maxCount').value||60)));
-  const folder = 'Pre Check';
-
-  byId('btnExport').disabled = true;
-  status.textContent = 'Listing files…';
-
+$("btnExport").addEventListener("click", async ()=>{
+  const status=$("statusA"); const maxCount=Math.max(1,Math.min(500,Number($("maxCount").value||60)));
+  const folder=FOLDER; $("btnExport").disabled=true; status.textContent="Listing files…";
   try{
-    const items = await listAllInFolder(folder);
-    if(!items.length){ status.textContent = 'No files found in "Pre Check/".'; byId('btnExport').disabled=false; return; }
-
-    const slice = items.slice(0, maxCount);
-    const out = [];
-    let n = 0;
+    const items=await listAllInFolder(folder); if(!items.length){ status.textContent='No files in "Pre Check/".'; $("btnExport").disabled=false; return; }
+    const slice=items.slice(0,maxCount); const out=[]; let n=0;
     for(const ref of slice){
       try{
-        status.textContent = `Fetching ${++n}/${slice.length}: ${ref.name}`;
-        const url = await ref.getDownloadURL();
-        const rec = await fetch(url).then(r=>r.json());
-        const cleaned = scrubRecord(rec);
-        cleaned.__file = ref.name;
-        out.push(cleaned);
-      }catch(e){
-        // continue on individual fetch errors
-      }
+        status.textContent=`Fetching ${++n}/${slice.length}: ${ref.name}`;
+        const url=await ref.getDownloadURL(); const rec=await fetch(url).then(r=>r.json());
+        const cleaned=scrubRecord(rec); cleaned.__file=ref.name; out.push(cleaned);
+      }catch{}
     }
-    const bundle = { created: new Date().toISOString(), count: out.length, sourceFolder: folder, rows: out };
-    await downloadJSONFile('vat_precheck_ai_sample.json', bundle);
-    status.textContent = `Done. Exported ${out.length} record(s).`;
-  }catch(err){
-    console.error(err);
-    status.textContent = 'Error: could not list or read from Firebase Storage. Check rules/permissions.';
-  }finally{
-    byId('btnExport').disabled = false;
-  }
+    await downloadJSONFile("vat_precheck_ai_sample.json",{created:new Date().toISOString(), count:out.length, sourceFolder:folder, rows:out});
+    status.textContent=`Done. Exported ${out.length} record(s).`;
+  }catch(e){ status.textContent="Error: check Firebase Storage rules/permissions."; }
+  finally{ $("btnExport").disabled=false; }
 });
-
-/* ========== Option B ========== */
-byId('btnExportList').addEventListener('click', async ()=>{
-  ensureFirebase();
-  const status = byId('statusB');
-  const listRaw = byId('dairyList').value.trim();
-  if(!listRaw){ status.textContent='Paste one Dairy Number per line first.'; return; }
-  const dairies = [...new Set(listRaw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))];
-  const folder = 'Pre Check';
-
-  status.textContent = `Fetching ${dairies.length} record(s)…`;
-  byId('btnExportList').disabled = true;
-
-  const out = [];
-  let done = 0;
+$("btnExportList").addEventListener("click", async ()=>{
+  const status=$("statusB"); const listRaw=$("dairyList").value.trim(); if(!listRaw){ status.textContent="Paste Dairy Numbers first."; return; }
+  const dairies=[...new Set(listRaw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))]; const folder=FOLDER;
+  status.textContent=`Fetching ${dairies.length}…`; $("btnExportList").disabled=true;
+  const out=[]; let done=0;
   for(const dn of dairies){
     try{
-      const ref = storage.ref(`${folder}/${dn}.json`);
-      const url = await ref.getDownloadURL();
-      const rec = await fetch(url).then(r=>r.json());
-      const cleaned = scrubRecord(rec);
-      cleaned.__file = `${dn}.json`;
-      out.push(cleaned);
-      status.textContent = `Fetched ${++done}/${dairies.length} (${dn})`;
-    }catch(e){
-      status.textContent = `Missed: ${dn} (not found or access denied). Continuing…`;
-    }
+      const ref=storage.ref(`${folder}/${dn}.json`); const url=await ref.getDownloadURL();
+      const rec=await fetch(url).then(r=>r.json()); const cleaned=scrubRecord(rec); cleaned.__file=`${dn}.json`; out.push(cleaned);
+      status.textContent=`Fetched ${++done}/${dairies.length} (${dn})`;
+    }catch{ status.textContent=`Missed: ${dn} (not found or access denied). Continuing…`; }
   }
-  const bundle = { created: new Date().toISOString(), count: out.length, requested: dairies, sourceFolder: folder, rows: out };
-  await downloadJSONFile('vat_precheck_ai_selected.json', bundle);
-  status.textContent = `Done. Exported ${out.length}/${dairies.length} requested record(s).`;
-  byId('btnExportList').disabled = false;
+  await downloadJSONFile("vat_precheck_ai_selected.json",{created:new Date().toISOString(), count:out.length, requested:dairies, sourceFolder:folder, rows:out});
+  status.textContent=`Done. Exported ${out.length}/${dairies.length}.`; $("btnExportList").disabled=false;
+});
+$("btnClearList").addEventListener("click", ()=>{ $("dairyList").value=''; $("statusB").textContent=''; });
+
+/* ====== NAV ====== */
+$("btn-save").onclick=saveForm;
+$("btn-pdf").onclick=generatePDF;
+$("btn-to-summary").onclick=()=>{ $("btn-summary").click(); };
+
+$("btn-form").onclick=()=>{
+  $("btn-form").classList.replace("btn-outline","btn-agora");
+  $("btn-summary").classList.replace("btn-agora","btn-outline");
+  $("form-view").classList.remove("hidden");
+  $("summary-view").classList.add("hidden");
+  $("admin-view").classList.add("hidden");
+};
+$("btn-summary").onclick=async ()=>{
+  $("btn-summary").classList.replace("btn-outline","btn-agora");
+  $("btn-form").classList.replace("btn-agora","btn-outline");
+  $("form-view").classList.add("hidden");
+  $("admin-view").classList.add("hidden");
+  $("summary-view").classList.remove("hidden");
+  await loadSummaryUI();
+};
+$("btn-admin").onclick=()=>{
+  $("form-view").classList.add("hidden");
+  $("summary-view").classList.add("hidden");
+  $("admin-view").classList.remove("hidden");
+};
+$("btn-admin-back").onclick=()=>{ $("btn-form").click(); };
+
+$("btn-refresh").onclick=loadSummaryUI;
+$("search").oninput=applyFilters;
+$("f-cap").onchange=applyFilters;
+$("f-attn").onchange=applyFilters;
+$("f-deliver").onchange=applyFilters;
+document.querySelectorAll('.chip').forEach(c=>{
+  c.onclick=()=>{ document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active')); c.classList.add('active'); state.view=c.dataset.view; applyFilters(); }
 });
 
-byId('btnClearList').addEventListener('click', ()=>{ byId('dairyList').value=''; byId('statusB').textContent=''; });
+/* ====== INIT ====== */
+showVat2Serial();
 </script>
 </body>
 </html>
