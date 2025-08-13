@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Agora Vat Pre-Check v2</title>
+<title>Agora Vat Pre-Check — Final</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js"></script>
@@ -61,8 +61,9 @@
     <button class="btn btn-outline admin-only" id="nav-admin">Admin</button>
   </div>
 
-  <!-- ========== FORM ========== -->
+  <!-- ========== FORM (order: Vats → Agitator → Gateway → Telemetry → Rubberware) ========== -->
   <div id="page-form">
+    <!-- Telemetry (basic) -->
     <div class="cardy">
       <div class="grid-3">
         <div>
@@ -80,7 +81,7 @@
       </div>
     </div>
 
-    <!-- VATS FIRST -->
+    <!-- Vat 1 -->
     <h2 class="section">Vat 1</h2>
     <div class="cardy grid-3">
       <div>
@@ -112,6 +113,7 @@
       </div>
     </div>
 
+    <!-- Vat 2 (with NA options) -->
     <h2 class="section">Vat 2</h2>
     <div class="sub">NA options enabled for cap and condition.</div>
     <div class="cardy grid-3">
@@ -135,7 +137,7 @@
         <select class="form-select" id="vat2-condition" name="vat2-condition">
           <option value="na">N/A</option>
           <option value="ok">OK</option>
-          <option value="attention">Attention Required</</option>
+          <option value="attention">Attention Required</option>
         </select>
         <input class="form-control mt-1" id="vat2-condition-comments" name="vat2-condition-comments" placeholder="Condition notes">
         <input type="file" id="vat2-condition-photo" accept="image/*" class="form-control mt-1">
@@ -146,7 +148,7 @@
       </div>
     </div>
 
-    <!-- AGITATOR -->
+    <!-- Agitator -->
     <h2 class="section">Agitator</h2>
     <div class="cardy grid-3">
       <div>
@@ -163,7 +165,7 @@
       </div>
     </div>
 
-    <!-- GATEWAY -->
+    <!-- Gateway -->
     <h2 class="section">Gateway (Power/Signal)</h2>
     <div class="cardy grid-3">
       <div>
@@ -180,7 +182,7 @@
       </div>
     </div>
 
-    <!-- RUBBERWARE -->
+    <!-- Rubberware -->
     <h2 class="section">Rubberware</h2>
     <div class="sub">Door seals & RJT step seals. Door-seal size captured. “Delivered” counts 2 if two vats.</div>
     <div class="cardy grid-3">
@@ -223,7 +225,7 @@
       </div>
     </div>
 
-    <!-- ACTIONS -->
+    <!-- Actions -->
     <div class="d-flex gap-2 mt-3">
       <button class="btn btn-ag" id="btn-save">Save</button>
       <button class="btn btn-outline" id="btn-view">View Summary</button>
@@ -288,7 +290,7 @@
     </div>
   </div>
 
-  <footer class="mt-3">Agora Vat Pre-Check v2 • Aug 2025</footer>
+  <footer class="mt-3">Agora Vat Pre-Check • Final • Aug 2025</footer>
 </div>
 
 <script>
@@ -306,6 +308,9 @@ const storage = firebase.storage();
 const FOLDER = "Pre Check";
 const db = new Dexie("VatPreCheckV2");
 db.version(1).stores({ forms: "++id,dairyNumber" });
+
+// Optional: change to false to disable demo seed when no data anywhere
+const USE_DEMO_WHEN_EMPTY = true;
 
 // Logo (cloud)
 (async function loadLogo(){
@@ -385,7 +390,7 @@ async function saveForm(){
   ];
   const data = {};
   fields.forEach(k=> data[k] = val(k));
-  // collect base64 photos from inputs that have dataset.base64
+  // collect base64 photos
   ['vat1-cap-photo','vat2-cap-photo','gateway-photo','agitator-photo','vat1-condition-photo','vat2-condition-photo','vat-door-seal-photo','rjt-seal-photo','chiller-condition-photo']
     .forEach(id=>{
       const el = $(id);
@@ -394,7 +399,7 @@ async function saveForm(){
     });
   if(!data.dairyNumber){ alert('Please enter a Dairy Number'); return; }
 
-  // Normalise a bit before save (keeps cloud clean; display will re-normalise anyway)
+  // Light normalisation before save
   data['current-telemetry'] = NORM.teleBrand(data['current-telemetry']);
   ['telemetry-comments','gateway-comments','agitator-comments','vat1-cap-comments','vat2-cap-comments'].forEach(k=>{
     if(data[k]) data[k] = NORM.clean(data[k]);
@@ -406,16 +411,20 @@ async function saveForm(){
   await db.forms.put({ dairyNumber:data.dairyNumber, ...data });
 
   // Cloud
-  const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
-  await storage.ref(`${FOLDER}/${data.dairyNumber}.json`).put(blob);
+  try{
+    const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
+    await storage.ref(`${FOLDER}/${data.dairyNumber}.json`).put(blob);
+  }catch(e){
+    console.warn('[Save] Cloud save failed (offline or rules). Data still saved locally.', e);
+  }
 
   alert('Saved.');
 }
 
-/* ================= LOAD (Cloud first, Dexie fallback) ================= */
+/* ================= LOAD (Cloud + Dexie merge) ================= */
 async function fetchAllFromCloud(){
   const folderRef = storage.ref(FOLDER);
-  const list = await folderRef.listAll();
+  const list = await folderRef.listAll(); // may fail with strict rules
   const out=[];
   for(const item of list.items){
     if(!item.name.endsWith('.json')) continue;
@@ -423,7 +432,7 @@ async function fetchAllFromCloud(){
       const url = await item.getDownloadURL();
       const rec = await fetch(url).then(r=>r.json());
       out.push(rec);
-    }catch(e){}
+    }catch(e){ console.warn('[Cloud] bad json', item.name, e); }
   }
   return out;
 }
@@ -498,15 +507,98 @@ let ALL=[], FILTERED=[];
 let charts={};
 function destroyCharts(){ try{ charts.tele?.destroy(); charts.cap?.destroy(); }catch{} charts={}; }
 
+/* === FINAL PATCHED LOADER (Dexie-first, cloud merge, demo seed, banner) === */
 async function loadAll(){
-  let cloud=[];
-  try{ cloud = await fetchAllFromCloud(); }catch{}
-  let data = cloud.length ? cloud : (await db.forms.toArray()).map(({id, ...rest})=>rest);
-  // Persist to Dexie
-  for(const rec of data){ try{ await db.forms.put({dairyNumber:rec.dairyNumber, ...rec}); }catch{} }
+  // 1) Dexie first (freshly saved forms appear immediately)
+  let localList = [];
+  try {
+    localList = (await db.forms.toArray()).map(({id, ...rest}) => rest);
+    console.log('[Summary] Dexie items:', localList.length);
+  } catch (e) {
+    console.warn('[Summary] Dexie error', e);
+  }
+
+  // 2) Cloud second (merge)
+  let cloudList = [];
+  let cloudErr = null;
+  try {
+    cloudList = await fetchAllFromCloud();   // requires list permission
+    console.log('[Summary] Cloud items:', cloudList.length);
+  } catch (e) {
+    cloudErr = e;
+    console.warn('[Summary] Cloud fetch error', e);
+  }
+
+  // 3) Merge: prefer local fields, add cloud items not present
+  const byDairy = new Map();
+  [...cloudList, ...localList].forEach(rec => {
+    if (!rec || !rec.dairyNumber) return;
+    byDairy.set(rec.dairyNumber, { ...(byDairy.get(rec.dairyNumber) || {}), ...rec });
+  });
+
+  let data = [...byDairy.values()];
+
+  // 4) Optional DEMO seed if still empty
+  if (!data.length && USE_DEMO_WHEN_EMPTY) {
+    console.log('[Summary] Seeding demo data (no local/cloud records)');
+    data = [{
+      dairyNumber: '12345',
+      'current-telemetry': 'Levno',
+      'telemetry-comments': 'good signal, power outlet nearby',
+      'vat1-cap': 'available',
+      'vat1-capacity': '14500',
+      'vat1-condition': 'ok',
+      'vat1-serial': 'V1-ABC-001',
+      'vat2-cap': 'unavailable',
+      'vat2-capacity': '12000',
+      'vat2-condition': 'attention',
+      'vat2-serial': 'V2-XYZ-009',
+      'gateway-comments': 'needs power point in shed (no outlet)',
+      'rjt-seal': 'delivered',
+      'rjt-seal-size': 'Large',
+      'vat-door-seal': 'delivered',
+      'vat-door-seal-size': 'Small',
+      'chiller-condition': 'ok'
+    }];
+  }
+
+  // 5) Persist merged data back to Dexie (offline-first)
+  for (const rec of data) {
+    try { await db.forms.put({ dairyNumber: rec.dairyNumber, ...rec }); } catch {}
+  }
+
+  // 6) Build summary records
   ALL = data.map(summarise);
+
+  // 7) Cloud banner when nothing reachable
+  const summaryCardsHost = document.getElementById('cards');
+  if (summaryCardsHost) {
+    const warnId = 'cloud-warn-banner';
+    const old = document.getElementById(warnId);
+    if (old) old.remove();
+    if ((!cloudList || !cloudList.length) && !localList.length) {
+      const banner = document.createElement('div');
+      banner.id = warnId;
+      banner.className = 'cardy mb-2';
+      banner.innerHTML = `
+        <div class="small">
+          <b>Heads up:</b> No records found in local storage or cloud.
+          ${cloudErr ? ' Cloud listing may be blocked by Firebase Storage rules.' : ' Save a form first to populate local records.'}
+        </div>`;
+      summaryCardsHost.parentElement.prepend(banner);
+    }
+  }
 }
 
+/* Empty-state helper */
+function showEmptyStateIfNeeded(){
+  const wrap = document.getElementById('cards');
+  if (wrap && !ALL.length) {
+    wrap.innerHTML = '<div class="text-muted">No data yet. Save a form, or check Firebase Storage permissions for listing.</div>';
+  }
+}
+
+/* ================= SUMMARY RENDER ================= */
 function applyFilters(){
   const q = val('filter-search').toLowerCase().trim();
   const fReady = val('filter-ready');
@@ -650,6 +742,7 @@ async function refreshSummary(){
   applyFilters();
   renderCards();
   renderCharts();
+  showEmptyStateIfNeeded();
 }
 
 // Event listeners
@@ -668,7 +761,7 @@ document.getElementById('btn-xlsx')?.addEventListener('click', exportXLSX);
 // Live filtering on enter key
 document.getElementById('filter-search').addEventListener('keydown', e=>{ if(e.key==='Enter'){ applyFilters(); renderCards(); }});
 
-// Auto-load record into form on blur of dairyNumber (if exists in cloud or Dexie)
+// Auto-load record into form on blur of dairyNumber
 document.getElementById('dairyNumber').addEventListener('blur', async function(){
   const num = this.value.trim(); if(!num) return;
   let rec = await db.forms.where('dairyNumber').equals(num).first();
@@ -683,8 +776,7 @@ document.getElementById('dairyNumber').addEventListener('blur', async function()
   if(rec){
     Object.entries(rec).forEach(([k,v])=>{
       const el = document.getElementById(k);
-      if(el && el.tagName==='INPUT' || el && el.tagName==='SELECT') el.value = v;
-      // hydrate photo inputs with existing base64 so thumbs show after save (not necessary visually now)
+      if(el && (el.tagName==='INPUT' || el.tagName==='SELECT')) el.value = v;
       if(k.endsWith('-photo-base64')){
         const id = k.replace('-photo-base64','-photo');
         const inp = document.getElementById(id);
