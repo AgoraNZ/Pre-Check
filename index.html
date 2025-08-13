@@ -1,636 +1,219 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agora Vat Pre Check</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-  <style>
-    body { background: #fff; color: #222; font-family: Arial, sans-serif; padding: 20px; }
-    .container { background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.07); max-width: 900px; margin: auto; }
-    h1, h2 { color: #a7ab01; text-align: center; }
-    .form-control, .form-select { margin-top: 5px; }
-    .checklist-item { margin-bottom: 20px; }
-    .image-preview { display:none; max-width:200px; margin-top:5px; border:2px solid #ccc; }
-    .big-photo { max-width:700px; max-height:500px; display:block; margin:18px auto; }
-    .logo-header { display:block; margin:0 auto 18px auto; max-width:270px; }
-    .record-container { display:none; background:#fff; color:#222; padding:20px; border-radius:10px; max-width:900px; margin:auto; }
-    .summary-table { margin-top: 30px; width:100%; background:#fff; color:#222; border-radius:10px; }
-    .summary-table th, .summary-table td { padding: 8px; border: 1px solid #ddd; text-align: left; }
-    .form-view-title {color:#222;font-size:22px;margin-bottom:12px;text-align:center;}
-    .photo-section-title {font-size:16px; color:#222;margin:16px 0 8px 0;}
-    .summary-controls {display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
-    .summary-controls input, .summary-controls select {max-width:180px;}
-    button { margin:5px; background:#FF851B; color:#fff; border:none; padding:10px 20px; border-radius:5px; }
-    button:hover { background:#FF4136; }
-    .back-button { background:#002B5C; color:#fff; padding:10px 20px; border:none; border-radius:5px; }
-    .rubber-section-title {font-size:18px; color:#a7ab01; margin-top:30px; margin-bottom:8px;}
-    .section-sub {font-size:14px;color:#555;margin-top:-8px;margin-bottom:10px;}
-    .rjt-size-select {display:none;}
-    .summary-clickable { cursor:pointer; color:#007bff; text-decoration:underline; }
-    .summary-subgrid { border:1px solid #aaa; padding:10px; border-radius:7px; margin:8px 0 16px 0; background:#f8f8f8;}
-    .filter-label {margin-left:5px; margin-right:2px; font-weight:500;}
-  </style>
+<meta charset="UTF-8">
+<title>Agora Vat Pre Check — AI Sample Export</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  :root{ --accent:#FF851B; --primary:#001F3F; }
+  body{ background:#f8faff; font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif; color:#001F3F; }
+  .wrap{ max-width:860px; margin:32px auto; background:#fff; border-radius:16px; padding:22px; box-shadow:0 2px 32px #001F3F11; }
+  h1{ font-size:1.6rem; color:var(--accent); margin-bottom:4px; text-align:center; }
+  .lead{ text-align:center; color:#6b7280; margin-bottom:18px; }
+  .btn-agora{ background:var(--accent); color:#fff; border:none; border-radius:10px; padding:.65rem 1rem; font-weight:600; }
+  .btn-agora:hover{ background:#ff6d00; }
+  .btn-alt{ background:#fff; color:var(--primary); border:1px solid var(--accent); border-radius:10px; padding:.55rem .9rem; font-weight:600; }
+  .grid{ display:grid; grid-template-columns:1fr; gap:14px; }
+  .card{ border:1px solid #eee; border-radius:12px; padding:14px; background:#fff; }
+  .status{ min-height:22px; color:#6b7280; }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:.92rem; }
+  .small{ font-size:.9rem; color:#6b7280; }
+  .badge-ok{ background:#e8f5e9; color:#1b5e20; border-radius:8px; padding:.2rem .5rem; font-weight:700; }
+  .badge-warn{ background:#ffebee; color:#b71c1c; border-radius:8px; padding:.2rem .5rem; font-weight:700; }
+</style>
 </head>
 <body>
-  <div class="container" id="form-container">
-    <img id="agora-logo-header" class="logo-header" src="" alt="Agora Logo" style="display:none;">
-    <h1>Agora Vat Pre Check</h1>
-    <form id="vat-precheck-form">
-      <!-- Dairy Number (Auto-fill) -->
-      <div class="checklist-item">
-        <label for="dairyNumber">Dairy Number:</label>
-        <input type="text" id="dairyNumber" name="dairyNumber" class="form-control" required>
+<div class="wrap">
+  <h1>Agora Vat Pre Check — AI Sample Export</h1>
+  <div class="lead">Exports real records (without photos) from <span class="mono">Pre Check/</span> for AI rule tuning.</div>
+
+  <div class="grid">
+    <!-- Firebase Config (pre-filled to match your app) -->
+    <div class="card">
+      <div class="fw-bold mb-1">Firebase config</div>
+      <div class="small mb-2">These are copied from your app so you shouldn’t need to change anything.</div>
+      <div class="row g-2">
+        <div class="col-md-6"><label class="form-label small">apiKey</label><input id="apiKey" class="form-control" value="AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI"></div>
+        <div class="col-md-6"><label class="form-label small">authDomain</label><input id="authDomain" class="form-control" value="dairy-farm-record-system.firebaseapp.com"></div>
+        <div class="col-md-6"><label class="form-label small">projectId</label><input id="projectId" class="form-control" value="dairy-farm-record-system"></div>
+        <div class="col-md-6"><label class="form-label small">storageBucket</label><input id="storageBucket" class="form-control" value="dairy-farm-record-system.appspot.com"></div>
+        <div class="col-md-6"><label class="form-label small">messagingSenderId</label><input id="messagingSenderId" class="form-control" value="422124188212"></div>
+        <div class="col-md-6"><label class="form-label small">appId</label><input id="appId" class="form-control" value="1:422124188212:web:1bd31bee8d6e91e301d061"></div>
       </div>
-      <!-- Vat 1 Cap -->
-      <div class="checklist-item">
-        <label for="vat1-cap">Vat 1 Cap:</label>
-        <select id="vat1-cap" name="vat1-cap" class="form-select" onchange="togglePhotos('vat1-cap')">
-          <option value="available">Available ✓</option>
-          <option value="unavailable">Unavailable ✗</option>
-        </select>
-        <label for="vat1-cap-comments">Comments:</label>
-        <input type="text" id="vat1-cap-comments" name="vat1-cap-comments" class="form-control" spellcheck="true">
-        <input type="file" id="vat1-cap-photo" class="form-control" style="display:none;" accept="image/*" onchange="previewImage(event,'vat1-cap-preview')">
-        <img id="vat1-cap-preview" class="image-preview">
-      </div>
-      <!-- Vat 2 Cap -->
-      <div class="checklist-item">
-        <label for="vat2-cap">Vat 2 Cap:</label>
-        <select id="vat2-cap" name="vat2-cap" class="form-select" onchange="togglePhotos('vat2-cap')">
-          <option value="na">N/A</option>
-          <option value="available">Available ✓</option>
-          <option value="unavailable">Unavailable ✗</option>
-        </select>
-        <label for="vat2-cap-comments">Comments:</label>
-        <input type="text" id="vat2-cap-comments" name="vat2-cap-comments" class="form-control" spellcheck="true">
-        <input type="file" id="vat2-cap-photo" class="form-control" style="display:none;" accept="image/*" onchange="previewImage(event,'vat2-cap-preview')">
-        <img id="vat2-cap-preview" class="image-preview">
-      </div>
-      <!-- Gateway Location -->
-      <div class="checklist-item">
-        <label for="gateway-location">Gateway Location:</label>
-        <input type="text" id="gateway-location" name="gateway-location" class="form-control" spellcheck="true">
-        <label for="gateway-comments">Comments:</label>
-        <input type="text" id="gateway-comments" name="gateway-comments" class="form-control" spellcheck="true">
-        <input type="file" id="gateway-photo" class="form-control" accept="image/*" onchange="previewImage(event,'gateway-preview')">
-        <img id="gateway-preview" class="image-preview">
-      </div>
-      <!-- Agitator Sensor -->
-      <div class="checklist-item">
-        <label for="agitator-location">Agitator Sensor Location:</label>
-        <input type="text" id="agitator-location" name="agitator-location" class="form-control" spellcheck="true">
-        <label for="agitator-comments">Comments:</label>
-        <input type="text" id="agitator-comments" name="agitator-comments" class="form-control" spellcheck="true">
-        <input type="file" id="agitator-photo" class="form-control" accept="image/*" onchange="previewImage(event,'agitator-preview')">
-        <img id="agitator-preview" class="image-preview">
-      </div>
-      <!-- Vat 1 -->
-      <div class="checklist-item">
-        <label for="vat1-capacity">Vat 1 Capacity (L):</label>
-        <input type="text" id="vat1-capacity" name="vat1-capacity" class="form-control" oninput="showVat2Serial()">
-        <label for="vat1-comments">Comments (interior width etc.):</label>
-        <input type="text" id="vat1-comments" name="vat1-comments" class="form-control">
-      </div>
-      <!-- Vat 2 -->
-      <div class="checklist-item">
-        <label for="vat2-capacity">Vat 2 Capacity (L):</label>
-        <input type="text" id="vat2-capacity" name="vat2-capacity" class="form-control" oninput="showVat2Serial()">
-        <label for="vat2-comments">Comments (interior width etc.):</label>
-        <input type="text" id="vat2-comments" name="vat2-comments" class="form-control">
-      </div>
-      <!-- ADDED: Vat 1 Condition -->
-      <div class="checklist-item">
-        <label for="vat1-condition">Vat 1 Condition:</label>
-        <select id="vat1-condition" name="vat1-condition" class="form-select" onchange="toggleVatCondition('vat1-condition')">
-          <option value="ok">OK</option>
-          <option value="attention">Attention Required</option>
-        </select>
-        <div id="vat1-condition-extra" style="display:none;">
-          <label for="vat1-condition-comments">Comments:</label>
-          <input type="text" id="vat1-condition-comments" name="vat1-condition-comments" class="form-control">
-          <input type="file" id="vat1-condition-photo" class="form-control" accept="image/*" onchange="previewImage(event,'vat1-condition-preview')">
-          <img id="vat1-condition-preview" class="image-preview">
-        </div>
-      </div>
-      <!-- ADDED: Vat 2 Condition -->
-      <div class="checklist-item">
-        <label for="vat2-condition">Vat 2 Condition:</label>
-        <select id="vat2-condition" name="vat2-condition" class="form-select" onchange="toggleVatCondition('vat2-condition')">
-          <option value="ok">OK</option>
-          <option value="attention">Attention Required</option>
-        </select>
-        <div id="vat2-condition-extra" style="display:none;">
-          <label for="vat2-condition-comments">Comments:</label>
-          <input type="text" id="vat2-condition-comments" name="vat2-condition-comments" class="form-control">
-          <input type="file" id="vat2-condition-photo" class="form-control" accept="image/*" onchange="previewImage(event,'vat2-condition-preview')">
-          <img id="vat2-condition-preview" class="image-preview">
-        </div>
-      </div>
-      <!-- ADDED: Vat 1 Serial Number -->
-      <div class="checklist-item">
-        <label for="vat1-serial">Vat 1 Serial Number:</label>
-        <input type="text" id="vat1-serial" name="vat1-serial" class="form-control">
-      </div>
-      <!-- ADDED: Vat 2 Serial Number, only if Vat 2 Capacity entered -->
-      <div class="checklist-item" id="vat2-serial-section" style="display:none;">
-        <label for="vat2-serial">Vat 2 Serial Number:</label>
-        <input type="text" id="vat2-serial" name="vat2-serial" class="form-control">
-      </div>
-      <!-- Current Telemetry -->
-      <div class="checklist-item">
-        <label for="current-telemetry">Current Telemetry:</label>
-        <input type="text" id="current-telemetry" name="current-telemetry" class="form-control">
-        <label for="telemetry-comments">Comments:</label>
-        <input type="text" id="telemetry-comments" name="telemetry-comments" class="form-control">
-      </div>
-      <!-- Rubberware Section -->
-      <div class="rubber-section-title">Rubberware Section</div>
-      <div class="section-sub">Check rubber seals, RJT step seals, and chiller condition below</div>
-      <!-- Vat Door Seal -->
-      <div class="checklist-item">
-        <label for="vat-door-seal">Vat Door Seal:</label>
-        <select id="vat-door-seal" name="vat-door-seal" class="form-select" onchange="toggleVatDoorSeal()">
-          <option value="notdelivered">Not Delivered</option>
-          <option value="delivered">Delivered</option>
-        </select>
-        <div id="vat-door-seal-extra" style="display:none;">
-          <label for="vat-door-seal-comments">Comments:</label>
-          <input type="text" id="vat-door-seal-comments" name="vat-door-seal-comments" class="form-control">
-          <input type="file" id="vat-door-seal-photo" class="form-control" accept="image/*" onchange="previewImage(event,'vat-door-seal-preview')">
-          <img id="vat-door-seal-preview" class="image-preview">
-        </div>
-      </div>
-      <!-- RJT Step Seal -->
-      <div class="checklist-item">
-        <label for="rjt-seal">RJT Step Seal:</label>
-        <select id="rjt-seal" name="rjt-seal" class="form-select" onchange="toggleRjtSeal()">
-          <option value="notdelivered">Not Delivered</option>
-          <option value="delivered">Delivered</option>
-        </select>
-        <div id="rjt-seal-extra" style="display:none;">
-          <label for="rjt-seal-comments">Comments:</label>
-          <input type="text" id="rjt-seal-comments" name="rjt-seal-comments" class="form-control">
-          <input type="file" id="rjt-seal-photo" class="form-control" accept="image/*" onchange="previewImage(event,'rjt-seal-preview')">
-          <img id="rjt-seal-preview" class="image-preview">
-          <label for="rjt-seal-size">Step Seal Size:</label>
-          <select id="rjt-seal-size" name="rjt-seal-size" class="form-select rjt-size-select">
-            <option value="">Select Size</option>
-            <option value="small">Small</option>
-            <option value="large">Large</option>
-          </select>
-        </div>
-      </div>
-      <!-- Chiller Condition -->
-      <div class="checklist-item">
-        <label for="chiller-condition">Chiller Condition:</label>
-        <select id="chiller-condition" name="chiller-condition" class="form-select" onchange="toggleChillerCondition()">
-          <option value="ok">OK</option>
-          <option value="attention">Attention Required</option>
-        </select>
-        <div id="chiller-condition-extra" style="display:none;">
-          <label for="chiller-condition-comments">Comments:</label>
-          <input type="text" id="chiller-condition-comments" name="chiller-condition-comments" class="form-control">
-          <input type="file" id="chiller-condition-photo" class="form-control" accept="image/*" onchange="previewImage(event,'chiller-condition-preview')">
-          <img id="chiller-condition-preview" class="image-preview">
-        </div>
-      </div>
-      <!-- Form Buttons -->
-      <button type="button" onclick="generatePDF()">Generate PDF</button>
-      <button type="button" onclick="viewRecords()">View Vat Sizes & Summary</button>
-    </form>
-  </div>
-  <div id="record-container" class="record-container">
-    <h2 class="mt-2 mb-2">Vat Sizes & Dimension Summary</h2>
-    <div id="summary-controls" class="summary-controls">
-      <input type="text" id="summary-search" placeholder="Search Dairy #" class="form-control">
-      <label class="filter-label" for="filter-cap">Vat Cap</label>
-      <select id="filter-cap" class="form-select">
-        <option value="all">All Farms</option>
-        <option value="no-cap">No Available Vat Cap</option>
-      </select>
-      <!-- ADDED: New filters -->
-      <label class="filter-label" for="filter-vat-cond">Vat Condition</label>
-      <select id="filter-vat-cond" class="form-select">
-        <option value="all">All</option>
-        <option value="attention">Attention Required</option>
-      </select>
-      <label class="filter-label" for="filter-chiller">Chiller</label>
-      <select id="filter-chiller" class="form-select">
-        <option value="all">All</option>
-        <option value="attention">Attention Required</option>
-      </select>
-      <label class="filter-label" for="filter-door-seal">Door Seal</label>
-      <select id="filter-door-seal" class="form-select">
-        <option value="all">All</option>
-        <option value="delivered">Delivered</option>
-        <option value="notdelivered">Not Delivered</option>
-      </select>
-      <label class="filter-label" for="filter-rjt">RJT</label>
-      <select id="filter-rjt" class="form-select">
-        <option value="all">All</option>
-        <option value="delivered">Delivered</option>
-        <option value="notdelivered">Not Delivered</option>
-      </select>
+      <div class="small mt-2">Path: <span class="mono">Pre Check/</span></div>
     </div>
-    <div id="summary-table-div"></div>
-    <div id="summary-extras"></div>
-    <div id="single-form-view" style="margin-top:32px;"></div>
-    <button class="back-button" onclick="goBack()">Back</button>
+
+    <!-- Quick export -->
+    <div class="card">
+      <div class="fw-bold mb-1">Option A — Quick sample</div>
+      <div class="small mb-2">Pulls the first N JSON files from <span class="mono">Pre Check/</span>, removes any <span class="mono">*-photo-base64</span> fields, and downloads a single JSON.</div>
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small">Max records</label>
+          <input id="maxCount" type="number" class="form-control" value="60" min="1" max="500">
+        </div>
+        <div class="col-md-9">
+          <button id="btnExport" class="btn-agora w-100">Export sample for AI</button>
+        </div>
+      </div>
+      <div id="statusA" class="status mt-2"></div>
+    </div>
+
+    <!-- Targeted export -->
+    <div class="card">
+      <div class="fw-bold mb-1">Option B — Specific Dairy Numbers</div>
+      <div class="small mb-2">Paste one Dairy Number per line to export exactly those records.</div>
+      <textarea id="dairyList" rows="5" class="form-control mono" placeholder="e.g.\n12345\n67890"></textarea>
+      <div class="d-flex gap-2 mt-2">
+        <button id="btnExportList" class="btn-alt">Export selected Dairy Numbers</button>
+        <button id="btnClearList" class="btn-alt">Clear</button>
+      </div>
+      <div id="statusB" class="status mt-2"></div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+      <div class="fw-bold mb-1">What’s included</div>
+      <ul class="small mb-0">
+        <li><span class="badge-ok">Yes</span> All key fields (caps, conditions, comments, serials, etc.)</li>
+        <li><span class="badge-warn">No</span> Image data: any <span class="mono">*-photo-base64</span> fields are removed to keep files small</li>
+        <li>We also add <span class="mono">__file</span> (original JSON name) and small boolean hints like <span class="mono">__hints.hasChillerAttention</span> to help me tune rules faster.</li>
+      </ul>
+    </div>
   </div>
+</div>
 
-  <!-- Firebase, Dexie, jsPDF -->
-  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.0.3/dexie.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-  <script>
-    // Firebase config (EXACT from your post)
-    const firebaseConfig = {
-      apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
-      authDomain: "dairy-farm-record-system.firebaseapp.com",
-      projectId: "dairy-farm-record-system",
-      storageBucket: "dairy-farm-record-system.appspot.com",
-      messagingSenderId: "422124188212",
-      appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const storage = firebase.storage();
-    // Dexie for offline
-    const db = new Dexie('VatPreCheck');
-    db.version(1).stores({ forms: '++id,dairyNumber' });
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
 
-    // --- LOGO (page and PDF)
-    let logoBase64 = "";
-    let logoAspect = 1;
-    async function loadLogoToHeaderAndPDF() {
-      try {
-        const logoRef = storage.ref("Agora Logo/2F6-1YdaEP.jpeg");
-        const logoUrl = await logoRef.getDownloadURL();
-        const img = document.getElementById("agora-logo-header");
-        img.src = logoUrl;
-        img.style.display = "block";
-        // Preload as base64 for PDF
-        const res = await fetch(logoUrl);
-        const blob = await res.blob();
-        const reader = new FileReader();
-        reader.onload = function(e) { 
-          logoBase64 = e.target.result;
-          // Calculate logo aspect ratio for correct scaling in PDF
-          const tmp = new window.Image();
-          tmp.onload = function() { logoAspect = tmp.width/tmp.height; };
-          tmp.src = logoBase64;
-        };
-        reader.readAsDataURL(blob);
-      } catch (e) { }
-    }
-    loadLogoToHeaderAndPDF();
+<script>
+const byId = id => document.getElementById(id);
+let appInit = false, storage = null;
 
-    function previewImage(e, id) {
-      const img = document.getElementById(id);
-      const file = e.target.files[0];
-      if (file) {
-        img.src = URL.createObjectURL(file);
-        img.style.display = 'block';
-        img.setAttribute('data-base64','');
-        const reader = new FileReader();
-        reader.onload = function(evt){
-          img.setAttribute('data-base64', evt.target.result);
-        };
-        reader.readAsDataURL(file);
+function getConfigFromInputs(){
+  return {
+    apiKey: byId('apiKey').value.trim(),
+    authDomain: byId('authDomain').value.trim(),
+    projectId: byId('projectId').value.trim(),
+    storageBucket: byId('storageBucket').value.trim(),
+    messagingSenderId: byId('messagingSenderId').value.trim(),
+    appId: byId('appId').value.trim()
+  };
+}
+function ensureFirebase(){
+  if(appInit) return;
+  const cfg = getConfigFromInputs();
+  firebase.initializeApp(cfg);
+  storage = firebase.storage();
+  appInit = true;
+}
+
+function scrubRecord(rec){
+  const clean = {...rec};
+  // drop any base64 photo fields
+  Object.keys(clean).forEach(k=>{ if(k.endsWith('photo-base64')) delete clean[k]; });
+  // add simple derived flags
+  clean.__hints = {
+    hasVat1CapUnavailable: (clean['vat1-cap']||'').toLowerCase()==='unavailable',
+    hasVat2CapUnavailable: (clean['vat2-cap']||'').toLowerCase()==='unavailable',
+    hasChillerAttention: (clean['chiller-condition']||'')==='attention',
+    hasVatAttention: (clean['vat1-condition']==='attention'||clean['vat2-condition']==='attention')
+  };
+  return clean;
+}
+
+async function listAllInFolder(folderPath){
+  // NOTE: Firebase Storage listAll() may return at most 1000 items per call; good for our use.
+  const folderRef = storage.ref(folderPath);
+  const res = await folderRef.listAll();
+  return res.items || [];
+}
+
+async function downloadJSONFile(filename, obj){
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 400);
+}
+
+/* ========== Option A ========== */
+byId('btnExport').addEventListener('click', async ()=>{
+  ensureFirebase();
+  const status = byId('statusA');
+  const maxCount = Math.max(1, Math.min(500, Number(byId('maxCount').value||60)));
+  const folder = 'Pre Check';
+
+  byId('btnExport').disabled = true;
+  status.textContent = 'Listing files…';
+
+  try{
+    const items = await listAllInFolder(folder);
+    if(!items.length){ status.textContent = 'No files found in "Pre Check/".'; byId('btnExport').disabled=false; return; }
+
+    const slice = items.slice(0, maxCount);
+    const out = [];
+    let n = 0;
+    for(const ref of slice){
+      try{
+        status.textContent = `Fetching ${++n}/${slice.length}: ${ref.name}`;
+        const url = await ref.getDownloadURL();
+        const rec = await fetch(url).then(r=>r.json());
+        const cleaned = scrubRecord(rec);
+        cleaned.__file = ref.name;
+        out.push(cleaned);
+      }catch(e){
+        // continue on individual fetch errors
       }
     }
-    function togglePhotos(id) {
-      if (document.getElementById(id).value === 'unavailable') {
-        document.getElementById(id + '-photo').style.display = 'block';
-      } else {
-        document.getElementById(id + '-photo').style.display = 'none';
-        document.getElementById(id + '-preview').style.display = 'none';
-      }
+    const bundle = { created: new Date().toISOString(), count: out.length, sourceFolder: folder, rows: out };
+    await downloadJSONFile('vat_precheck_ai_sample.json', bundle);
+    status.textContent = `Done. Exported ${out.length} record(s).`;
+  }catch(err){
+    console.error(err);
+    status.textContent = 'Error: could not list or read from Firebase Storage. Check rules/permissions.';
+  }finally{
+    byId('btnExport').disabled = false;
+  }
+});
+
+/* ========== Option B ========== */
+byId('btnExportList').addEventListener('click', async ()=>{
+  ensureFirebase();
+  const status = byId('statusB');
+  const listRaw = byId('dairyList').value.trim();
+  if(!listRaw){ status.textContent='Paste one Dairy Number per line first.'; return; }
+  const dairies = [...new Set(listRaw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))];
+  const folder = 'Pre Check';
+
+  status.textContent = `Fetching ${dairies.length} record(s)…`;
+  byId('btnExportList').disabled = true;
+
+  const out = [];
+  let done = 0;
+  for(const dn of dairies){
+    try{
+      const ref = storage.ref(`${folder}/${dn}.json`);
+      const url = await ref.getDownloadURL();
+      const rec = await fetch(url).then(r=>r.json());
+      const cleaned = scrubRecord(rec);
+      cleaned.__file = `${dn}.json`;
+      out.push(cleaned);
+      status.textContent = `Fetched ${++done}/${dairies.length} (${dn})`;
+    }catch(e){
+      status.textContent = `Missed: ${dn} (not found or access denied). Continuing…`;
     }
+  }
+  const bundle = { created: new Date().toISOString(), count: out.length, requested: dairies, sourceFolder: folder, rows: out };
+  await downloadJSONFile('vat_precheck_ai_selected.json', bundle);
+  status.textContent = `Done. Exported ${out.length}/${dairies.length} requested record(s).`;
+  byId('btnExportList').disabled = false;
+});
 
-    // ---- NEW SECTION: Dynamic UI handlers for custom logic
-
-    function toggleVatCondition(which) {
-      var sel = document.getElementById(which);
-      var extra = document.getElementById(which+'-extra');
-      if(sel.value === "attention") extra.style.display = "block";
-      else extra.style.display = "none";
-    }
-    function toggleChillerCondition() {
-      var sel = document.getElementById('chiller-condition');
-      var extra = document.getElementById('chiller-condition-extra');
-      if(sel.value === "attention") extra.style.display = "block";
-      else extra.style.display = "none";
-    }
-    function toggleVatDoorSeal() {
-      var sel = document.getElementById('vat-door-seal');
-      var extra = document.getElementById('vat-door-seal-extra');
-      if(sel.value === "delivered") extra.style.display = "block";
-      else extra.style.display = "none";
-    }
-    function toggleRjtSeal() {
-      var sel = document.getElementById('rjt-seal');
-      var extra = document.getElementById('rjt-seal-extra');
-      var sizeSel = document.getElementById('rjt-seal-size');
-      if(sel.value === "delivered") {
-        extra.style.display = "block";
-        sizeSel.style.display = "block";
-      } else {
-        extra.style.display = "none";
-        sizeSel.style.display = "none";
-      }
-    }
-    function showVat2Serial() {
-      // If vat2-capacity has any value, show vat2-serial
-      var val = document.getElementById('vat2-capacity').value.trim();
-      document.getElementById('vat2-serial-section').style.display = val ? 'block' : 'none';
-    }
-
-    // ---- END UI handlers
-
-    document.getElementById('dairyNumber').addEventListener('blur', async function() {
-      const num = this.value.trim();
-      if (!num) return;
-      let rec = await db.forms.where('dairyNumber').equals(num).first();
-      if (!rec) {
-        try {
-          const ref = storage.ref(`Pre Check/${num}.json`);
-          const url = await ref.getDownloadURL();
-          const res = await fetch(url);
-          if (res.ok) rec = await res.json();
-        } catch {}
-      }
-      if (rec) {
-        for (const k in rec) {
-          if (document.getElementsByName(k)[0]) document.getElementsByName(k)[0].value = rec[k];
-        }
-      }
-      showVat2Serial();
-    });
-
-    async function saveForm() {
-      const form = document.getElementById('vat-precheck-form');
-      const fd = new FormData(form);
-      const data = Object.fromEntries(fd.entries());
-      // Photo fields for new items
-      [
-        'vat1-cap','vat2-cap','gateway','agitator',
-        'vat1-condition','vat2-condition','vat-door-seal','rjt-seal','chiller-condition'
-      ].forEach(prefix => {
-        const img = document.getElementById(prefix+'-preview');
-        if(img && img.getAttribute('data-base64')) {
-          data[prefix+'-photo-base64'] = img.getAttribute('data-base64');
-        }
-      });
-      data.timestamp = Date.now();
-      await db.forms.put({dairyNumber:data.dairyNumber, ...data});
-      await storage.ref(`Pre Check/${data.dairyNumber}.json`).put(new Blob([JSON.stringify(data)], {type:'application/json'}));
-    }
-
-    async function generatePDF() {
-      await saveForm();
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('l', 'pt', 'a4');
-      let curY = 40;
-      if (logoBase64) {
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const logoHeight = 80;
-        const logoWidth = logoAspect * logoHeight;
-        pdf.addImage(logoBase64, 'JPEG', (pageWidth-logoWidth)/2, 20, logoWidth, logoHeight);
-        curY = 110;
-      }
-      pdf.setFontSize(16);
-      pdf.text('Agora Vat Pre Check', 40, curY);
-      curY += 14;
-      const fd = new FormData(document.getElementById('vat-precheck-form'));
-      const table = [];
-      for (let [k, v] of fd.entries()) table.push([k, v]);
-      pdf.autoTable({
-        startY: curY+10,
-        head: [['Field', 'Value']],
-        body: table,
-        styles: { fontSize: 10, cellPadding: 4 },
-        headStyles: { fillColor: [0,43,92], textColor: 255 }
-      });
-      let afterTableY = pdf.lastAutoTable.finalY + 10;
-      // all photo fields
-      const photoMap = [
-        { label: 'Vat 1 Cap Photo', key: 'vat1-cap-photo-base64' },
-        { label: 'Vat 2 Cap Photo', key: 'vat2-cap-photo-base64' },
-        { label: 'Gateway Photo', key: 'gateway-photo-base64' },
-        { label: 'Agitator Photo', key: 'agitator-photo-base64' },
-        { label: 'Vat 1 Condition Photo', key: 'vat1-condition-photo-base64' },
-        { label: 'Vat 2 Condition Photo', key: 'vat2-condition-photo-base64' },
-        { label: 'Vat Door Seal Photo', key: 'vat-door-seal-photo-base64' },
-        { label: 'RJT Seal Photo', key: 'rjt-seal-photo-base64' },
-        { label: 'Chiller Condition Photo', key: 'chiller-condition-photo-base64' }
-      ];
-      let imgPosY = afterTableY;
-      for (let i=0; i<photoMap.length; ++i) {
-        const {label, key} = photoMap[i];
-        const img = document.getElementById(key.replace('-base64','')+'-preview');
-        if (img && img.getAttribute('data-base64')) {
-          if(imgPosY + 170 > 580) { pdf.addPage(); imgPosY = 60; }
-          pdf.setFontSize(13); pdf.text(label, 40, imgPosY+22);
-          pdf.addImage(img.getAttribute('data-base64'), "JPEG", 40, imgPosY+28, 420, 140);
-          imgPosY += 170;
-        }
-      }
-      pdf.save('VatPreCheck_' + fd.get('dairyNumber') + '.pdf');
-    }
-
-    function viewRecords() {
-      document.getElementById('form-container').style.display = 'none';
-      document.getElementById('record-container').style.display = 'block';
-      loadVatSummary();
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-      document.getElementById('summary-search').addEventListener('input', loadVatSummary);
-      document.getElementById('filter-cap').addEventListener('change', loadVatSummary);
-      document.getElementById('filter-vat-cond').addEventListener('change', loadVatSummary);
-      document.getElementById('filter-chiller').addEventListener('change', loadVatSummary);
-      document.getElementById('filter-door-seal').addEventListener('change', loadVatSummary);
-      document.getElementById('filter-rjt').addEventListener('change', loadVatSummary);
-    });
-
-    async function loadVatSummary() {
-      const summaryDiv = document.getElementById('summary-table-div');
-      summaryDiv.innerHTML = '<em>Loading summary from cloud...</em>';
-      let searchVal = document.getElementById('summary-search').value.trim().toLowerCase();
-      let filterCap = document.getElementById('filter-cap').value;
-      let filterVatCond = document.getElementById('filter-vat-cond').value;
-      let filterChiller = document.getElementById('filter-chiller').value;
-      let filterDoorSeal = document.getElementById('filter-door-seal').value;
-      let filterRjt = document.getElementById('filter-rjt').value;
-      try {
-        const folderRef = storage.ref('Pre Check');
-        const res = await folderRef.listAll();
-        let vats = [];
-        let fullData = {};
-        for (let fileRef of res.items) {
-          try {
-            const url = await fileRef.getDownloadURL();
-            const data = await fetch(url).then(r => r.json());
-            fullData[data.dairyNumber || fileRef.name.replace('.json','')] = data;
-            vats.push({
-              dairyNumber: data.dairyNumber || fileRef.name.replace('.json',''),
-              vat1: data['vat1-capacity'] || '',
-              vat1Cap: data['vat1-cap'] || '',
-              width1: data['vat1-comments'] || '',
-              vat2: data['vat2-capacity'] || '',
-              vat2Cap: data['vat2-cap'] || '',
-              width2: data['vat2-comments'] || '',
-              vat1Cond: data['vat1-condition'] || '',
-              vat2Cond: data['vat2-condition'] || '',
-              vat1Serial: data['vat1-serial'] || '',
-              vat2Serial: data['vat2-serial'] || '',
-              chiller: data['chiller-condition'] || '',
-              vatDoorSeal: data['vat-door-seal'] || '',
-              rjtSeal: data['rjt-seal'] || ''
-            });
-          } catch {}
-        }
-        // Filter logic
-        if (searchVal.length > 0) vats = vats.filter(v => v.dairyNumber.toLowerCase().includes(searchVal));
-        if (filterCap === 'no-cap') vats = vats.filter(v => (v.vat1Cap && v.vat1Cap.toLowerCase() !== 'available') || (v.vat2Cap && v.vat2Cap.toLowerCase() !== 'available'));
-        if (filterVatCond === 'attention') vats = vats.filter(v => v.vat1Cond==="attention" || v.vat2Cond==="attention");
-        if (filterChiller === 'attention') vats = vats.filter(v => v.chiller==="attention");
-        if (filterDoorSeal !== "all") vats = vats.filter(v => v.vatDoorSeal===filterDoorSeal);
-        if (filterRjt !== "all") vats = vats.filter(v => v.rjtSeal===filterRjt);
-
-        if (vats.length) {
-          let html = '<table class="summary-table"><tr><th>Dairy #</th><th>Vat 1 Cap</th><th>Vat 1 Size</th><th>Vat 1 Cond</th><th>Vat 1 Serial</th><th>Vat 2 Cap</th><th>Vat 2 Size</th><th>Vat 2 Cond</th><th>Vat 2 Serial</th><th>Chiller</th><th>Door Seal</th><th>RJT</th></tr>';
-          vats.forEach(v =>
-            html += `<tr>
-              <td class="summary-clickable" onclick="viewSingleForm('${v.dairyNumber}')">${v.dairyNumber}</td>
-              <td>${v.vat1Cap||''}</td><td>${v.vat1||''}</td><td>${v.vat1Cond||''}</td><td>${v.vat1Serial||''}</td>
-              <td>${v.vat2Cap||''}</td><td>${v.vat2||''}</td><td>${v.vat2Cond||''}</td><td>${v.vat2Serial||''}</td>
-              <td>${v.chiller||''}</td>
-              <td>${v.vatDoorSeal||''}</td>
-              <td>${v.rjtSeal||''}</td>
-            </tr>`
-          );
-          html += '</table>';
-          // summary below
-          let sizes = {};
-          vats.forEach(v => {
-            if (v.vat1) sizes[v.vat1] = (sizes[v.vat1] || 0) + 1;
-            if (v.vat2) sizes[v.vat2] = (sizes[v.vat2] || 0) + 1;
-          });
-          html += '<h4>Summary:</h4><ul>';
-          Object.keys(sizes).forEach(sz => html += `<li>${sz}L : ${sizes[sz]} vats</li>`);
-          html += '</ul>';
-          summaryDiv.innerHTML = html;
-        } else {
-          summaryDiv.innerHTML = '<em>No vat details found in cloud.</em>';
-        }
-
-        // --- Extras summary for filters with grid popups ---
-        const summaryExtras = document.getElementById("summary-extras");
-        // Count delivered RJT, delivered door seal, vat condition, chiller attention
-        let rjtCount = vats.filter(v=>v.rjtSeal==="delivered").length;
-        let sealCount = vats.filter(v=>v.vatDoorSeal==="delivered").length;
-        let vatCondCount = vats.filter(v=>v.vat1Cond==="attention" || v.vat2Cond==="attention").length;
-        let chillerCount = vats.filter(v=>v.chiller==="attention").length;
-        summaryExtras.innerHTML = `
-          <div>
-            <b>RJTs Delivered:</b> <span class="summary-clickable" onclick="showSubgrid('rjt','delivered')">${rjtCount}</span>
-            &nbsp;&nbsp; <b>Vat Door Seals Delivered:</b> <span class="summary-clickable" onclick="showSubgrid('door','delivered')">${sealCount}</span>
-            &nbsp;&nbsp; <b>Vat(s) Attention Required:</b> <span class="summary-clickable" onclick="showSubgrid('vat','attention')">${vatCondCount}</span>
-            &nbsp;&nbsp; <b>Chiller Attention:</b> <span class="summary-clickable" onclick="showSubgrid('chiller','attention')">${chillerCount}</span>
-          </div>
-          <div id="subgrid-detail"></div>
-        `;
-
-        // Store full data in window for subgrids
-        window._vatSummaryData = {vats, fullData};
-      } catch {
-        summaryDiv.innerHTML = '<em>Error loading vat details summary.</em>';
-      }
-      document.getElementById("single-form-view").innerHTML = "";
-    }
-
-    window.showSubgrid = function(type, what) {
-      const data = (window._vatSummaryData||{}).fullData || {};
-      let rows = [];
-      if(type==="rjt" && what==="delivered") {
-        rows = Object.values(data).filter(f=>f['rjt-seal']==='delivered');
-      }
-      if(type==="door" && what==="delivered") {
-        rows = Object.values(data).filter(f=>f['vat-door-seal']==='delivered');
-      }
-      if(type==="vat" && what==="attention") {
-        rows = Object.values(data).filter(f=>f['vat1-condition']==='attention'||f['vat2-condition']==='attention');
-      }
-      if(type==="chiller" && what==="attention") {
-        rows = Object.values(data).filter(f=>f['chiller-condition']==='attention');
-      }
-      let html = "";
-      if(rows.length) {
-        html += `<div class="summary-subgrid"><b>${rows.length} found:</b><br><table class="table table-bordered table-sm"><thead><tr><th>Dairy #</th><th>Vat 1 Condition</th><th>Vat 2 Condition</th><th>Chiller</th><th>Vat Door Seal</th><th>RJT</th></tr></thead><tbody>`;
-        rows.forEach(r=>{
-          html += `<tr>
-            <td>${r.dairyNumber||""}</td>
-            <td>${r['vat1-condition']||""}</td>
-            <td>${r['vat2-condition']||""}</td>
-            <td>${r['chiller-condition']||""}</td>
-            <td>${r['vat-door-seal']||""}</td>
-            <td>${r['rjt-seal']||""}</td>
-          </tr>`;
-        });
-        html += "</tbody></table></div>";
-      }
-      document.getElementById("subgrid-detail").innerHTML = html||"<div class='summary-subgrid'>No details</div>";
-    };
-
-    async function viewSingleForm(dairyNumber) {
-      let rec = await db.forms.where('dairyNumber').equals(dairyNumber).first();
-      if (!rec) {
-        try {
-          const ref = storage.ref(`Pre Check/${dairyNumber}.json`);
-          const url = await ref.getDownloadURL();
-          const res = await fetch(url);
-          if (res.ok) rec = await res.json();
-        } catch {}
-      }
-      const div = document.getElementById('single-form-view');
-      if (!rec) {
-        div.innerHTML = `<em>No form found for #${dairyNumber}</em>`;
-        return;
-      }
-      let html = `<div class="form-view-title">Vat Pre Check for #${dairyNumber}</div>
-      <table class="table table-bordered table-sm"><tbody>`;
-      for (const [k, v] of Object.entries(rec)) {
-        if (k.endsWith('base64') || k==='timestamp' || k==='id' || k==='dairyNumber') continue;
-        html += `<tr><th>${k.replace(/-/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</th><td>${v}</td></tr>`;
-      }
-      html += '</tbody></table>';
-      // Show all photo fields
-      let photoFields = [
-        'vat1-cap','vat2-cap','gateway','agitator',
-        'vat1-condition','vat2-condition','vat-door-seal','rjt-seal','chiller-condition'
-      ];
-      let photoAdded = false;
-      photoFields.forEach(f=>{
-        if(rec[f+'-photo-base64']){
-          if(!photoAdded) html += `<div class="photo-section-title">Photos:</div>`;
-          html += `<div><strong>${f.replace(/-/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}:</strong><br><img src="${rec[f+'-photo-base64']}" class="big-photo"></div>`;
-          photoAdded = true;
-        }
-      });
-      div.innerHTML = html;
-      div.scrollIntoView({behavior:'smooth'});
-    }
-    window.viewSingleForm = viewSingleForm;
-
-    function goBack() {
-      document.getElementById('form-container').style.display = 'block';
-      document.getElementById('record-container').style.display = 'none';
-      document.getElementById('single-form-view').innerHTML = '';
-    }
-  </script>
+byId('btnClearList').addEventListener('click', ()=>{ byId('dairyList').value=''; byId('statusB').textContent=''; });
+</script>
 </body>
 </html>
