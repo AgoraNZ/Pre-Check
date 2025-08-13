@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Agora Vat Pre Check — Flash Customer + Admin Export</title>
+<title>Agora Vat Pre Check — Flash View + Admin Export</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
@@ -11,8 +11,7 @@
     --bg:#f8faff; --primary:#001F3F; --accent:#FF851B;
     --danger:#FF4136; --success:#2ECC40; --muted:#6b7280;
     --card:#ffffff; --shadow:0 2px 32px #001F3F11;
-    --maxw:980px; --logo:210px; --h1:2rem; --table-font:.95rem;
-    --chip:#e9eef9;
+    --maxw:980px; --logo:210px; --h1:2rem; --table-font:.95rem; --chip:#eef3fe;
   }
   body{background:var(--bg);color:var(--primary);font-family:'Segoe UI',Arial,sans-serif}
   .container-main{background:var(--card);border-radius:18px;max-width:var(--maxw);margin:28px auto 44px;padding:22px 16px 28px;box-shadow:var(--shadow)}
@@ -70,7 +69,6 @@
   .loader{width:90px;height:90px;border-radius:50%;border:8px solid #eee;border-top-color:#FF851B;animation:spin 1s linear infinite;margin-bottom:8px}
   @keyframes spin{to{transform:rotate(360deg)}}
   .overlay-box{text-align:center;color:#173559}
-
   .hidden{display:none!important}
 </style>
 </head>
@@ -86,10 +84,11 @@
     <button class="btn-admin hidden" id="btn-admin">Admin</button>
   </div>
 
-  <!-- ============ FORM VIEW (Customer) ============ -->
+  <!-- ========= FORM (Customer flash view) ========= -->
   <div id="form-view">
     <form id="vat-precheck-form" autocomplete="off">
-      <!-- All vat fields first -->
+      <!-- Order: all vat fields, then agitator, gateway, other telemetry, rubberware -->
+
       <div class="mb-2">
         <label class="form-label">Dairy Number</label>
         <input id="dairyNumber" name="dairyNumber" class="form-control" required>
@@ -124,7 +123,7 @@
       <div class="row g-2 mt-1">
         <div class="col-md-6">
           <label class="form-label">Vat 1 Capacity (L)</label>
-          <input id="vat1-capacity" name="vat1-capacity" class="form-control" oninput="showVat2Serial()">
+          <input id="vat1-capacity" name="vat1-capacity" class="form-control">
           <label class="form-label mt-1">Vat 1 Condition</label>
           <select id="vat1-condition" name="vat1-condition" class="form-select" onchange="toggleVatCondition('vat1-condition')">
             <option value="ok">OK</option>
@@ -259,7 +258,7 @@
     </form>
   </div>
 
-  <!-- ============ RECORDS / SUMMARY VIEW (Customer) ============ -->
+  <!-- ========= RECORDS / SUMMARY (Customer) ========= -->
   <div id="records-view" class="hidden">
     <div class="filters">
       <input class="form-control" id="search" placeholder="Search Dairy # or text…">
@@ -308,10 +307,10 @@
     </div>
   </div>
 
-  <!-- ============ ADMIN VIEW (separate; via #admin) ============ -->
+  <!-- ========= ADMIN (separate; open with #admin) ========= -->
   <div id="admin-view" class="hidden">
     <div class="fw-bold mb-2">Admin — Download / Export</div>
-    <div class="small text-muted mb-2">Open this via <code>#admin</code>. Customer screens never show this.</div>
+    <div class="small text-muted mb-2">Open via <code>#admin</code>. Customer screens never show this.</div>
 
     <div class="card p-3 mb-3">
       <div class="fw-bold">Quick sample export (strips photos)</div>
@@ -347,7 +346,7 @@
     </div>
   </div>
 
-  <footer>Agora Vat Pre Check v3.3 — Flash customer view with resilient summary & isolated admin</footer>
+  <footer>Agora Vat Pre Check v4.0 — Flash customer view with resilient summary & isolated admin</footer>
 </div>
 
 <!-- Overlay -->
@@ -366,7 +365,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
 <script>
-/* ====== CONFIG ====== */
+/* ========= CONFIG ========= */
 const firebaseConfig = {
   apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
   authDomain: "dairy-farm-record-system.firebaseapp.com",
@@ -379,44 +378,22 @@ firebase.initializeApp(firebaseConfig);
 const storage = firebase.storage();
 
 const FOLDER = "Pre Check";
-const MANIFEST_OBJECT_PATH = `${FOLDER}/_index.json`;         // Storage manifest (filenames)
-const STATIC_BUNDLE_URL = './vat_precheck_ai_sample.json';     // Static bundle beside this file
+const MANIFEST_OBJECT_PATH = `${FOLDER}/_index.json`;     // filename list manifest
+const STATIC_BUNDLE_URL = './vat_precheck_ai_sample.json'; // static local bundle
 
-const DB = new Dexie("VatPreCheckV3Flash");
+const DB = new Dexie("VatPreCheckV4Flash");
 DB.version(1).stores({ forms:"++id,dairyNumber" });
 
 const $ = id => document.getElementById(id);
 
-/* ====== ROUTING ====== */
-function showFormView(){
-  $("form-view").classList.remove("hidden");
-  $("records-view").classList.add("hidden");
-  $("admin-view").classList.add("hidden");
-  $("btn-form").classList.replace("btn-outline","btn-agora");
-  $("btn-records").classList.replace("btn-agora","btn-outline");
-}
-function showRecordsView(){
-  $("form-view").classList.add("hidden");
-  $("records-view").classList.remove("hidden");
-  $("admin-view").classList.add("hidden");
-  $("btn-records").classList.replace("btn-outline","btn-agora");
-  $("btn-form").classList.replace("btn-agora","btn-outline");
-}
-function showAdminView(){
-  $("form-view").classList.add("hidden");
-  $("records-view").classList.add("hidden");
-  $("admin-view").classList.remove("hidden");
-}
-function route(){
-  const isAdmin = (location.hash||"") === "#admin";
-  $("btn-admin").classList.toggle("hidden", !isAdmin);
-  if(isAdmin){ showAdminView(); }
-  else { showFormView(); }
-}
-window.addEventListener("hashchange", route);
-route();
+/* ========= ROUTING ========= */
+function showFormView(){$("form-view").classList.remove("hidden");$("records-view").classList.add("hidden");$("admin-view").classList.add("hidden");$("btn-form").classList.replace("btn-outline","btn-agora");$("btn-records").classList.replace("btn-agora","btn-outline");}
+function showRecordsView(){$("form-view").classList.add("hidden");$("records-view").classList.remove("hidden");$("admin-view").classList.add("hidden");$("btn-records").classList.replace("btn-outline","btn-agora");$("btn-form").classList.replace("btn-agora","btn-outline");}
+function showAdminView(){ $("form-view").classList.add("hidden");$("records-view").classList.add("hidden");$("admin-view").classList.remove("hidden"); }
+function route(){ const isAdmin=(location.hash||"")==="#admin"; $("btn-admin").classList.toggle("hidden", !isAdmin); if(isAdmin) showAdminView(); else showFormView(); }
+window.addEventListener("hashchange", route); route();
 
-/* ====== LOGO ====== */
+/* ========= LOGO ========= */
 let logoBase64="", logoAspect=1;
 (async function initLogo(){
   try{
@@ -433,11 +410,11 @@ let logoBase64="", logoAspect=1;
   }catch{}
 })();
 
-/* ====== OVERLAY ====== */
+/* ========= OVERLAY ========= */
 function showOverlay(t){$("overlay-text").textContent=t||"Loading…";$("overlay").style.display="flex";}
 function hideOverlay(){ $("overlay").style.display="none"; }
 
-/* ====== PHOTOS & UI TOGGLES ====== */
+/* ========= UI HELPERS ========= */
 function previewImage(e, id){ const img=$(id); const f=e.target.files?.[0]; if(!f) return; img.src=URL.createObjectURL(f); img.style.display="block"; const r=new FileReader(); r.onload=ev=>img.setAttribute("data-base64", ev.target.result); r.readAsDataURL(f); }
 function togglePhotos(id){ const show=($(id).value==="unavailable"); $(`${id}-photo`).style.display= show? "block":"none"; const p=$(`${id}-preview`); if(!show){p.style.display="none"; p.removeAttribute("data-base64");} }
 function toggleVatCondition(which){ const extra=$(`${which}-extra`); const v=$(which).value; extra.style.display = (v==="attention")?"block":"none"; }
@@ -445,7 +422,7 @@ function toggleVatDoorSeal(){ $("vat-door-seal-extra").style.display = ($("vat-d
 function toggleRjtSeal(){ const v=$("rjt-seal").value==="delivered"; $("rjt-seal-extra").style.display=v?"block":"none"; $("rjt-seal-size").style.display=v?"block":"none"; }
 function showVat2Serial(){ const has=$("vat2-capacity").value.trim(); const sec=document.getElementById("vat2-serial-section"); if(sec){ sec.classList.toggle("hidden", !has); }}
 
-/* ====== LOAD/RESTORE BY DAIRY ====== */
+/* ========= LOAD/RESTORE BY DAIRY ========= */
 $("dairyNumber").addEventListener("blur", restoreByDairy);
 async function restoreByDairy(){
   const num=$("dairyNumber").value.trim(); if(!num) return;
@@ -466,7 +443,7 @@ async function restoreByDairy(){
   }
 }
 
-/* ====== SAVE / PDF ====== */
+/* ========= SAVE / PDF ========= */
 async function collectForm(){
   const fd=new FormData($("vat-precheck-form"));
   const data=Object.fromEntries(fd.entries());
@@ -525,7 +502,7 @@ async function generatePDF(){
   pdf.save(`VatPreCheck_${data.dairyNumber||'Unknown'}.pdf`);
 }
 
-/* ====== AI NORMALIZER ====== */
+/* ========= AI NORMALIZER (ticketing-style synonyms) ========= */
 const LEXICON = [
   { rx:/(power[\s-]?point|powerpoint|pp|socket|outlet)/i, tag:"Needs Power Point" },
   { rx:/(reducing\s*cap|reducer|dts\s*cap|dts|step\s*down\s*cap)/i, tag:"DTS Reducing Cap" },
@@ -590,11 +567,12 @@ function aiNormalize(record){
   if(metrics.cap1?.toLowerCase()==="unavailable" && metrics.cap2?.toLowerCase()==="unavailable") bits.push("Vat 1 & 2 caps missing");
   else if(metrics.cap1?.toLowerCase()==="unavailable") bits.push("Vat 1 cap missing");
   else if(metrics.cap2?.toLowerCase()==="unavailable") bits.push("Vat 2 cap missing");
-  if(tags.has("Vat Attention")) bits.push("Vat condition attention");
-  if(tags.has("Needs Power Point")) bits.push("Power point needed");
-  if(tags.has("DTS Reducing Cap")) bits.push("DTS reducing cap needed");
+  if(v1c==="attention"||v2c==="attention") bits.push("Vat condition attention");
+  if(hay.match(/power[\s-]?point|powerpoint|pp|socket|outlet/i)) bits.push("Power point needed");
+  if(hay.match(/reducing\s*cap|reducer|dts/i)) bits.push("DTS reducing cap needed");
   if(metrics.doorSeal==="delivered") bits.push(`Door seal delivered x${metrics.deliveredDoorSealQty}${metrics.doorSealSize? " ("+metrics.doorSealSize+")":""}`);
   if(metrics.rjt==="delivered") bits.push(`RJT delivered${metrics.rjtSize? " ("+metrics.rjtSize+")":""}`);
+
   const summary = bits.length ? bits.join(", ") + "." : "All key items OK.";
 
   const photoKeys = ["vat1-cap","vat2-cap","vat1-condition","vat2-condition","vat-door-seal","rjt-seal","gateway","agitator"];
@@ -609,12 +587,11 @@ function aiNormalize(record){
   if(tags.has("Vat Attention")) important.push("Vat condition attention");
   if(tags.has("Needs Power Point")) important.push("Power point");
   if(tags.has("DTS Reducing Cap")) important.push("DTS reducing cap");
-  const score = important.length;
 
-  return { tags:[...tags], metrics, summary, important, score, thumbs };
+  return { tags:[...tags], metrics, summary, important, score:important.length, thumbs };
 }
 
-/* ====== RECORDS / SUMMARY ====== */
+/* ========= RECORDS / SUMMARY ========= */
 const state = { all:[], normalized:[], view:"cards" };
 
 function kpiHTML(rows){
@@ -687,17 +664,14 @@ function tableHTML(rows){
   return header + body + `</tbody></table>`;
 }
 
-/* ====== LOADERS (manifest → static → cache → listAll) ====== */
-const safeJson = async (url) => {
-  try { const r = await fetch(url, {cache:'no-store'}); if(!r.ok) return null; return await r.json(); }
-  catch { return null; }
-};
+/* ========= LOADERS (manifest → static → cache → listAll) ========= */
+const safeJson = async (url) => { try{ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) return null; return await r.json(); }catch{ return null; } };
 
 async function loadFromStorageManifest(){
   try{
     const ref = storage.ref(MANIFEST_OBJECT_PATH);
     const url = await ref.getDownloadURL();
-    const manifest = await safeJson(url); // expects { files: ["12345.json","67890.json"] }
+    const manifest = await safeJson(url); // { files: ["12345.json", ...] }
     if(!manifest || !Array.isArray(manifest.files) || !manifest.files.length) return [];
     const out = [];
     showOverlay(`Loading ${manifest.files.length} record(s)…`);
@@ -707,7 +681,7 @@ async function loadFromStorageManifest(){
         const furl = await fileRef.getDownloadURL();
         const rec = await safeJson(furl);
         if(rec && rec.dairyNumber) out.push(rec);
-      }catch{ /* continue */ }
+      }catch{}
     }
     return out;
   }catch{ return []; }
@@ -775,7 +749,7 @@ async function loadRecordsUI(){
   applyFilters();
 }
 
-/* ====== FILTERS / RENDER ====== */
+/* ========= FILTERS / RENDER ========= */
 function applyFilters(){
   const q = $("search").value.trim().toLowerCase();
   const fCap = $("f-cap").value;
@@ -813,7 +787,7 @@ function applyFilters(){
     : `<i>No recurring tags yet.</i>`;
 }
 
-/* Drill & single PDF */
+/* ========= Drill & single PDF ========= */
 async function drill(dairy){
   let rec = await DB.forms.where("dairyNumber").equals(dairy).first();
   if(!rec){
@@ -836,11 +810,7 @@ async function drill(dairy){
     "vat-door-seal","vat-door-seal-size","vat-door-seal-comments",
     "rjt-seal","rjt-seal-size","rjt-seal-comments"
   ];
-  for(const k of orderKeys){
-    if(k in rec){
-      html += `<tr><th>${k.replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase())}</th><td>${rec[k]||''}</td></tr>`;
-    }
-  }
+  for(const k of orderKeys){ if(k in rec){ html += `<tr><th>${k.replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase())}</th><td>${rec[k]||''}</td></tr>`; } }
   html += `</tbody></table>`;
 
   const phKeys=["vat1-cap","vat2-cap","vat1-condition","vat2-condition","vat-door-seal","rjt-seal","gateway","agitator"];
@@ -860,17 +830,12 @@ async function downloadOne(dairy){
     const ref=storage.ref(`${FOLDER}/${dairy}.json`);
     const url=await ref.getDownloadURL();
     const data=await fetch(url).then(r=>r.json());
-    for(const [k,v] of Object.entries(data)){
-      const el=document.getElementsByName(k)[0];
-      if(el) el.value=v;
-    }
+    for(const [k,v] of Object.entries(data)){ const el=document.getElementsByName(k)[0]; if(el) el.value=v; }
     await generatePDF();
-  }catch{
-    alert("Could not load record for PDF.");
-  }
+  }catch{ alert("Could not load record for PDF."); }
 }
 
-/* ====== CUSTOMER NAV ====== */
+/* ========= NAV ========= */
 $("btn-save").onclick = saveForm;
 $("btn-pdf").onclick = generatePDF;
 $("btn-to-records").onclick = ()=>{ showRecordsView(); loadRecordsUI(); };
@@ -878,7 +843,7 @@ $("btn-form").onclick = showFormView;
 $("btn-records").onclick = async ()=>{ showRecordsView(); await loadRecordsUI(); };
 $("btn-back-form").onclick = showFormView;
 
-/* ====== FILTER WIRES ====== */
+/* ========= FILTER WIRES ========= */
 $("btn-refresh").onclick = loadRecordsUI;
 $("search").oninput = applyFilters;
 $("f-cap").onchange = applyFilters;
@@ -893,7 +858,7 @@ document.querySelectorAll('.chip').forEach(c=>{
   };
 });
 
-/* ====== ADMIN (export + manifest) ====== */
+/* ========= ADMIN (download/export only + manifest) ========= */
 function scrubRecord(rec){
   const clean = {...rec};
   Object.keys(clean).forEach(k=>{ if(k.endsWith('photo-base64')) delete clean[k]; });
@@ -904,122 +869,90 @@ function scrubRecord(rec){
   };
   return clean;
 }
-async function listAllInFolder(folderPath){
-  const folderRef = storage.ref(folderPath);
-  const res = await folderRef.listAll();
-  return res.items || [];
-}
+async function listAllInFolder(folderPath){ const folderRef = storage.ref(folderPath); const res = await folderRef.listAll(); return res.items || []; }
 async function downloadJSONFile(filename, obj){
   const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 400);
+  const a = document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 400);
 }
 $("btnExport")?.addEventListener?.('click', async ()=>{
-  const status = $("statusA"); status.textContent = '';
-  const maxCount = Math.max(1, Math.min(500, Number($("maxCount").value||60)));
-  $("btnExport").disabled = true;
-  status.textContent = 'Listing files…';
+  const status=$("statusA"); status.textContent=''; const maxCount=Math.max(1, Math.min(500, Number($("maxCount").value||60)));
+  $("btnExport").disabled=true; status.textContent='Listing files…';
   try{
     const items = await listAllInFolder(FOLDER);
-    if(!items.length){ status.textContent = 'No files found in "Pre Check/".'; $("btnExport").disabled=false; return; }
+    if(!items.length){ status.textContent='No files found in "Pre Check/".'; $("btnExport").disabled=false; return; }
     const slice = items.slice(0, maxCount);
-    const out = [];
-    let n = 0;
+    const out=[]; let n=0;
     for(const ref of slice){
       try{
         status.textContent = `Fetching ${++n}/${slice.length}: ${ref.name}`;
         const url = await ref.getDownloadURL();
         const rec = await fetch(url).then(r=>r.json());
-        const cleaned = scrubRecord(rec);
-        cleaned.__file = ref.name;
-        out.push(cleaned);
-      }catch(e){}
+        const cleaned = scrubRecord(rec); cleaned.__file = ref.name; out.push(cleaned);
+      }catch{}
     }
-    const bundle = { created: new Date().toISOString(), count: out.length, sourceFolder: FOLDER, rows: out };
+    const bundle = { created:new Date().toISOString(), count:out.length, sourceFolder:FOLDER, rows:out };
     await downloadJSONFile('vat_precheck_ai_sample.json', bundle);
     status.textContent = `Done. Exported ${out.length} record(s).`;
-  }catch(err){
-    status.textContent = 'Error: could not list/read from Firebase. Check rules/permissions.';
-  }finally{
-    $("btnExport").disabled = false;
-  }
+  }catch{ status.textContent='Error: cannot list/read from Firebase. Check rules.'; }
+  finally{ $("btnExport").disabled=false; }
 });
 $("btnPublishManifest")?.addEventListener?.('click', async ()=>{
-  const status = $("statusA");
+  const status=$("statusA");
   try{
     status.textContent = "Publishing _index.json…";
     const res = await storage.ref(FOLDER).listAll();
-    const files = (res.items||[]).map(r=>r.name).filter(n=>n.endsWith(".json"));
-    const blob = new Blob([JSON.stringify({files}, null, 2)], {type:'application/json'});
+    const files=(res.items||[]).map(r=>r.name).filter(n=>n.endsWith(".json"));
+    const blob=new Blob([JSON.stringify({files},null,2)],{type:"application/json"});
     await storage.ref(MANIFEST_OBJECT_PATH).put(blob);
     status.textContent = `Published manifest with ${files.length} files.`;
-  }catch(e){
-    status.textContent = "Could not publish manifest (permissions).";
-  }
+  }catch{ status.textContent = "Could not publish manifest (permissions)."; }
 });
 $("btnClearStatus")?.addEventListener?.('click', ()=>{ $("statusA").textContent=''; $("statusB").textContent=''; });
 $("btnExportList")?.addEventListener?.('click', async ()=>{
-  const status = $("statusB"); status.textContent='';
-  const listRaw = $("dairyList").value.trim();
+  const status=$("statusB"); status.textContent=''; const listRaw=$("dairyList").value.trim();
   if(!listRaw){ status.textContent='Paste one Dairy Number per line first.'; return; }
-  const dairies = [...new Set(listRaw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))];
-
-  status.textContent = `Fetching ${dairies.length} record(s)…`;
-  $("btnExportList").disabled = true;
-
-  const out = [];
-  let done = 0;
+  const dairies=[...new Set(listRaw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))];
+  status.textContent=`Fetching ${dairies.length} record(s)…`; $("btnExportList").disabled=true;
+  const out=[]; let done=0;
   for(const dn of dairies){
     try{
-      const ref = storage.ref(`${FOLDER}/${dn}.json`);
-      const url = await ref.getDownloadURL();
-      const rec = await fetch(url).then(r=>r.json());
-      const cleaned = scrubRecord(rec);
-      cleaned.__file = `${dn}.json`;
-      out.push(cleaned);
-      status.textContent = `Fetched ${++done}/${dairies.length} (${dn})`;
-    }catch(e){
-      status.textContent = `Missed: ${dn} (not found or access denied). Continuing…`;
-    }
+      const ref=storage.ref(`${FOLDER}/${dn}.json`);
+      const url=await ref.getDownloadURL();
+      const rec=await fetch(url).then(r=>r.json());
+      const cleaned=scrubRecord(rec); cleaned.__file=`${dn}.json`; out.push(cleaned);
+      status.textContent=`Fetched ${++done}/${dairies.length} (${dn})`;
+    }catch{ status.textContent=`Missed: ${dn} (not found or access denied). Continuing…`; }
   }
-  const bundle = { created: new Date().toISOString(), count: out.length, requested: dairies, sourceFolder: FOLDER, rows: out };
+  const bundle={ created:new Date().toISOString(), count:out.length, requested:dairies, sourceFolder:FOLDER, rows:out };
   await downloadJSONFile('vat_precheck_ai_selected.json', bundle);
-  status.textContent = `Done. Exported ${out.length}/${dairies.length} requested record(s).`;
-  $("btnExportList").disabled = false;
+  status.textContent=`Done. Exported ${out.length}/${dairies.length} requested record(s).`;
+  $("btnExportList").disabled=false;
 });
 $("btnClearList")?.addEventListener?.('click', ()=>{ $("dairyList").value=''; $("statusB").textContent=''; });
 $("btn-admin").onclick = ()=>{ location.hash="#admin"; };
 $("btn-admin-back").onclick = ()=>{ history.pushState("", document.title, window.location.pathname + window.location.search); route(); };
 
-/* ====== LOCAL JSON FALLBACK (Records) ====== */
+/* ========= LOCAL JSON FALLBACK ========= */
 $("local-json").addEventListener("change", async (e)=>{
-  const f = e.target.files?.[0]; if(!f) return;
+  const f=e.target.files?.[0]; if(!f) return;
   try{
-    const text = await f.text();
-    let parsed = JSON.parse(text);
-    let list = [];
-    if(Array.isArray(parsed)) list = parsed;
-    else if(parsed && Array.isArray(parsed.rows)) list = parsed.rows;
-    else if(parsed && typeof parsed === "object") list = Object.values(parsed);
-
-    list = list.filter(x=>x && x.dairyNumber);
-    if(!list.length){ $("records-msg").textContent = "JSON parsed, but no records with dairyNumber found."; return; }
-
-    state.all = list;
-    state.normalized = state.all.map(d => ({ data:d, norm: aiNormalize(d) }));
-    $("records-msg").textContent = `Loaded ${list.length} record(s) from local file.`;
-    applyFilters();
-  }catch{
-    $("records-msg").textContent = "Could not parse JSON file.";
-  }finally{
-    e.target.value = "";
-  }
+    const text=await f.text();
+    let parsed=JSON.parse(text);
+    let list=[];
+    if(Array.isArray(parsed)) list=parsed;
+    else if(parsed && Array.isArray(parsed.rows)) list=parsed.rows;
+    else if(parsed && typeof parsed==="object") list=Object.values(parsed);
+    list=list.filter(x=>x && x.dairyNumber);
+    if(!list.length){ $("records-msg").textContent="JSON parsed, but no records with dairyNumber found."; return; }
+    state.all=list; state.normalized = state.all.map(d=>({data:d, norm:aiNormalize(d)}));
+    $("records-msg").textContent=`Loaded ${list.length} record(s) from local file.`; applyFilters();
+  }catch{ $("records-msg").textContent="Could not parse JSON file."; }
+  finally{ e.target.value=""; }
 });
 
-/* ====== INIT ====== */
+/* ========= INIT ========= */
 showVat2Serial();
 </script>
 </body>
