@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Agora Vat Pre Check — Customer View + Admin Export</title>
+<title>Agora Vat Pre Check — Flash Customer + Admin Export</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
@@ -30,7 +30,6 @@
   .small-note{font-size:.9em;color:#666}
   footer{text-align:center;color:#999;font-size:.85em;margin-top:18px}
 
-  /* Summary / KPI / chips */
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   .kpi{border:1px solid #eee;border-radius:12px;padding:12px;text-align:center;background:#fff}
   .kpi .num{font-size:1.35rem;font-weight:800}
@@ -39,7 +38,6 @@
   .chip.active{border-color:var(--accent);color:var(--accent);font-weight:600}
   .filters{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
 
-  /* Cards grid */
   .cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
   .card-farm{border:1px solid #eee;border-radius:12px;padding:12px;background:#fff;box-shadow:0 1px 8px #0000000a}
   .c-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
@@ -55,14 +53,12 @@
   .card-actions{display:flex;gap:6px;margin-top:6px}
   .summary-sentence{color:#374151;margin-top:4px;font-size:.95em}
 
-  /* Table (desktop) */
   .table-area{display:block}
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .table,.table *{font-size:var(--table-font)!important}
   .table thead th{position:sticky;top:0;background:#fff;z-index:1}
   .th-sort{cursor:pointer}
 
-  /* Mobile */
   @media (max-width:900px){ .kpi-grid{grid-template-columns:repeat(2,1fr)} .cards-grid{grid-template-columns:1fr} }
   @media (max-width:600px){
     .container-main{padding:12px}
@@ -70,7 +66,6 @@
     h1{font-size:1.35rem}
   }
 
-  /* Screen overlay */
   .screen-overlay{position:fixed;inset:0;background:#ffffffdd;display:none;align-items:center;justify-content:center;z-index:9999}
   .loader{width:90px;height:90px;border-radius:50%;border:8px solid #eee;border-top-color:#FF851B;animation:spin 1s linear infinite;margin-bottom:8px}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -94,7 +89,7 @@
   <!-- ============ FORM VIEW (Customer) ============ -->
   <div id="form-view">
     <form id="vat-precheck-form" autocomplete="off">
-      <!-- ORDER: All Vats first -->
+      <!-- All vat fields first -->
       <div class="mb-2">
         <label class="form-label">Dairy Number</label>
         <input id="dairyNumber" name="dairyNumber" class="form-control" required>
@@ -164,7 +159,6 @@
           </div>
           <label class="form-label mt-1">Vat 2 Serial</label>
           <input id="vat2-serial" name="vat2-serial" class="form-control">
-          <!-- NEW: Vat 2 Level -->
           <label class="form-label mt-1">Vat 2 Level</label>
           <select id="vat2-level" name="vat2-level" class="form-select">
             <option value="na">N/A</option>
@@ -284,10 +278,7 @@
         <option value="door-delivered">Door Seal Delivered</option>
         <option value="rjt-delivered">RJT Delivered</option>
       </select>
-
       <button class="btn-agora" id="btn-refresh"><i class="fa-solid fa-rotate"></i> Refresh</button>
-
-      <!-- Local JSON fallback -->
       <label class="btn-outline" style="padding:.45rem .8rem; cursor:pointer;">
         Load local JSON
         <input id="local-json" type="file" accept="application/json" style="display:none">
@@ -295,7 +286,6 @@
     </div>
 
     <div id="records-msg" class="small text-muted mb-2" style="min-height:22px;"></div>
-
     <div class="kpi-grid mb-2" id="kpis"></div>
 
     <div class="mb-2">
@@ -321,19 +311,22 @@
   <!-- ============ ADMIN VIEW (separate; via #admin) ============ -->
   <div id="admin-view" class="hidden">
     <div class="fw-bold mb-2">Admin — Download / Export</div>
-    <div class="small text-muted mb-2">Access via <code>#admin</code>. Customer screens never show this.</div>
+    <div class="small text-muted mb-2">Open this via <code>#admin</code>. Customer screens never show this.</div>
 
     <div class="card p-3 mb-3">
-      <div class="fw-bold">Quick sample export</div>
-      <div class="small mb-2">Exports first N JSON files from <code>Pre Check/</code>, strips any <code>*-photo-base64</code> fields.</div>
+      <div class="fw-bold">Quick sample export (strips photos)</div>
       <div class="row g-2 align-items-end">
         <div class="col-md-3">
           <label class="form-label small">Max records</label>
           <input id="maxCount" type="number" class="form-control" value="60" min="1" max="500">
         </div>
         <div class="col-md-9">
-          <button id="btnExport" class="btn-admin w-100">Export sample for AI</button>
+          <button id="btnExport" class="btn-admin w-100">Export sample JSON</button>
         </div>
+      </div>
+      <div class="d-flex gap-2 mt-2">
+        <button id="btnPublishManifest" class="btn-outline">Publish _index.json manifest</button>
+        <button id="btnClearStatus" class="btn-outline">Clear</button>
       </div>
       <div id="statusA" class="small mt-2"></div>
     </div>
@@ -354,7 +347,7 @@
     </div>
   </div>
 
-  <footer>Agora Vat Pre Check v3.2 (customer flash) — Admin export isolated</footer>
+  <footer>Agora Vat Pre Check v3.3 — Flash customer view with resilient summary & isolated admin</footer>
 </div>
 
 <!-- Overlay -->
@@ -385,13 +378,16 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const storage = firebase.storage();
 
-const FOLDER = "Pre Check";                 // JSON per dairyNumber
-const DB = new Dexie("VatPreCheckV3Flash"); // offline cache
+const FOLDER = "Pre Check";
+const MANIFEST_OBJECT_PATH = `${FOLDER}/_index.json`;         // Storage manifest (filenames)
+const STATIC_BUNDLE_URL = './vat_precheck_ai_sample.json';     // Static bundle beside this file
+
+const DB = new Dexie("VatPreCheckV3Flash");
 DB.version(1).stores({ forms:"++id,dairyNumber" });
 
 const $ = id => document.getElementById(id);
 
-/* ====== ROUTING (Customer vs Admin) ====== */
+/* ====== ROUTING ====== */
 function showFormView(){
   $("form-view").classList.remove("hidden");
   $("records-view").classList.add("hidden");
@@ -413,7 +409,7 @@ function showAdminView(){
 }
 function route(){
   const isAdmin = (location.hash||"") === "#admin";
-  $("btn-admin").classList.toggle("hidden", !isAdmin); // Only show Admin tab button on #admin
+  $("btn-admin").classList.toggle("hidden", !isAdmin);
   if(isAdmin){ showAdminView(); }
   else { showFormView(); }
 }
@@ -529,7 +525,7 @@ async function generatePDF(){
   pdf.save(`VatPreCheck_${data.dairyNumber||'Unknown'}.pdf`);
 }
 
-/* ====== AI NORMALIZER (rule-based) ====== */
+/* ====== AI NORMALIZER ====== */
 const LEXICON = [
   { rx:/(power[\s-]?point|powerpoint|pp|socket|outlet)/i, tag:"Needs Power Point" },
   { rx:/(reducing\s*cap|reducer|dts\s*cap|dts|step\s*down\s*cap)/i, tag:"DTS Reducing Cap" },
@@ -554,7 +550,6 @@ function aiNormalize(record){
   const hay = textFields.map(k => (record[k]||"")).join(" | ");
   const tags = new Set();
 
-  // Status-derived tags
   const cap1=(record["vat1-cap"]||"").toLowerCase();
   const cap2=(record["vat2-cap"]||"").toLowerCase();
   const v1c=(record["vat1-condition"]||"").toLowerCase();
@@ -564,7 +559,6 @@ function aiNormalize(record){
   if((record["vat-door-seal"]||"")==="delivered") tags.add("Door Seal Delivered");
   if((record["rjt-seal"]||"")==="delivered") tags.add("RJT Delivered");
 
-  // Lexicon rules
   LEXICON.forEach(rule=>{
     const m = hay.match(rule.rx);
     if(m){
@@ -573,7 +567,6 @@ function aiNormalize(record){
     }
   });
 
-  // Delivery quantity: door seals = number of vats present (2 if vat2 has capacity, else 1)
   const vat2Present = !!(record["vat2-capacity"]||"").trim();
   const deliveredDoorSealQty = (record["vat-door-seal"]==="delivered") ? (vat2Present?2:1) : 0;
   const doorSealSize = record["vat-door-seal-size"]||"";
@@ -694,34 +687,95 @@ function tableHTML(rows){
   return header + body + `</tbody></table>`;
 }
 
-async function listAllForms(){
+/* ====== LOADERS (manifest → static → cache → listAll) ====== */
+const safeJson = async (url) => {
+  try { const r = await fetch(url, {cache:'no-store'}); if(!r.ok) return null; return await r.json(); }
+  catch { return null; }
+};
+
+async function loadFromStorageManifest(){
+  try{
+    const ref = storage.ref(MANIFEST_OBJECT_PATH);
+    const url = await ref.getDownloadURL();
+    const manifest = await safeJson(url); // expects { files: ["12345.json","67890.json"] }
+    if(!manifest || !Array.isArray(manifest.files) || !manifest.files.length) return [];
+    const out = [];
+    showOverlay(`Loading ${manifest.files.length} record(s)…`);
+    for(const name of manifest.files){
+      try{
+        const fileRef = storage.ref(`${FOLDER}/${name}`);
+        const furl = await fileRef.getDownloadURL();
+        const rec = await safeJson(furl);
+        if(rec && rec.dairyNumber) out.push(rec);
+      }catch{ /* continue */ }
+    }
+    return out;
+  }catch{ return []; }
+  finally{ hideOverlay(); }
+}
+async function loadFromStaticBundle(){
+  const bundle = await safeJson(STATIC_BUNDLE_URL);
+  if(!bundle) return [];
+  if(Array.isArray(bundle)) return bundle.filter(x=>x && x.dairyNumber);
+  if(Array.isArray(bundle.rows)) return bundle.rows.filter(x=>x && x.dairyNumber);
+  if(typeof bundle === 'object') return Object.values(bundle).filter(x=>x && x.dairyNumber);
+  return [];
+}
+async function loadUsingListAll(){
   const out = [];
-  const msg = $("records-msg");
-  msg.textContent = "";
-  showOverlay("Loading records from Firebase…");
+  showOverlay("Loading from Firebase…");
   try{
     const folderRef = storage.ref(FOLDER);
     const res = await folderRef.listAll();
-    if(!res.items.length){
-      msg.textContent = 'No files found in "Pre Check/".';
-      return out;
-    }
     for(const fileRef of res.items){
       try{
         const url=await fileRef.getDownloadURL();
-        const data=await fetch(url).then(r=>r.json());
+        const data=await safeJson(url);
         if(data && data.dairyNumber) out.push(data);
-      }catch(e){ /* continue */ }
+      }catch{}
     }
-    return out;
-  }catch(e){
-    msg.textContent = "Couldn’t list from Firebase (rules/permissions?). Load a local JSON to proceed.";
-    return out;
-  }finally{
-    hideOverlay();
-  }
+  }catch{}
+  finally{ hideOverlay(); }
+  return out;
 }
 
+async function loadRecordsUI(){
+  const msg = $("records-msg");
+  msg.textContent = "";
+
+  let cloud = await loadFromStorageManifest();
+  if(!cloud.length){
+    const staticRows = await loadFromStaticBundle();
+    if(staticRows.length){
+      msg.textContent = "Loaded from static bundle (vat_precheck_ai_sample.json).";
+      cloud = staticRows;
+    }else{
+      cloud = await loadUsingListAll();
+      if(!cloud.length){
+        msg.textContent = "No cloud data (manifest/list blocked). Add _index.json to Storage or place vat_precheck_ai_sample.json next to index.html, or Load local JSON.";
+      }
+    }
+  }
+
+  const locals = await DB.forms.toArray();
+  const byDn = new Map(cloud.map(r=>[r.dairyNumber, r]));
+  locals.forEach(l=>{ if(l?.dairyNumber && !byDn.has(l.dairyNumber)) byDn.set(l.dairyNumber,l); });
+
+  const merged = [...byDn.values()];
+  state.all = merged;
+  state.normalized = state.all.map(d => ({ data:d, norm: aiNormalize(d) }));
+
+  if(!merged.length){
+    $("kpis").innerHTML = "";
+    $("cards-wrap").innerHTML = "";
+    $("table-inner").innerHTML = "";
+    $("recurring").innerHTML = "<i>No data yet.</i>";
+    return;
+  }
+  applyFilters();
+}
+
+/* ====== FILTERS / RENDER ====== */
 function applyFilters(){
   const q = $("search").value.trim().toLowerCase();
   const fCap = $("f-cap").value;
@@ -734,7 +788,7 @@ function applyFilters(){
   }
   if(fCap==="nocap"){ rows = rows.filter(r => r.norm.tags.includes("No Cap")); }
   if(fAttn==="yes"){ rows = rows.filter(r => r.norm.tags.includes("Vat Attention")); }
-  if(fAttn==="chiller"){ rows = rows.filter(r => r.norm.tags.includes("Chiller Attention")); } // if you add chiller logic later
+  if(fAttn==="chiller"){ rows = rows.filter(r => r.norm.tags.includes("Chiller Attention")); }
   if(fAttn==="vat"){ rows = rows.filter(r => r.norm.tags.includes("Vat Attention")); }
   if(fDel==="door-delivered"){ rows = rows.filter(r => (r.data["vat-door-seal"]||"")==="delivered"); }
   if(fDel==="rjt-delivered"){ rows = rows.filter(r => (r.data["rjt-seal"]||"")==="delivered"); }
@@ -757,23 +811,6 @@ function applyFilters(){
   $("recurring").innerHTML = top.length
     ? `<ul class="mb-0">${top.map(([t,c])=>`<li><b>${t}</b> — ${c}</li>`).join('')}</ul>`
     : `<i>No recurring tags yet.</i>`;
-}
-
-async function loadRecordsUI(){
-  const msg = $("records-msg");
-  msg.textContent = "";
-  const cloud = await listAllForms();
-  const locals = await DB.forms.toArray();
-  const byDn = new Map(cloud.map(r=>[r.dairyNumber, r]));
-  locals.forEach(l=>{ if(l?.dairyNumber && !byDn.has(l.dairyNumber)) byDn.set(l.dairyNumber,l); });
-
-  const merged = [...byDn.values()];
-  if(!merged.length){
-    msg.textContent = "No data to show yet. Try Refresh or load a local JSON (top left).";
-  }
-  state.all = merged;
-  state.normalized = state.all.map(d => ({ data:d, norm: aiNormalize(d) }));
-  applyFilters();
 }
 
 /* Drill & single PDF */
@@ -856,7 +893,7 @@ document.querySelectorAll('.chip').forEach(c=>{
   };
 });
 
-/* ====== ADMIN (export) ====== */
+/* ====== ADMIN (export + manifest) ====== */
 function scrubRecord(rec){
   const clean = {...rec};
   Object.keys(clean).forEach(k=>{ if(k.endsWith('photo-base64')) delete clean[k]; });
@@ -881,13 +918,12 @@ async function downloadJSONFile(filename, obj){
   setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 400);
 }
 $("btnExport")?.addEventListener?.('click', async ()=>{
-  const status = $("statusA");
+  const status = $("statusA"); status.textContent = '';
   const maxCount = Math.max(1, Math.min(500, Number($("maxCount").value||60)));
-  const folder = FOLDER;
   $("btnExport").disabled = true;
   status.textContent = 'Listing files…';
   try{
-    const items = await listAllInFolder(folder);
+    const items = await listAllInFolder(FOLDER);
     if(!items.length){ status.textContent = 'No files found in "Pre Check/".'; $("btnExport").disabled=false; return; }
     const slice = items.slice(0, maxCount);
     const out = [];
@@ -902,7 +938,7 @@ $("btnExport")?.addEventListener?.('click', async ()=>{
         out.push(cleaned);
       }catch(e){}
     }
-    const bundle = { created: new Date().toISOString(), count: out.length, sourceFolder: folder, rows: out };
+    const bundle = { created: new Date().toISOString(), count: out.length, sourceFolder: FOLDER, rows: out };
     await downloadJSONFile('vat_precheck_ai_sample.json', bundle);
     status.textContent = `Done. Exported ${out.length} record(s).`;
   }catch(err){
@@ -911,12 +947,25 @@ $("btnExport")?.addEventListener?.('click', async ()=>{
     $("btnExport").disabled = false;
   }
 });
+$("btnPublishManifest")?.addEventListener?.('click', async ()=>{
+  const status = $("statusA");
+  try{
+    status.textContent = "Publishing _index.json…";
+    const res = await storage.ref(FOLDER).listAll();
+    const files = (res.items||[]).map(r=>r.name).filter(n=>n.endsWith(".json"));
+    const blob = new Blob([JSON.stringify({files}, null, 2)], {type:'application/json'});
+    await storage.ref(MANIFEST_OBJECT_PATH).put(blob);
+    status.textContent = `Published manifest with ${files.length} files.`;
+  }catch(e){
+    status.textContent = "Could not publish manifest (permissions).";
+  }
+});
+$("btnClearStatus")?.addEventListener?.('click', ()=>{ $("statusA").textContent=''; $("statusB").textContent=''; });
 $("btnExportList")?.addEventListener?.('click', async ()=>{
-  const status = $("statusB");
+  const status = $("statusB"); status.textContent='';
   const listRaw = $("dairyList").value.trim();
   if(!listRaw){ status.textContent='Paste one Dairy Number per line first.'; return; }
   const dairies = [...new Set(listRaw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))];
-  const folder = FOLDER;
 
   status.textContent = `Fetching ${dairies.length} record(s)…`;
   $("btnExportList").disabled = true;
@@ -925,7 +974,7 @@ $("btnExportList")?.addEventListener?.('click', async ()=>{
   let done = 0;
   for(const dn of dairies){
     try{
-      const ref = storage.ref(`${folder}/${dn}.json`);
+      const ref = storage.ref(`${FOLDER}/${dn}.json`);
       const url = await ref.getDownloadURL();
       const rec = await fetch(url).then(r=>r.json());
       const cleaned = scrubRecord(rec);
@@ -936,7 +985,7 @@ $("btnExportList")?.addEventListener?.('click', async ()=>{
       status.textContent = `Missed: ${dn} (not found or access denied). Continuing…`;
     }
   }
-  const bundle = { created: new Date().toISOString(), count: out.length, requested: dairies, sourceFolder: folder, rows: out };
+  const bundle = { created: new Date().toISOString(), count: out.length, requested: dairies, sourceFolder: FOLDER, rows: out };
   await downloadJSONFile('vat_precheck_ai_selected.json', bundle);
   status.textContent = `Done. Exported ${out.length}/${dairies.length} requested record(s).`;
   $("btnExportList").disabled = false;
@@ -951,8 +1000,6 @@ $("local-json").addEventListener("change", async (e)=>{
   try{
     const text = await f.text();
     let parsed = JSON.parse(text);
-
-    // Accept formats: {rows:[...]}, [...], or {dn:rec, dn2:rec2}
     let list = [];
     if(Array.isArray(parsed)) list = parsed;
     else if(parsed && Array.isArray(parsed.rows)) list = parsed.rows;
