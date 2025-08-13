@@ -35,35 +35,30 @@
   .chip.info{background:#eaf2ff; border-color:#cfe0ff}
   .img-thumb{width:86px; height:86px; object-fit:cover; border-radius:8px; border:1px solid #eee}
   .kv{display:grid; grid-template-columns:130px 1fr; gap:8px; align-items:center}
-  .table-wrap{overflow-x:auto}
   .kpi{border:1px solid var(--ring); border-radius:12px; padding:10px; text-align:center}
   .kpi .n{font-weight:800; font-size:1.3rem}
   .kpi .l{font-size:.9rem; color:var(--muted)}
-  .badge-status{border-radius:8px; padding:2px 8px; font-weight:700}
-  .b-ok{background:#e8f7ee; color:#117a2a}
-  .b-warn{background:#ffeaea; color:#a11}
-  .b-sla{background:#fff7e6; color:#a45a00}
-  .admin-only{display:none}
   .sticky-filters{position:sticky; top:10px; z-index:20; background:#fff; padding:10px; border:1px solid var(--ring); border-radius:12px}
   .photo-inline{display:flex; gap:8px; flex-wrap:wrap}
   .small{font-size:.92rem}
+  .admin-only{display:none}
   footer{text-align:center; color:#96a2b7; font-size:.85rem; margin-top:16px}
   @media (max-width:900px){ .grid-2,.grid-3{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
 <div class="shell" id="app">
-  <img id="logo" class="brand" style="display:none">
+  <img id="logo" class="brand" style="display:none" alt="Agora Logo">
   <h1>Agora Vat Pre-Check</h1>
 
-  <!-- ROLE SWITCH (set to 'admin' to reveal admin screen) -->
-  <script>window.AGORA_ROLE = 'service'; /* 'service' | 'admin' */</script>
+  <!-- ROLE SWITCH -->
+  <script>window.AGORA_ROLE = 'service'; /* set to 'admin' to reveal Admin page */</script>
 
   <!-- NAV -->
   <div class="d-flex gap-2 justify-content-center mb-2">
-    <button class="btn btn-outline" id="btn-form">Form</button>
-    <button class="btn btn-outline" id="btn-summary">Summary</button>
-    <button class="btn btn-outline admin-only" id="btn-admin">Admin</button>
+    <button class="btn btn-outline" id="nav-form">Form</button>
+    <button class="btn btn-outline" id="nav-summary">Summary</button>
+    <button class="btn btn-outline admin-only" id="nav-admin">Admin</button>
   </div>
 
   <!-- ========== FORM ========== -->
@@ -88,17 +83,19 @@
     <!-- VATS FIRST -->
     <h2 class="section">Vat 1</h2>
     <div class="cardy grid-3">
-      <div><label class="form-label">Cap</label>
+      <div>
+        <label class="form-label">Cap</label>
         <select class="form-select" id="vat1-cap" name="vat1-cap">
           <option value="available">Available ✓</option>
           <option value="unavailable">Unavailable ✗</option>
         </select>
-        <input class="form-control mt-1" id="vat1-cap-comments" name="vat1-cap-comments" placeholder="Comments"/>
+        <input class="form-control mt-1" id="vat1-cap-comments" name="vat1-cap-comments" placeholder="Comments">
         <input type="file" id="vat1-cap-photo" accept="image/*" class="form-control mt-1">
       </div>
-      <div><label class="form-label">Capacity (L)</label>
+      <div>
+        <label class="form-label">Capacity (L)</label>
         <input class="form-control" id="vat1-capacity" name="vat1-capacity">
-        <input class="form-control mt-1" id="vat1-comments" name="vat1-comments" placeholder="Interior width etc."/>
+        <input class="form-control mt-1" id="vat1-comments" name="vat1-comments" placeholder="Interior width etc.">
       </div>
       <div>
         <label class="form-label">Condition</label>
@@ -106,7 +103,7 @@
           <option value="ok">OK</option>
           <option value="attention">Attention Required</option>
         </select>
-        <input class="form-control mt-1" id="vat1-condition-comments" name="vat1-condition-comments" placeholder="Condition notes"/>
+        <input class="form-control mt-1" id="vat1-condition-comments" name="vat1-condition-comments" placeholder="Condition notes">
         <input type="file" id="vat1-condition-photo" accept="image/*" class="form-control mt-1">
       </div>
       <div>
@@ -116,29 +113,31 @@
     </div>
 
     <h2 class="section">Vat 2</h2>
-    <div class="sub">NA options added for *level* and *condition*.</div>
+    <div class="sub">NA options enabled for cap and condition.</div>
     <div class="cardy grid-3">
-      <div><label class="form-label">Cap</label>
+      <div>
+        <label class="form-label">Cap</label>
         <select class="form-select" id="vat2-cap" name="vat2-cap">
           <option value="na">N/A</option>
           <option value="available">Available ✓</option>
           <option value="unavailable">Unavailable ✗</option>
         </select>
-        <input class="form-control mt-1" id="vat2-cap-comments" name="vat2-cap-comments" placeholder="Comments"/>
+        <input class="form-control mt-1" id="vat2-cap-comments" name="vat2-cap-comments" placeholder="Comments">
         <input type="file" id="vat2-cap-photo" accept="image/*" class="form-control mt-1">
       </div>
-      <div><label class="form-label">Capacity (L)</label>
+      <div>
+        <label class="form-label">Capacity (L)</label>
         <input class="form-control" id="vat2-capacity" name="vat2-capacity" placeholder="or NA">
-        <input class="form-control mt-1" id="vat2-comments" name="vat2-comments" placeholder="Interior width etc."/>
+        <input class="form-control mt-1" id="vat2-comments" name="vat2-comments" placeholder="Interior width etc.">
       </div>
       <div>
         <label class="form-label">Condition</label>
         <select class="form-select" id="vat2-condition" name="vat2-condition">
           <option value="na">N/A</option>
           <option value="ok">OK</option>
-          <option value="attention">Attention Required</option>
+          <option value="attention">Attention Required</</option>
         </select>
-        <input class="form-control mt-1" id="vat2-condition-comments" name="vat2-condition-comments" placeholder="Condition notes"/>
+        <input class="form-control mt-1" id="vat2-condition-comments" name="vat2-condition-comments" placeholder="Condition notes">
         <input type="file" id="vat2-condition-photo" accept="image/*" class="form-control mt-1">
       </div>
       <div>
@@ -147,7 +146,7 @@
       </div>
     </div>
 
-    <!-- AGITATOR → GATEWAY → OTHER -->
+    <!-- AGITATOR -->
     <h2 class="section">Agitator</h2>
     <div class="cardy grid-3">
       <div>
@@ -164,6 +163,7 @@
       </div>
     </div>
 
+    <!-- GATEWAY -->
     <h2 class="section">Gateway (Power/Signal)</h2>
     <div class="cardy grid-3">
       <div>
@@ -180,8 +180,9 @@
       </div>
     </div>
 
+    <!-- RUBBERWARE -->
     <h2 class="section">Rubberware</h2>
-    <div class="sub">Door seals & RJT step seals. Door-seal size captured. Delivered count auto-multiplies by number of vats.</div>
+    <div class="sub">Door seals & RJT step seals. Door-seal size captured. “Delivered” counts 2 if two vats.</div>
     <div class="cardy grid-3">
       <div>
         <label class="form-label">Vat Door Seal</label>
@@ -229,7 +230,7 @@
     </div>
   </div>
 
-  <!-- ========== SUMMARY (Cards + KPIs) ========== -->
+  <!-- ========== SUMMARY ========== -->
   <div id="page-summary" style="display:none">
     <div class="grid-3 mb-2">
       <div class="kpi"><div class="n" id="kpi-total">0</div><div class="l">Total Farms</div></div>
@@ -281,17 +282,17 @@
   <div id="page-admin" style="display:none">
     <div class="cardy">
       <div class="fw-bold mb-2">Exports</div>
-      <div class="small mb-2">Admin-only screen, as requested. Photos are excluded; door-seal counts include “2 delivered” when two vats are present.</div>
+      <div class="small mb-2">Admin-only. Photos excluded. Door-seal “Delivered” counts two when two vats are present.</div>
       <button class="btn btn-ag me-2" id="btn-csv">Export CSV</button>
       <button class="btn btn-outline" id="btn-xlsx">Export XLSX</button>
     </div>
   </div>
 
-  <footer class="mt-3">Agora Vat Pre-Check v2 • UI + AI normaliser refresh (Aug 2025)</footer>
+  <footer class="mt-3">Agora Vat Pre-Check v2 • Aug 2025</footer>
 </div>
 
 <script>
-/* ============= CONFIG ============= */
+/* ================= CONFIG / INIT ================= */
 const FB = {
   apiKey:"AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
   authDomain:"dairy-farm-record-system.firebaseapp.com",
@@ -300,34 +301,402 @@ const FB = {
   messagingSenderId:"422124188212",
   appId:"1:422124188212:web:1bd31bee8d6e91e301d061"
 };
-firebase.initializeApp(FB);
+if (!firebase.apps.length) firebase.initializeApp(FB);
 const storage = firebase.storage();
 const FOLDER = "Pre Check";
 const db = new Dexie("VatPreCheckV2");
 db.version(1).stores({ forms: "++id,dairyNumber" });
 
-/* ============= LIGHT “AI” NORMALISER ============= */
+// Logo (cloud)
+(async function loadLogo(){
+  try{
+    const ref = storage.ref("Agora Logo/2F6-1YdaEP.jpeg");
+    const url = await ref.getDownloadURL();
+    const el = document.getElementById("logo");
+    el.src = url; el.style.display = "block";
+  }catch{}
+})();
+
+/* ================= LIGHT “AI” NORMALISER ================= */
 const NORM = {
-  // simple exact/smart replacements (lowercased match)
   replace:[
-    [/tru[\s\-]?test/g,"Tru-Test"],
+    [/tru[\s\-]?test/gi,"Tru-Test"],
     [/\bd\.?t\.?s\b/gi,"DTS"],
-    [/\bdts\b/gi,"DTS"],
     [/\bhalo\b/gi,"Halo"],
     [/\blevno\b/gi,"Levno"],
-    [/\bgrey\b/gi,"gray"], // unify spelling
+    [/\bgrey\b/gi,"gray"],
     [/\b4\s*g\b/gi,"4G"],
     [/\b5\s*g\b/gi,"5G"],
     [/power[\s\-]?point|powerpoint|plug(?!ged)/gi,"power outlet"],
   ],
-  teleMap(v){ v=(v||"").toLowerCase();
-    if(v.includes("levno")) return "Levno";
-    if(v.includes("halo")) return "Halo";
-    if(v.includes("none")||v.trim()==="") return "None";
-    return v ? v.replace(/^\w/,c=>c.toUpperCase()) : "";
-  },
-  capStatus(v){ v=(v||"").toLowerCase(); if(v.includes("unavail")) return "unavailable"; if(v.includes("avail")) return "available"; if(v.includes("na")) return "na"; return v||""; },
-  condition(v){ v=(v||"").toLowerCase(); if(v.includes("att")) return "attention"; if(v.includes("ok")) return "ok"; if(v.includes("na")) return "na"; return v||""; },
-  clean(s){ let t=String(s||""); NORM.replace.forEach(([re,to])=>t=t.replace(re,to)); return t.trim(); }
+  clean(s){ let t=String(s||""); this.replace.forEach(([re,to])=>t=t.replace(re,to)); return t.trim(); },
+  teleBrand(s){ s=(s||"").toLowerCase(); if(s.includes("levno")) return "Levno"; if(s.includes("halo")) return "Halo"; if(!s || s.includes("none")) return "None"; return s.replace(/^\w/,c=>c.toUpperCase()); },
+  capVal(s){ s=(s||"").toLowerCase(); if(s.includes("unavail")) return "unavailable"; if(s.includes("avail")) return "available"; if(s.includes("na")) return "na"; return s||""; },
+  condVal(s){ s=(s||"").toLowerCase(); if(s.includes("att")) return "attention"; if(s.includes("ok")) return "ok"; if(s.includes("na")) return "na"; return s||""; }
 };
-function
+
+/* ================= HELPERS ================= */
+const $ = (id)=>document.getElementById(id);
+function show(id){ $(id).style.display=''; }
+function hide(id){ $(id).style.display='none'; }
+function val(id){ return $(id)?.value||''; }
+function twoVatsPresent(rec){
+  const v2Cap = (rec['vat2-cap']||'').toLowerCase();
+  const v2Size = (rec['vat2-capacity']||'').trim();
+  return (v2Cap && v2Cap!=='na') || (!!v2Size && v2Size.toLowerCase()!=='na');
+}
+function toBase64Input(file, cb){
+  const reader = new FileReader();
+  reader.onload = e => cb(e.target.result);
+  reader.readAsDataURL(file);
+}
+function attachBase64OnChange(id, key){
+  const input = $(id);
+  if(!input) return;
+  input.addEventListener('change', e=>{
+    const f = e.target.files?.[0];
+    if(!f) return;
+    toBase64Input(f, b64 => { input.dataset.base64 = b64; input.dataset.key = key; });
+  });
+}
+
+/* ================= FORM: FILE INPUTS → BASE64 ================= */
+[
+  ['vat1-cap-photo','vat1-cap-photo-base64'],
+  ['vat2-cap-photo','vat2-cap-photo-base64'],
+  ['gateway-photo','gateway-photo-base64'],
+  ['agitator-photo','agitator-photo-base64'],
+  ['vat1-condition-photo','vat1-condition-photo-base64'],
+  ['vat2-condition-photo','vat2-condition-photo-base64'],
+  ['vat-door-seal-photo','vat-door-seal-photo-base64'],
+  ['rjt-seal-photo','rjt-seal-photo-base64'],
+  ['chiller-condition-photo','chiller-condition-photo-base64'],
+].forEach(([id,key])=>attachBase64OnChange(id,key));
+
+/* ================= SAVE (Firebase JSON + Dexie) ================= */
+async function saveForm(){
+  const fields = [
+    'dairyNumber','current-telemetry','telemetry-comments',
+    'vat1-cap','vat1-cap-comments','vat1-capacity','vat1-comments','vat1-condition','vat1-condition-comments','vat1-serial',
+    'vat2-cap','vat2-cap-comments','vat2-capacity','vat2-comments','vat2-condition','vat2-condition-comments','vat2-serial',
+    'agitator-location','agitator-comments','gateway-location','gateway-comments',
+    'vat-door-seal','vat-door-seal-size','vat-door-seal-comments','rjt-seal','rjt-seal-size','rjt-seal-comments',
+    'chiller-condition','chiller-condition-comments'
+  ];
+  const data = {};
+  fields.forEach(k=> data[k] = val(k));
+  // collect base64 photos from inputs that have dataset.base64
+  ['vat1-cap-photo','vat2-cap-photo','gateway-photo','agitator-photo','vat1-condition-photo','vat2-condition-photo','vat-door-seal-photo','rjt-seal-photo','chiller-condition-photo']
+    .forEach(id=>{
+      const el = $(id);
+      const key = el?.dataset.key; const b64 = el?.dataset.base64;
+      if(key && b64) data[key] = b64;
+    });
+  if(!data.dairyNumber){ alert('Please enter a Dairy Number'); return; }
+
+  // Normalise a bit before save (keeps cloud clean; display will re-normalise anyway)
+  data['current-telemetry'] = NORM.teleBrand(data['current-telemetry']);
+  ['telemetry-comments','gateway-comments','agitator-comments','vat1-cap-comments','vat2-cap-comments'].forEach(k=>{
+    if(data[k]) data[k] = NORM.clean(data[k]);
+  });
+
+  data.timestamp = Date.now();
+
+  // Offline
+  await db.forms.put({ dairyNumber:data.dairyNumber, ...data });
+
+  // Cloud
+  const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
+  await storage.ref(`${FOLDER}/${data.dairyNumber}.json`).put(blob);
+
+  alert('Saved.');
+}
+
+/* ================= LOAD (Cloud first, Dexie fallback) ================= */
+async function fetchAllFromCloud(){
+  const folderRef = storage.ref(FOLDER);
+  const list = await folderRef.listAll();
+  const out=[];
+  for(const item of list.items){
+    if(!item.name.endsWith('.json')) continue;
+    try{
+      const url = await item.getDownloadURL();
+      const rec = await fetch(url).then(r=>r.json());
+      out.push(rec);
+    }catch(e){}
+  }
+  return out;
+}
+
+/* Build summary record with derived flags */
+function summarise(rec){
+  const r = {...rec};
+  const dairy = (r.dairyNumber||'').toString().trim();
+
+  ['telemetry-comments','gateway-comments','agitator-comments','vat1-cap-comments','vat2-cap-comments'].forEach(k=>{
+    if(r[k]) r[k]=NORM.clean(r[k]);
+  });
+
+  const teleBrand = NORM.teleBrand(r['current-telemetry']);
+  const v1Cap = NORM.capVal(r['vat1-cap']);
+  const v2Cap = NORM.capVal(r['vat2-cap']);
+  const v1Cond = NORM.condVal(r['vat1-condition']);
+  const v2Cond = NORM.condVal(r['vat2-condition']);
+  const chiller = NORM.condVal(r['chiller-condition']);
+  const twoVats = twoVatsPresent(r);
+
+  // Readiness rules
+  let ready = true;
+  const issues = [];
+  if(v1Cap!=='available'){ ready=false; if(v1Cap) issues.push('Cap needed (Vat 1)'); }
+  if(v1Cond==='attention'){ ready=false; issues.push('Attention: Vat 1'); }
+  if(twoVats){
+    if(v2Cap && v2Cap!=='available' && v2Cap!=='na'){ ready=false; issues.push('Cap needed (Vat 2)'); }
+    if(v2Cond==='attention'){ ready=false; issues.push('Attention: Vat 2'); }
+  }
+  if(chiller==='attention'){ ready=false; issues.push('Chiller attention'); }
+
+  const gw = (r['gateway-comments']||'');
+  const needsPower = /power outlet|no power|outlet needed/i.test(gw);
+  if(needsPower){ ready=false; issues.push('Outlet needed'); }
+
+  // Rubberware delivered logic
+  const doorDelivered = (r['vat-door-seal']==='delivered');
+  const doorSize = r['vat-door-seal-size']||'';
+  const rjtDelivered = (r['rjt-seal']==='delivered');
+  const rjtSize = r['rjt-seal-size']||'';
+  const deliveredDoorCount = doorDelivered ? (twoVats?2:1) : 0;
+
+  // Thumbs
+  const photoKeys = [
+    'vat1-cap-photo-base64','vat2-cap-photo-base64','gateway-photo-base64','agitator-photo-base64',
+    'vat1-condition-photo-base64','vat2-condition-photo-base64','vat-door-seal-photo-base64','rjt-seal-photo-base64','chiller-condition-photo-base64'
+  ];
+  const thumbs = photoKeys.map(k=>r[k]).filter(Boolean).slice(0,4);
+
+  return {
+    dairy,
+    teleBrand,
+    v1Cap, v2Cap,
+    v1Cond, v2Cond, chiller,
+    v1Serial: r['vat1-serial']||'',
+    v2Serial: r['vat2-serial']||'',
+    v1Capacity: r['vat1-capacity']||'',
+    v2Capacity: r['vat2-capacity']||'',
+    twoVats,
+    doorDelivered, deliveredDoorCount, doorSize,
+    rjtDelivered, rjtSize,
+    needsPower,
+    issues,
+    ready,
+    thumbs,
+    raw:r
+  };
+}
+
+let ALL=[], FILTERED=[];
+let charts={};
+function destroyCharts(){ try{ charts.tele?.destroy(); charts.cap?.destroy(); }catch{} charts={}; }
+
+async function loadAll(){
+  let cloud=[];
+  try{ cloud = await fetchAllFromCloud(); }catch{}
+  let data = cloud.length ? cloud : (await db.forms.toArray()).map(({id, ...rest})=>rest);
+  // Persist to Dexie
+  for(const rec of data){ try{ await db.forms.put({dairyNumber:rec.dairyNumber, ...rec}); }catch{} }
+  ALL = data.map(summarise);
+}
+
+function applyFilters(){
+  const q = val('filter-search').toLowerCase().trim();
+  const fReady = val('filter-ready');
+  const fCap = val('filter-cap');
+  const fTele = val('filter-tele');
+  FILTERED = ALL.filter(x=>{
+    const hay = [x.dairy, x.teleBrand, x.v1Serial, x.v2Serial, x.v1Capacity, x.v2Capacity].join(' ').toLowerCase();
+    if(q && !hay.includes(q)) return false;
+    if(fReady==='ready' && !x.ready) return false;
+    if(fReady==='notready' && x.ready) return false;
+    if(fCap && !([x.v1Cap,x.v2Cap].some(v=>v===fCap))) return false;
+    if(fTele && x.teleBrand!==fTele) return false;
+    return true;
+  });
+}
+
+function renderKPIs(){
+  const total = ALL.length;
+  const ready = ALL.filter(x=>x.ready).length;
+  const capMissing = ALL.filter(x=>x.v1Cap==='unavailable' || x.v2Cap==='unavailable').length;
+  $('kpi-total').textContent = total;
+  $('kpi-ready').textContent = ready;
+  $('kpi-cap-missing').textContent = capMissing;
+}
+
+function renderCards(){
+  const wrap = $('cards');
+  wrap.innerHTML='';
+  if(!FILTERED.length){ wrap.innerHTML='<div class="text-muted">No farms match filters.</div>'; return; }
+
+  FILTERED.forEach(x=>{
+    const chips = [];
+    chips.push(`<span class="chip ${x.ready?'ok':'bad'}">${x.ready?'Install-ready':'Needs work'}</span>`);
+    if(x.needsPower) chips.push(`<span class="chip bad">Outlet needed</span>`);
+    if(x.v1Cap==='unavailable') chips.push(`<span class="chip bad">Cap retrofit (V1)</span>`);
+    if(x.v2Cap==='unavailable') chips.push(`<span class="chip bad">Cap retrofit (V2)</span>`);
+    if(x.v1Cond==='attention') chips.push(`<span class="chip bad">Attention: Vat 1</span>`);
+    if(x.v2Cond==='attention') chips.push(`<span class="chip bad">Attention: Vat 2</span>`);
+    if(x.chiller==='attention') chips.push(`<span class="chip bad">Chiller</span>`);
+    if(x.teleBrand) chips.push(`<span class="chip info">${x.teleBrand}</span>`);
+    if(x.doorDelivered) chips.push(`<span class="chip ok">Door seals: ${x.deliveredDoorCount}${x.doorSize? ' • '+x.doorSize:''}</span>`);
+    if(x.rjtDelivered) chips.push(`<span class="chip ok">RJT: ${x.rjtSize||'Delivered'}</span>`);
+
+    const photos = x.thumbs.map(b64=>`<img class="img-thumb" src="${b64}" loading="lazy" alt="">`).join('');
+
+    const kv = `
+      <div class="kv"><div class="text-muted">Vat 1 Cap</div><div>${x.v1Cap||'-'} • ${x.v1Capacity||''}</div></div>
+      ${x.twoVats?`<div class="kv"><div class="text-muted">Vat 2 Cap</div><div>${x.v2Cap||'-'} • ${x.v2Capacity||''}</div></div>`:''}
+      <div class="kv"><div class="text-muted">Condition</div><div>V1: ${x.v1Cond||'-'}${x.twoVats? ' • V2: '+(x.v2Cond||'-'):''} • Chiller: ${x.chiller||'-'}</div></div>
+      <div class="kv"><div class="text-muted">Serials</div><div>${x.v1Serial||'-'}${x.v2Serial? ' • '+x.v2Serial:''}</div></div>
+      <div class="kv"><div class="text-muted">Telemetry</div><div>${x.teleBrand||'-'}</div></div>
+    `;
+
+    const card = document.createElement('div');
+    card.className='cardy mb-2';
+    card.innerHTML = `
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="fw-bold">Dairy #${x.dairy}</div>
+          <div class="chips mt-1">${chips.join(' ')}</div>
+        </div>
+        ${photos? `<div class="photo-inline">${photos}</div>`:''}
+      </div>
+      <div class="mt-2 small">${kv}</div>
+      ${x.issues.length? `<div class="mt-1 text-danger small">• ${x.issues.join(' • ')}</div>`:''}
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+function renderCharts(){
+  destroyCharts();
+  // By Telemetry
+  const teleCount = {};
+  ALL.forEach(x=>{ const k=x.teleBrand||'Unknown'; teleCount[k]=(teleCount[k]||0)+1; });
+  charts.tele = new Chart($('chartTele').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels:Object.keys(teleCount), datasets:[{ data:Object.values(teleCount) }] },
+    options:{plugins:{legend:{position:'bottom'}}}
+  });
+  // Cap availability (both vats contribute)
+  const caps = { available:0, unavailable:0, na:0 };
+  ALL.forEach(x=>{
+    if(x.v1Cap) caps[x.v1Cap]=(caps[x.v1Cap]||0)+1;
+    if(x.v2Cap) caps[x.v2Cap]=(caps[x.v2Cap]||0)+1;
+  });
+  charts.cap = new Chart($('chartCap').getContext('2d'), {
+    type:'bar',
+    data:{ labels:Object.keys(caps), datasets:[{ data:Object.values(caps) }] },
+    options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
+  });
+}
+
+/* ================= ADMIN EXPORTS ================= */
+function exportRows(){
+  return ALL.map(x=>({
+    DairyNumber: x.dairy,
+    Telemetry: x.teleBrand,
+    Vat1_Cap: x.v1Cap, Vat1_CapacityL: x.v1Capacity, Vat1_Condition: x.v1Cond, Vat1_Serial: x.v1Serial,
+    Vat2_Cap: x.v2Cap, Vat2_CapacityL: x.v2Capacity, Vat2_Condition: x.v2Cond, Vat2_Serial: x.v2Serial,
+    Chiller: x.chiller,
+    DoorSeal_DeliveredCount: x.deliveredDoorCount, DoorSeal_Size: x.doorSize || '',
+    RJT_Delivered: x.rjtDelivered ? 'Yes':'', RJT_Size: x.rjtSize || '',
+    NeedsPower: x.needsPower ? 'Yes':'',
+    Ready: x.ready ? 'Yes':'No'
+  }));
+}
+function exportCSV(){
+  const rows = exportRows();
+  if(!rows.length){ alert('Nothing to export'); return; }
+  const headers = Object.keys(rows[0]);
+  const quote = v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const csv = '\uFEFF' + [headers.join(',')].concat(rows.map(r=>headers.map(h=>quote(r[h])).join(','))).join('\r\n');
+  const blob = new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='vat_precheck_summary.csv'; document.body.appendChild(a); a.click();
+  setTimeout(()=>{a.remove(); URL.revokeObjectURL(url)}, 600);
+}
+function exportXLSX(){
+  const rows = exportRows();
+  if(!rows.length){ alert('Nothing to export'); return; }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, "Summary");
+  XLSX.writeFile(wb, 'vat_precheck_summary.xlsx');
+}
+
+/* ================= NAV / WIRING ================= */
+function setRoleUI(){
+  if(window.AGORA_ROLE==='admin'){
+    document.querySelectorAll('.admin-only').forEach(el=>el.style.display='inline-block');
+  }
+}
+function showPage(id){
+  ['page-form','page-summary','page-admin'].forEach(pid=> hide(pid));
+  show(id);
+}
+async function refreshSummary(){
+  await loadAll();
+  renderKPIs();
+  applyFilters();
+  renderCards();
+  renderCharts();
+}
+
+// Event listeners
+document.getElementById('nav-form').addEventListener('click', ()=>showPage('page-form'));
+document.getElementById('nav-summary').addEventListener('click', async()=>{ showPage('page-summary'); await refreshSummary(); });
+document.getElementById('nav-admin').addEventListener('click', ()=>showPage('page-admin'));
+
+document.getElementById('btn-save').addEventListener('click', async()=>{ await saveForm(); });
+document.getElementById('btn-view').addEventListener('click', async()=>{ await saveForm(); showPage('page-summary'); await refreshSummary(); });
+
+document.getElementById('btn-apply').addEventListener('click', ()=>{ applyFilters(); renderCards(); });
+
+document.getElementById('btn-csv')?.addEventListener('click', exportCSV);
+document.getElementById('btn-xlsx')?.addEventListener('click', exportXLSX);
+
+// Live filtering on enter key
+document.getElementById('filter-search').addEventListener('keydown', e=>{ if(e.key==='Enter'){ applyFilters(); renderCards(); }});
+
+// Auto-load record into form on blur of dairyNumber (if exists in cloud or Dexie)
+document.getElementById('dairyNumber').addEventListener('blur', async function(){
+  const num = this.value.trim(); if(!num) return;
+  let rec = await db.forms.where('dairyNumber').equals(num).first();
+  if(!rec){
+    try{
+      const ref = storage.ref(`${FOLDER}/${num}.json`);
+      const url = await ref.getDownloadURL();
+      const res = await fetch(url);
+      if(res.ok) rec = await res.json();
+    }catch{}
+  }
+  if(rec){
+    Object.entries(rec).forEach(([k,v])=>{
+      const el = document.getElementById(k);
+      if(el && el.tagName==='INPUT' || el && el.tagName==='SELECT') el.value = v;
+      // hydrate photo inputs with existing base64 so thumbs show after save (not necessary visually now)
+      if(k.endsWith('-photo-base64')){
+        const id = k.replace('-photo-base64','-photo');
+        const inp = document.getElementById(id);
+        if(inp){ inp.dataset.base64 = v; inp.dataset.key = k; }
+      }
+    });
+  }
+});
+
+// Initial UI state
+setRoleUI();
+showPage('page-form');
+</script>
+</body>
+</html>
