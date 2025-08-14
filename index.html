@@ -1,287 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Agora Vat Pre-Check</title>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
 <style>
   :root{
-    --brand:#a7ab01; --ink:#222; --muted:#6b7280; --card:#fff; --chip:#f6f7f9;
-    --accent:#002B5C; --cta:#FF851B; --cta2:#FF4136;
+    --brand:#a7ab01; --ink:#0f1b2a; --muted:#6b7785; --chip:#eef2f6; --card:#ffffff;
+    --accent:#FF851B; --accent2:#FF4136; --pill:#002B5C;
   }
-  body{ background:#f7f7fb; color:var(--ink); }
-  .wrap{ max-width:1100px; margin:auto; padding:20px 14px 60px; }
-  h1{ color:var(--brand); font-weight:800; letter-spacing:.3px; }
-  .nav-pills .nav-link{ border-radius:12px; font-weight:700; }
-  .nav-pills .nav-link.active{ background:var(--brand); }
-  .tab-box{ background:#fff; border:1px solid #eee; border-radius:16px; padding:18px; box-shadow:0 6px 22px #0000000d; }
-  .section-title{ color:var(--brand); font-size:18px; margin:20px 0 8px; font-weight:700; }
-  .image-preview{ display:none; max-width:240px; margin-top:6px; border:2px solid #ddd; }
-  .grid-cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
-  .kpi{ background:#fff; border:1px solid #eee; border-radius:14px; padding:16px 16px 14px; }
-  .kpi .n{ font-size:28px; font-weight:800; }
-  .kpi .t{ color:var(--muted); font-weight:600; }
-  .kpi.click{ cursor:pointer; transition:.15s; }
-  .kpi.click:hover{ transform:translateY(-2px); box-shadow:0 8px 20px #00000010; }
-  .progress{ height:10px; }
-  .badge-chip{ background:var(--chip); color:#374151; border:1px solid #e5e7eb; }
-  .farm-card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:14px; }
-  .farm-card:hover{ box-shadow:0 8px 20px #00000010; }
-  .thumb{ width:100%; max-height:200px; object-fit:cover; border-radius:10px; border:1px solid #eee; }
-  .btn-cta{ background:var(--cta); color:#fff; border:0; }
-  .btn-cta:hover{ background:var(--cta2); color:#fff; }
-  .linkish{ cursor:pointer; color:#2563eb; text-decoration:underline; }
-  .sticky-tools{ position:sticky; top:8px; z-index:5; background:#fff; border:1px solid #eee; border-radius:12px; padding:12px; }
-  .small{ font-size:12px; color:var(--muted); }
-  .subtle{ color:var(--muted); }
+  body{background:#f6f8fb;color:var(--ink);}
+  .brand{color:var(--brand)!important}
+  .tab-link{font-weight:700;border-radius:12px;padding:.6rem 1rem;background:#f2f4ea;color:#506000}
+  .tab-link.active{background:var(--brand);color:#fff}
+  .wrap{max-width:980px;margin:auto}
+  .pane{display:none}
+  .card-lite{background:var(--card);border-radius:18px;box-shadow:0 2px 14px rgba(16,24,40,.06);padding:18px}
+  .kpi{font-size:2.2rem;font-weight:800}
+  .kpi-sub{color:#374151}
+  .pill{display:inline-block;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:.1rem .5rem;font-weight:700}
+  .pill.attn{color:#b91c1c;background:#fee2e2;border-color:#fecaca}
+  .pill.ok{color:#166534;background:#dcfce7;border-color:#bbf7d0}
+  .btn-brand{background:var(--accent);border:none}
+  .btn-brand:hover{background:var(--accent2)}
+  .farm-card{border:1px solid #e5e7eb;border-radius:18px;background:#fff;padding:16px;margin-bottom:12px}
+  .farm-title{font-weight:800;font-size:1.05rem}
+  .badge-chip{background:var(--chip);border-radius:10px;padding:.15rem .45rem;margin-right:.25rem;font-size:.8rem}
+  .photo{width:100%;border-radius:10px;margin:8px 0}
+  .stat-chip{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px 16px;margin-bottom:14px}
+  .progress{height:10px;border-radius:999px}
+  .sticky-header{position:sticky;top:0;background:#f6f8fb;z-index:10;padding-top:8px;padding-bottom:6px}
+  .modal-photo{width:100%;border-radius:12px;margin:6px 0}
+  .grid-2{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:720px){.grid-2{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="m-0">Agora Vat Pre-Check</h1>
-    <ul class="nav nav-pills gap-2">
-      <li class="nav-item"><a class="nav-link active" data-bs-toggle="pill" href="#tab-form">📝 Form</a></li>
-      <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tab-summary">🧾 Summary</a></li>
-      <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tab-admin">⬇️ Admin</a></li>
-    </ul>
+<div class="wrap p-3 p-md-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="brand fw-bold">Agora Vat Pre-Check</h1>
+    <div class="d-flex gap-2">
+      <button class="tab-link" id="tabForm">📝 Form</button>
+      <button class="tab-link active" id="tabSummary">🟩 Summary</button>
+      <button class="tab-link" id="tabAdmin">⬇️ Admin</button>
+    </div>
   </div>
 
-  <div class="tab-content">
-
-    <!-- ======================= FORM ======================= -->
-    <div class="tab-pane fade show active" id="tab-form">
-      <div class="tab-box">
-        <form id="form" class="row g-3">
-
-          <!-- Dairy number -->
-          <div class="col-12 col-md-6">
-            <label class="form-label">Dairy Number</label>
-            <input class="form-control" name="dairyNumber" id="dairyNumber" required>
-          </div>
-
-          <!-- ---------- VAT section (ordered first) ---------- -->
-          <div class="col-12"><div class="section-title">Vat Details</div></div>
-
-          <!-- VAT 1 -->
-          <div class="col-md-3">
-            <label class="form-label">Vat 1 Capacity (L)</label>
-            <input class="form-control" name="vat1-capacity" id="vat1-capacity" inputmode="numeric">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Vat 1 Cap</label>
-            <select class="form-select" name="vat1-cap" id="vat1-cap">
-              <option value="available">Available ✓</option>
-              <option value="unavailable">Unavailable ✗</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Vat 1 Comments (width, brand, notes)</label>
-            <input class="form-control" name="vat1-comments" id="vat1-comments">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Vat 1 Condition</label>
-            <select class="form-select" name="vat1-condition" id="vat1-condition">
-              <option value="ok">OK</option>
-              <option value="attention">Attention Required</option>
-            </select>
-          </div>
-          <div class="col-md-6" id="v1c-extra" style="display:none">
-            <label class="form-label">Condition Notes / Photo</label>
-            <input class="form-control mb-2" name="vat1-condition-comments" id="vat1-condition-comments">
-            <input type="file" accept="image/*" class="form-control" id="vat1-condition-photo">
-            <img id="vat1-condition-preview" class="image-preview">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Vat 1 Serial</label>
-            <input class="form-control" name="vat1-serial" id="vat1-serial">
-          </div>
-
-          <!-- VAT 2 (defaults to N/A) -->
-          <div class="col-md-3">
-            <label class="form-label">Vat 2 Capacity (L)</label>
-            <input class="form-control" name="vat2-capacity" id="vat2-capacity" placeholder="N/A">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Vat 2 Cap</label>
-            <select class="form-select" name="vat2-cap" id="vat2-cap">
-              <option value="na" selected>N/A</option>
-              <option value="available">Available ✓</option>
-              <option value="unavailable">Unavailable ✗</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Vat 2 Comments</label>
-            <input class="form-control" name="vat2-comments" id="vat2-comments" placeholder="N/A">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Vat 2 Condition</label>
-            <select class="form-select" name="vat2-condition" id="vat2-condition">
-              <option value="na" selected>N/A</option>
-              <option value="ok">OK</option>
-              <option value="attention">Attention Required</option>
-            </select>
-          </div>
-          <div class="col-md-6" id="v2c-extra" style="display:none">
-            <label class="form-label">Condition Notes / Photo</label>
-            <input class="form-control mb-2" name="vat2-condition-comments" id="vat2-condition-comments">
-            <input type="file" accept="image/*" class="form-control" id="vat2-condition-photo">
-            <img id="vat2-condition-preview" class="image-preview">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Vat 2 Serial</label>
-            <input class="form-control" name="vat2-serial" id="vat2-serial" placeholder="N/A">
-          </div>
-
-          <!-- ---------- Agitator then Gateway then Telemetry ---------- -->
-          <div class="col-12"><div class="section-title">Agitator</div></div>
-          <div class="col-md-6">
-            <label class="form-label">Agitator Location</label>
-            <input class="form-control" name="agitator-location" id="agitator-location">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Comments / Photo</label>
-            <input class="form-control mb-2" name="agitator-comments" id="agitator-comments">
-            <input type="file" accept="image/*" class="form-control" id="agitator-photo">
-            <img id="agitator-preview" class="image-preview">
-          </div>
-
-          <div class="col-12"><div class="section-title">Gateway</div></div>
-          <div class="col-md-6">
-            <label class="form-label">Gateway Location</label>
-            <input class="form-control" name="gateway-location" id="gateway-location">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Comments / Photo</label>
-            <input class="form-control mb-2" name="gateway-comments" id="gateway-comments">
-            <input type="file" accept="image/*" class="form-control" id="gateway-photo">
-            <img id="gateway-preview" class="image-preview">
-          </div>
-
-          <div class="col-12"><div class="section-title">Other Telemetry</div></div>
-          <div class="col-md-6">
-            <label class="form-label">Current Telemetry</label>
-            <input class="form-control" name="current-telemetry" id="current-telemetry" placeholder="e.g. Spark good / One NZ poor">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Telemetry Comments</label>
-            <input class="form-control" name="telemetry-comments" id="telemetry-comments" placeholder="power point recommended / splitter ok ...">
-          </div>
-
-          <!-- ---------- Rubberware ---------- -->
-          <div class="col-12"><div class="section-title">Rubberware</div></div>
-          <div class="col-md-6">
-            <label class="form-label">Vat Door Seal</label>
-            <select class="form-select" name="vat-door-seal" id="vat-door-seal">
-              <option value="notdelivered">Not Delivered</option>
-              <option value="delivered">Delivered</option>
-            </select>
-            <div id="door-extra" style="display:none">
-              <div class="mt-2">
-                <label class="form-label">Door Seal Size</label>
-                <select class="form-select" name="door-seal-size" id="door-seal-size">
-                  <option value="">Select size</option><option value="small">Small</option><option value="large">Large</option>
-                </select>
-              </div>
-              <input class="form-control mt-2" name="vat-door-seal-comments" id="vat-door-seal-comments" placeholder="notes">
-              <input type="file" accept="image/*" class="form-control mt-2" id="vat-door-seal-photo">
-              <img id="vat-door-seal-preview" class="image-preview">
-            </div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">RJT Step Seal</label>
-            <select class="form-select" name="rjt-seal" id="rjt-seal">
-              <option value="notdelivered">Not Delivered</option>
-              <option value="delivered">Delivered</option>
-            </select>
-            <div id="rjt-extra" style="display:none">
-              <div class="mt-2">
-                <label class="form-label">Step Seal Size</label>
-                <select class="form-select" name="rjt-seal-size" id="rjt-seal-size">
-                  <option value="">Select size</option><option value="small">Small</option><option value="large">Large</option>
-                </select>
-              </div>
-              <input class="form-control mt-2" name="rjt-seal-comments" id="rjt-seal-comments" placeholder="notes">
-              <input type="file" accept="image/*" class="form-control mt-2" id="rjt-seal-photo">
-              <img id="rjt-seal-preview" class="image-preview">
-            </div>
-          </div>
-
-          <!-- Buttons -->
-          <div class="col-12 d-flex gap-2 mt-2">
-            <button type="button" id="btnSave" class="btn btn-cta">Save + PDF</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- ======================= SUMMARY ======================= -->
-    <div class="tab-pane fade" id="tab-summary">
-      <div class="row g-3">
-        <div class="col-12 col-lg-4">
-          <div class="sticky-tools">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="badge rounded-pill badge-chip">Cache <span id="cache-count">0</span></span>
-              <span class="badge rounded-pill badge-chip">Cloud <span id="cloud-total">0</span></span>
-              <span class="badge rounded-pill badge-chip">New <span id="new-count">0</span></span>
-            </div>
-            <div class="progress mb-2"><div id="dl-bar" class="progress-bar" style="width:0%"></div></div>
-            <div class="small mb-2"><b><span id="dl-count">0</span></b> downloaded • <b><span id="remain-count">0</span></b> remaining</div>
-            <div class="d-grid gap-2">
-              <button id="btnSync" class="btn btn-outline-secondary">Download / Refresh From Cloud</button>
-              <input id="q" class="form-control" placeholder="Search Dairy # / text…">
-              <div class="d-flex gap-2">
-                <button id="btnApply" class="btn btn-outline-dark flex-grow-1">Apply</button>
-                <button id="btnClear" class="btn btn-outline-secondary">Clear</button>
-              </div>
-              <button id="btnCSV" class="btn btn-outline-primary">Export Vat Sizes CSV</button>
-            </div>
-          </div>
+  <!-- SUMMARY -->
+  <section id="paneSummary" class="pane" style="display:block">
+    <div class="card-lite mb-3">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <div class="btn-group" role="group">
+          <input type="radio" class="btn-check" name="datewin" id="dAll" checked>
+          <label class="btn btn-outline-secondary" for="dAll">All</label>
+          <input type="radio" class="btn-check" name="datewin" id="d30">
+          <label class="btn btn-outline-secondary" for="d30">30d</label>
+          <input type="radio" class="btn-check" name="datewin" id="d90">
+          <label class="btn btn-outline-secondary" for="d90">90d</label>
         </div>
-        <div class="col-12 col-lg-8">
-          <!-- KPI cards -->
-          <div class="grid-cards mb-3">
-            <div class="kpi click" id="kpi-total"    data-filter="all"><div class="n" id="n-total">0</div><div class="t">Total Farms</div></div>
-            <div class="kpi click" id="kpi-attn"     data-filter="attn"><div class="n" id="n-attn">0</div><div class="t">Any Attention</div></div>
-            <div class="kpi click" id="kpi-nocap"    data-filter="nocap"><div class="n" id="n-nocap">0</div><div class="t">No Available Cap</div></div>
-            <div class="kpi click" id="kpi-door"     data-filter="door"><div class="n" id="n-door">0</div><div class="t">Door Seals Delivered</div></div>
-            <div class="kpi click" id="kpi-dts"      data-filter="dtscap"><div class="n" id="n-dts">0</div><div class="t">DTS / Vent Caps</div></div>
-            <div class="kpi click" id="kpi-pp"       data-filter="pp"><div class="n" id="n-pp">0</div><div class="t">Power Points Needed</div></div>
-            <div class="kpi click" id="kpi-splitter" data-filter="split"><div class="n" id="n-split">0</div><div class="t">Splitter OK</div></div>
-            <div class="kpi click" id="kpi-spark"    data-filter="spark"><div class="n" id="n-spark">0</div><div class="t">Spark Preferred</div></div>
-            <div class="kpi click" id="kpi-one"      data-filter="one"><div class="n" id="n-one">0</div><div class="t">One NZ Preferred</div></div>
-          </div>
-
-          <!-- Results -->
-          <div id="list" class="row g-3"></div>
-          <div id="empty" class="text-center subtle">Loading…</div>
-        </div>
+        <input class="form-control" id="searchText" placeholder="Search Dairy # / text…" style="max-width:360px">
+        <button class="btn btn-outline-secondary" id="btnApply">Apply</button>
+        <button class="btn btn-outline-secondary" id="btnClear">Clear</button>
+        <button class="btn btn-outline-primary ms-auto" id="btnCSV">Export Vat Sizes CSV</button>
+      </div>
+      <div class="grid-2">
+        <div class="stat-chip"><div class="kpi" id="kpiTotal">0</div><div class="kpi-sub">Total Farms</div></div>
+        <div class="stat-chip"><div class="kpi" id="kpiAttention">0</div><div class="kpi-sub">Any Attention</div></div>
+        <div class="stat-chip"><div class="kpi" id="kpiNoCap">0</div><div class="kpi-sub">No Available Cap</div></div>
+        <div class="stat-chip"><div class="kpi" id="kpiSeals">0</div><div class="kpi-sub">Door Seals Delivered</div></div>
+        <div class="stat-chip clickable" id="cardDTS"><div class="kpi" id="kpiDTS">0</div><div class="kpi-sub">DTS / Vent Caps</div></div>
+        <div class="stat-chip clickable" id="cardPP"><div class="kpi" id="kpiPP">0</div><div class="kpi-sub">Power Points Needed</div></div>
+        <div class="stat-chip clickable" id="cardSignalSpark"><div class="kpi" id="kpiSpark">0</div><div class="kpi-sub">Prefer Spark</div></div>
+        <div class="stat-chip clickable" id="cardSignalOne"><div class="kpi" id="kpiOne">0</div><div class="kpi-sub">Prefer One NZ</div></div>
+        <div class="stat-chip clickable" id="cardRubberware"><div class="kpi" id="kpiRubber">0</div><div class="kpi-sub">Rubberware Deliveries (click)</div></div>
       </div>
     </div>
 
-    <!-- ======================= ADMIN ======================= -->
-    <div class="tab-pane fade" id="tab-admin">
-      <div class="tab-box">
-        <div class="mb-2">Admin only shows **download** features (no edits).</div>
-        <button id="btnSync2" class="btn btn-outline-secondary">Download / Refresh From Cloud</button>
+    <div class="card-lite mb-3">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="fw-bold">Local Cache</div>
+        <div><span id="cacheCount" class="badge bg-light text-dark">0</span> / <span id="cloudCount" class="badge bg-light text-dark">0</span> downloaded</div>
       </div>
+      <div class="progress mb-2"><div class="progress-bar" id="cacheProg" role="progressbar" style="width:0%"></div></div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-brand" id="btnSync">Download / Refresh from Cloud</button>
+        <button class="btn btn-outline-secondary" id="btnWipe">Clear Local Cache</button>
+      </div>
+      <div class="small text-muted mt-2" id="syncStatus">Idle</div>
     </div>
 
+    <div id="summaryBuckets" class="mb-3"></div>
+    <div id="farmList"></div>
+  </section>
+
+  <!-- FORM (kept minimal; your existing form can live here) -->
+  <section id="paneForm" class="pane">
+    <div class="card-lite">
+      <div class="h5 mb-3">Field Form (unchanged core fields; “level” fields removed)</div>
+      <p class="text-muted">This build focuses on Summary / Admin. Keep your existing form code here or continue using your live form page.</p>
+    </div>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="paneAdmin" class="pane">
+    <div class="card-lite">
+      <div class="h5">Admin — Cloud Download Only</div>
+      <p class="text-muted">This page only downloads JSON from the bucket to the device cache used by Summary.</p>
+      <button class="btn btn-brand" id="btnAdminSync">Download Now</button>
+    </div>
+  </section>
+</div>
+
+<!-- Modals -->
+<div class="modal fade" id="modalDetails" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="modalTitle">Farm</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- libs -->
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.4/dexie.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.11/dayjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.11/plugin/relativeTime.min.js"></script>
+<script>dayjs.extend(window.dayjs_plugin_relativeTime)</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
 
 <script>
-/* =================== CONFIG =================== */
-const CLOUD_FOLDER = 'Pre Check'; // exact folder name in Storage
+/* ---------- Firebase ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
   authDomain: "dairy-farm-record-system.firebaseapp.com",
@@ -293,527 +148,370 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const storage = firebase.storage();
 
-/* =================== UTIL =================== */
-const $ = (id) => document.getElementById(id);
-function banner(msg, kind='info'){
-  let el = $('__banner');
-  if(!el){
-    el = document.createElement('div');
-    el.id='__banner';
-    el.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:10px 12px;border-radius:10px;background:#fff;border:1px solid #eee;box-shadow:0 4px 18px #0000001a;font-size:14px';
-    document.body.appendChild(el);
-  }
-  el.style.borderColor = (kind==='error') ? '#ffb2b2' : '#e5e7eb';
-  el.style.background   = (kind==='error') ? '#fff4f4'  : '#fff';
-  el.textContent = msg;
-  setTimeout(()=>{ if(el) el.remove(); }, 6000);
-}
-function fileInputPreview(fileInputId, imgId){
-  const inp = $(fileInputId), img = $(imgId);
-  if(!inp || !img) return;
-  inp.addEventListener('change', e=>{
-    const f = inp.files[0]; if(!f) return;
-    const url = URL.createObjectURL(f);
-    img.src = url; img.style.display='block';
-    // also keep base64 for PDF
-    const r = new FileReader(); r.onload = ev => img.setAttribute('data-base64', ev.target.result); r.readAsDataURL(f);
-  });
-}
-
-/* =================== FORM UI VISIBILITY =================== */
-$('vat1-condition').addEventListener('change',()=>{ $('v1c-extra').style.display = ($('vat1-condition').value==='attention')?'block':'none'; });
-$('vat2-condition').addEventListener('change',()=>{ const v=$('vat2-condition').value; $('v2c-extra').style.display=(v==='attention')?'block':'none'; });
-$('vat-door-seal').addEventListener('change',()=>{ $('door-extra').style.display = ($('vat-door-seal').value==='delivered')?'block':'none'; });
-$('rjt-seal').addEventListener('change',()=>{ $('rjt-extra').style.display = ($('rjt-seal').value==='delivered')?'block':'none'; });
-
-['vat1-condition-photo','vat2-condition-photo','agitator-photo','gateway-photo','vat-door-seal-photo','rjt-seal-photo']
-.forEach(id=>{
-  const imgId = id.replace('-photo','-preview');
-  fileInputPreview(id, imgId);
-});
-
-/* =================== CACHE (Dexie) =================== */
+/* ---------- Dexie ---------- */
 const db = new Dexie('VatPreCheckCache');
-db.version(1).stores({ forms: 'dairyNumber' });
-let idbOK = true;
-db.open().catch(e => { console.warn('Dexie open failed', e); idbOK=false; banner('Local cache unavailable. Using memory only.', 'error'); });
+db.version(1).stores({
+  forms: 'dairyNumber,timestamp'   // cache of cloud forms
+});
 
-/* in-memory */
-let cache = [];
-let recMap = new Map();
+/* ---------- UI Tabs ---------- */
+const panes = {
+  tabForm: 'paneForm',
+  tabSummary: 'paneSummary',
+  tabAdmin: 'paneAdmin'
+};
+for (const id in panes){
+  document.getElementById(id).onclick = () => {
+    document.querySelectorAll('.tab-link').forEach(b=>b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.pane').forEach(p=>p.style.display='none');
+    document.getElementById(panes[id]).style.display='block';
+  }
+}
 
-/* =================== “AI” NORMALISERS =================== */
-function norm(t){ return (t||'').toString().toLowerCase(); }
-function anyText(r){ // collect all comment-y text
-  return [
-    r['vat1-comments'], r['vat2-comments'], r['gateway-comments'], r['agitator-comments'],
-    r['telemetry-comments'], r['current-telemetry'], r['vat1-cap-comments'], r['vat2-cap-comments'],
-    r['vat1-condition-comments'], r['vat2-condition-comments'], r['vat-door-seal-comments'], r['rjt-seal-comments']
-  ].filter(Boolean).map(norm).join(' | ');
-}
-function hasDtsCap(r){
-  const t = norm(r['vat1-cap'])+' '+norm(r['vat2-cap'])+' '+anyText(r);
-  const kw = ['dts','vent cap','reducing cap','grey cap','gray cap','grey halo','gray halo','halo sensor','rjt reducing'];
-  return kw.some(k=>t.includes(k));
-}
-function needsPowerPoint(r){
-  const t = anyText(r);
-  const pos = ['power point needed','powerpoint needed','power point recommend','powerpoint recommend','needs power point','requires power'];
-  const neg = ['splitter ok','splitter plug can be used','double adapter ok','can use splitter'];
-  if(neg.some(k=>t.includes(k))) return false;
-  return pos.some(k=>t.includes(k)) || /pp\s*(req|needed)/.test(t);
-}
-function splitterOK(r){
-  const t = anyText(r);
-  return ['splitter ok','splitter plug can be used','double adapter ok','can use splitter','pp not required'].some(k=>t.includes(k));
-}
-function networkPref(r){ // 'spark', 'one', or ''
-  const t = anyText(r);
-  const spark = ['spark good','spark better','spark best','spark strong','vodafone poor','one nz poor'];
-  const one   = ['one nz good','one good','one nz better','vodafone better','one best','one strong'];
-  if(spark.some(k=>t.includes(k))) return 'spark';
-  if(one.some(k=>t.includes(k))) return 'one';
+/* ---------- Helpers ---------- */
+const safe = v => (v ?? '').toString().trim();
+const asLower = v => safe(v).toLowerCase();
+
+function normalizeManufacturer(txt){
+  const t = asLower(txt);
+  if(/dts/.test(t)) return 'DTS';
+  if(/\bnda\b/.test(t)) return 'NDA';
+  if(/delaval|de laval/.test(t)) return 'DeLaval';
+  if(/packo/.test(t)) return 'Packo';
+  if(/mueller/.test(t)) return 'Mueller';
   return '';
 }
-function manufacturerFrom(r){ // naive inference from comments
-  const t = anyText(r);
-  if(/(^|[\s])dts([\s]|$)/.test(t)) return 'DTS';
-  if(/\bnda\b|\bnz dairy\b|\bnational dairy\b/.test(t)) return 'NDA';
-  if(/\bpacko\b/.test(t)) return 'Packo';
-  if(/\bdelaval\b/.test(t)) return 'DeLaval';
-  return '';
-}
-function aiFlags(r){
+
+/* --- AI-ish tagger (rule-based NLP for offline) --- */
+function aiTags(rec){
+  // Collect all free text
+  const texts = [
+    rec['vat1-cap-comments'], rec['vat2-cap-comments'],
+    rec['gateway-comments'], rec['agitator-comments'],
+    rec['telemetry-comments'], rec['current-telemetry'],
+    rec['vat1-comments'], rec['vat2-comments'],
+    rec['vat1-condition-comments'], rec['vat2-condition-comments'],
+    rec['chiller-condition-comments']
+  ].map(safe).filter(Boolean);
+
+  const blob = asLower(texts.join(' | '));
+
+  // --- DTS / Vent Cap
+  const dtsCap = /\b(dts|vent\s*cap|vented\s*cap|grey\s*halo|gray\s*halo|grey\s*sensor|gray\s*sensor|halo\s*sensor)\b/.test(blob);
+
+  // --- Power point needed / recommended
+  const powerNeeded = /\b(power\s*point|powerpoint|outlet|socket|gpo|power\s*board|splitter\s*plug)\b/.test(blob) &&
+                      /\b(need|needed|recommend|recommended|req|required|should)\b/.test(blob);
+
+  // --- Signal (Spark vs One NZ(Vodafone))
+  // bars capture: "3 bars" / "2 bar"
+  const sparkObj = /spark.*?(\d)\s*bar/.exec(blob);
+  const oneObj   = /(one\s*nz|vodafone|voda).*?(\d)\s*bar/.exec(blob);
+  const sparkBars = sparkObj ? parseInt(sparkObj[1]) : (/\b(spark).*(better|best|preferred|good)\b/.test(blob)? 4:0);
+  const oneBars   = oneObj   ? parseInt(oneObj[2])   : (/\b(one\s*nz|vodafone|voda).*(better|best|preferred|good)\b/.test(blob)? 4:0);
+  let prefer = '';
+  if (sparkBars || oneBars){
+    prefer = sparkBars >= oneBars ? 'Spark' : 'One NZ';
+  }
+
+  // --- Attention?
+  const anyAttention =
+    rec['vat1-condition']==='attention' || rec['vat2-condition']==='attention' ||
+    rec['chiller-condition']==='attention';
+
+  // --- Available Cap?
+  const noAvailableCap =
+    (safe(rec['vat1-cap']).toLowerCase()!=='available') ||
+    (safe(rec['vat2-cap']).toLowerCase() && safe(rec['vat2-cap']).toLowerCase()!=='available' && safe(rec['vat2-cap']).toLowerCase()!=='na');
+
+  // --- Rubberware delivered (+size & qty)
+  const vatsCount = (safe(rec['vat2-capacity']) ? 2 : 1);
+  const doorSealDelivered = safe(rec['vat-door-seal']).toLowerCase()==='delivered';
+  const doorSealSize = safe(rec['vat-door-seal-size']||rec['door-seal-size']||'').toLowerCase(); // support both names
+  const qtyDelivered = doorSealDelivered ? vatsCount : 0;
+
   return {
-    dtsCap: hasDtsCap(r),
-    ppReq: needsPowerPoint(r),
-    splitOK: splitterOK(r),
-    net: networkPref(r),
-    manuf: manufacturerFrom(r)
+    dtsCap, powerNeeded, prefer, anyAttention, noAvailableCap,
+    doorSeal: { delivered: doorSealDelivered, size: doorSealSize || 'unspecified', qty: qtyDelivered }
   };
 }
 
-/* =================== CLOUD LIST (PAGINATED) =================== */
-async function listCloud(){
-  const items = [];
-  try{
-    let pageToken = undefined;
-    const root = storage.ref(CLOUD_FOLDER);
-    do{
-      const page = await root.list({ maxResults: 200, pageToken });
-      (page.items||[]).forEach(i => { if(i.name.endsWith('.json')) items.push(i); });
-      pageToken = page.nextPageToken;
-      await new Promise(r => setTimeout(r, 0)); // yield
-    }while(pageToken);
-  }catch(e){
-    console.error('listCloud error', e);
-    banner('Cloud listing failed. Check Storage rules/network.', 'error');
-  }
-  return items;
+/* ---------- Cache Sync ---------- */
+async function listCloudFiles(){
+  const root = storage.ref('Pre Check');
+  const res = await root.listAll();
+  return res.items || [];
 }
 
-/* =================== SYNC FROM CLOUD (with progress + safety) =================== */
-async function syncFromCloud(){
-  banner('Syncing from cloud…');
-  let items = [];
-  try { items = await listCloud(); } catch(e){}
-  $('cloud-total').textContent = items.length;
-
-  // compute new vs have
-  const have = new Set(cache.map(r=>String(r.dairyNumber)));
-  const toFetch = items.filter(it => !have.has(it.name.replace(/\.json$/,'')));
-  $('new-count').textContent = toFetch.length;
-  $('remain-count').textContent = toFetch.length;
-  $('dl-count').textContent = 0; $('dl-bar').style.width='0%';
-
-  let done = 0, skipped = 0;
-  for(const it of toFetch){
+async function downloadAll(onProgress){
+  const items = await listCloudFiles();
+  let done = 0;
+  for (const ref of items){
     try{
-      const url = await it.getDownloadURL();
-      const res = await fetch(url, { cache:'no-store' });
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const text = await res.text();     // guard parse
-      const j = JSON.parse(text);
-      const rec = lightRecord(j, it.name.replace('.json',''));
-      if(idbOK){ try{ await db.forms.put(rec); }catch(e){} }
-      cache.push(rec); recMap.set(String(rec.dairyNumber), rec);
-    }catch(err){
-      console.warn('Skip', it.name, err);
-      skipped++;
-    }
-    done++;
-    $('dl-count').textContent = done;
-    $('remain-count').textContent = (toFetch.length - done);
-    $('dl-bar').style.width = (Math.round(done/toFetch.length*100)||0)+'%';
-    if(done % 25 === 0) renderSummary(true); // incremental
+      const url = await ref.getDownloadURL();
+      const data = await fetch(url).then(r=>r.json());
+      // ensure defaults for Vat2
+      if(!safe(data['vat2-cap'])) data['vat2-cap']='na';
+      if(!safe(data['vat2-condition'])) data['vat2-condition']='ok';
+      if(!safe(data['vat2-capacity'])) data['vat2-capacity']='';
+      const dairy = data.dairyNumber || ref.name.replace('.json','');
+      await db.forms.put({ dairyNumber:dairy, ...data });
+    }catch(e){ console.warn('Failed', ref.name, e); }
+    done++; onProgress(done, items.length);
   }
-
-  $('cache-count').textContent = cache.length;
-  renderSummary();
-
-  if(skipped) banner(`Synced: ${done - skipped}, skipped: ${skipped} bad file(s).`, 'error');
-  else        banner(`Synced ${done} record(s).`);
+  return items.length;
 }
 
-/* =================== LOAD CACHE INIT =================== */
-async function initSummary(){
-  let arr = [];
-  if(idbOK){
-    try { arr = await db.forms.toArray(); }
-    catch(e){ banner('Could not read local cache.', 'error'); }
-  }
-  cache = arr.length ? arr : cache;
-  recMap = new Map(cache.map(r=>[String(r.dairyNumber),r]));
-  $('cache-count').textContent = cache.length;
-  renderSummary();
-  // do not auto sync here; let user press Download for control
-}
+async function getAllCached(){ return await db.forms.toArray(); }
 
-/* =================== LIGHT RECORD (for fast list/AI) =================== */
-function lightRecord(j, fallbackKey){
-  const dno = j.dairyNumber || fallbackKey;
-  return {
-    dairyNumber: dno,
-    createdAt: j.timestamp || j.createdAt || Date.now(),
-    // keep minimal fields used for summary/AI
-    'vat1-capacity': j['vat1-capacity']||'',
-    'vat2-capacity': j['vat2-capacity']||'',
-    'vat1-cap': j['vat1-cap']||'',
-    'vat2-cap': j['vat2-cap']||'na',
-    'vat1-condition': j['vat1-condition']||'ok',
-    'vat2-condition': j['vat2-condition']||'na',
-    'vat1-serial': j['vat1-serial']||'',
-    'vat2-serial': j['vat2-serial']||'',
-    'vat1-comments': j['vat1-comments']||'',
-    'vat2-comments': j['vat2-comments']||'',
-    'gateway-comments': j['gateway-comments']||'',
-    'agitator-comments': j['agitator-comments']||'',
-    'current-telemetry': j['current-telemetry']||'',
-    'telemetry-comments': j['telemetry-comments']||'',
-    'vat1-cap-comments': j['vat1-cap-comments']||'',
-    'vat2-cap-comments': j['vat2-cap-comments']||'',
-    'vat1-condition-comments': j['vat1-condition-comments']||'',
-    'vat2-condition-comments': j['vat2-condition-comments']||'',
-    'vat-door-seal': j['vat-door-seal']||'notdelivered',
-    'door-seal-size': j['door-seal-size']||'',
-    'rjt-seal': j['rjt-seal']||'notdelivered',
-    'rjt-seal-size': j['rjt-seal-size']||'',
-    // thumbnail-ish photo flags (we’ll fetch full on demand for card)
-    '_hasPhotos': !!(j['vat1-condition-photo-base64']||j['vat2-condition-photo-base64']||j['gateway-photo-base64']||j['agitator-photo-base64']||j['vat-door-seal-photo-base64']||j['rjt-seal-photo-base64'])
-  };
-}
+/* ---------- Summary Build ---------- */
+let ALL = [];      // raw cache
+let FILT = [];     // filtered
+function applyFilters(){
+  const q = asLower(document.getElementById('searchText').value);
+  let from = 0;
+  if(document.getElementById('d30').checked) from = dayjs().subtract(30,'day').valueOf();
+  if(document.getElementById('d90').checked) from = dayjs().subtract(90,'day').valueOf();
 
-/* =================== SUMMARY RENDER =================== */
-function renderSummary(partial=false){
-  const q = norm($('q').value);
-  let rows = cache.slice();
-
-  if(q){
-    rows = rows.filter(r=>{
-      const s = JSON.stringify(r).toLowerCase();
-      return s.includes(q);
-    });
-  }
-
-  // KPIs
-  const totals = {
-    total: rows.length,
-    attn: rows.filter(r=>r['vat1-condition']==='attention' || r['vat2-condition']==='attention').length,
-    nocap: rows.filter(r=>{
-      const c1 = r['vat1-cap'] && r['vat1-cap'].toLowerCase()!=='available';
-      const c2 = r['vat2-cap'] && !['available','na'].includes(r['vat2-cap'].toLowerCase());
-      return c1 || c2;
-    }).length,
-    door: rows.filter(r=>r['vat-door-seal']==='delivered').length,
-    dts: rows.filter(r=>aiFlags(r).dtsCap).length,
-    pp: rows.filter(r=>aiFlags(r).ppReq).length,
-    split: rows.filter(r=>aiFlags(r).splitOK).length,
-    spark: rows.filter(r=>aiFlags(r).net==='spark').length,
-    one: rows.filter(r=>aiFlags(r).net==='one').length
-  };
-  $('n-total').textContent = totals.total;
-  $('n-attn').textContent = totals.attn;
-  $('n-nocap').textContent = totals.nocap;
-  $('n-door').textContent = totals.door;
-  $('n-dts').textContent = totals.dts;
-  $('n-pp').textContent = totals.pp;
-  $('n-split').textContent = totals.split;
-  $('n-spark').textContent = totals.spark;
-  $('n-one').textContent = totals.one;
-
-  // list
-  const box = $('list'); box.innerHTML = '';
-  if(!rows.length){ $('empty').style.display='block'; return; } else { $('empty').style.display='none'; }
-
-  // show first 100 (mobile)
-  rows.slice(0, 100).forEach(r=>{
-    const flags = aiFlags(r);
-    const created = r.createdAt ? new Date(r.createdAt) : new Date();
-    const createdStr = isNaN(created.getTime()) ? '' : created.toLocaleString();
-    const chips = [];
-    if(flags.dtsCap) chips.push('DTS/Vent Cap');
-    if(flags.ppReq) chips.push('PP needed');
-    if(flags.splitOK) chips.push('Splitter OK');
-    if(flags.net==='spark') chips.push('Spark');
-    if(flags.net==='one') chips.push('One NZ');
-    if(r['vat-door-seal']==='delivered') chips.push('Door seal ✓'+(r['door-seal-size']?` (${r['door-seal-size']})`:'')); 
-    if(r['rjt-seal']==='delivered') chips.push('RJT ✓'+(r['rjt-seal-size']?` (${r['rjt-seal-size']})`:'')); 
-
-    const div = document.createElement('div');
-    div.className='col-12';
-    div.innerHTML = `
-      <div class="farm-card">
-        <div class="d-flex justify-content-between align-items-center">
-          <div><b>Dairy #${r.dairyNumber}</b> <span class="small">• ${createdStr}</span></div>
-          <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-outline-secondary" data-action="view" data-id="${r.dairyNumber}">View</button>
-            <button class="btn btn-sm btn-outline-primary" data-action="print" data-id="${r.dairyNumber}">Print</button>
-          </div>
-        </div>
-        <div class="mt-2 d-flex flex-wrap gap-1">
-          ${chips.map(c=>`<span class="badge rounded-pill badge-chip">${c}</span>`).join('')}
-        </div>
-        <div class="small mt-2 subtle">Vat1: ${r['vat1-capacity']||'-'} L (${r['vat1-cap']||'-'}) • Vat2: ${r['vat2-capacity']||'N/A'} L (${r['vat2-cap']||'N/A'})</div>
-      </div>`;
-    box.appendChild(div);
+  FILT = ALL.filter(r=>{
+    const text = JSON.stringify(r).toLowerCase();
+    const matchQ = !q || text.includes(q);
+    const matchT = !from || (r.timestamp ? r.timestamp>=from : true);
+    return matchQ && matchT;
   });
+  rebuildKPIs();
+  rebuildBuckets();
+  rebuildFarmList(); // default list (all)
 }
 
-/* KPI filter click -> narrow to that category */
-document.querySelectorAll('.kpi.click').forEach(el=>{
-  el.addEventListener('click', ()=>{
-    const f = el.getAttribute('data-filter');
-    $('q').value = f; // simple cue; we’ll interpret below
-    applyFilter(f);
+function rebuildKPIs(){
+  const att = FILT.filter(r=>aiTags(r).anyAttention).length;
+  const noCap = FILT.filter(r=>aiTags(r).noAvailableCap).length;
+  const seals = FILT.reduce((s,r)=>s + aiTags(r).doorSeal.qty,0);
+  const dts = FILT.filter(r=>aiTags(r).dtsCap).length;
+  const pwr = FILT.filter(r=>aiTags(r).powerNeeded).length;
+  const spark = FILT.filter(r=>aiTags(r).prefer==='Spark').length;
+  const one = FILT.filter(r=>aiTags(r).prefer==='One NZ').length;
+
+  document.getElementById('kpiTotal').textContent = FILT.length;
+  document.getElementById('kpiAttention').textContent = att;
+  document.getElementById('kpiNoCap').textContent = noCap;
+  document.getElementById('kpiSeals').textContent = seals;
+  document.getElementById('kpiDTS').textContent = dts;
+  document.getElementById('kpiPP').textContent = pwr;
+  document.getElementById('kpiSpark').textContent = spark;
+  document.getElementById('kpiOne').textContent = one;
+
+  // rubberware total cards (count farms with any delivered)
+  const rubberFarms = FILT.filter(r=>aiTags(r).doorSeal.delivered).length;
+  document.getElementById('kpiRubber').textContent = rubberFarms;
+}
+
+function bucket(v){ return v || 'Unknown'; }
+
+function rebuildBuckets(){
+  const sizesMap = {};
+  FILT.forEach(r=>{
+    const v1 = safe(r['vat1-capacity']); if(v1) sizesMap[v1] = (sizesMap[v1]||0)+1;
+    const v2 = safe(r['vat2-capacity']); if(v2) sizesMap[v2] = (sizesMap[v2]||0)+1;
   });
-});
-function applyFilter(flag){
-  let rows = cache.slice();
-  switch(flag){
-    case 'attn': rows = rows.filter(r=>r['vat1-condition']==='attention' || r['vat2-condition']==='attention'); break;
-    case 'nocap': rows = rows.filter(r=>{
-      const c1 = r['vat1-cap'] && r['vat1-cap'].toLowerCase()!=='available';
-      const c2 = r['vat2-cap'] && !['available','na'].includes(r['vat2-cap'].toLowerCase());
-      return c1 || c2;
-    }); break;
-    case 'door': rows = rows.filter(r=>r['vat-door-seal']==='delivered'); break;
-    case 'dtscap': rows = rows.filter(r=>aiFlags(r).dtsCap); break;
-    case 'pp': rows = rows.filter(r=>aiFlags(r).ppReq); break;
-    case 'split': rows = rows.filter(r=>aiFlags(r).splitOK); break;
-    case 'spark': rows = rows.filter(r=>aiFlags(r).net==='spark'); break;
-    case 'one': rows = rows.filter(r=>aiFlags(r).net==='one'); break;
-    default: return renderSummary();
-  }
-  const box = $('list'); box.innerHTML=''; $('empty').style.display = rows.length? 'none':'block';
-  rows.slice(0,100).forEach(r=>{
-    const div = document.createElement('div'); div.className='col-12';
-    div.innerHTML = `<div class="farm-card">
-      <div class="d-flex justify-content-between align-items-center">
-        <div><b>Dairy #${r.dairyNumber}</b></div>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-secondary" data-action="view" data-id="${r.dairyNumber}">View</button>
-          <button class="btn btn-sm btn-outline-primary" data-action="print" data-id="${r.dairyNumber}">Print</button>
-        </div>
-      </div>
-    </div>`;
-    box.appendChild(div);
+  let html = '<div class="card-lite"><div class="h6 mb-2">Vat Sizes</div><div class="d-flex flex-wrap gap-2">';
+  Object.entries(sizesMap).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([sz,c])=>{
+    html += `<div class="badge-chip">${sz} L • ${c}</div>`;
   });
+  html += '</div></div>';
+  document.getElementById('summaryBuckets').innerHTML = html;
 }
 
-/* =================== VIEW / PRINT HANDLERS =================== */
-$('list').addEventListener('click', async (e)=>{
-  const btn = e.target.closest('button'); if(!btn) return;
-  const id = btn.getAttribute('data-id'); 
-  if(btn.getAttribute('data-action')==='view'){ viewFarm(id); }
-  if(btn.getAttribute('data-action')==='print'){ printFarm(id); }
-});
-
-async function fetchFull(dno){
-  // prefer cache; try fetch from cloud for latest
-  const cached = recMap.get(String(dno));
-  try{
-    const ref = storage.ref(`${CLOUD_FOLDER}/${dno}.json`);
-    const url = await ref.getDownloadURL();
-    const data = await fetch(url, { cache:'no-store' }).then(r=>r.json());
-    // merge into cache lightly
-    const rec = Object.assign({}, cached||{}, data);
-    recMap.set(String(dno), rec);
-    return rec;
-  }catch(e){
-    return cached || null;
-  }
+function rebuildFarmList(list=FILT){
+  const box = document.getElementById('farmList');
+  if(!list.length){ box.innerHTML = '<div class="text-muted text-center py-4">No farms to display.</div>'; return; }
+  let html='';
+  list.forEach(r=> html += farmCardHTML(r));
+  box.innerHTML = html;
 }
 
-async function viewFarm(dno){
-  const r = await fetchFull(dno);
-  if(!r){ banner(`No form found for #${dno}`, 'error'); return; }
-
-  // modal
-  const id = 'farmModal'; let m=$('farmModal');
-  if(!m){
-    m = document.createElement('div');
-    m.id='farmModal';
-    m.className='modal fade';
-    m.innerHTML = `
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Farm</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body" id="farmBody"></div>
-      </div>
-    </div>`;
-    document.body.appendChild(m);
-  }
-  const body = $('farmBody');
-  const flags = aiFlags(r);
+function farmCardHTML(r){
+  const dairy = r.dairyNumber || 'Unknown';
+  const t = aiTags(r);
   const chips = [];
-  if(flags.dtsCap) chips.push('DTS/Vent Cap');
-  if(flags.ppReq) chips.push('PP needed');
-  if(flags.splitOK) chips.push('Splitter OK');
-  if(flags.net==='spark') chips.push('Spark');
-  if(flags.net==='one') chips.push('One NZ');
+  if(t.anyAttention) chips.push('<span class="pill attn">Attention</span>'); else chips.push('<span class="pill ok">OK</span>');
+  if(t.prefer) chips.push(`<span class="badge-chip">${t.prefer} preferred</span>`);
+  if(t.dtsCap) chips.push('<span class="badge-chip">DTS/Vent Cap</span>');
+  if(t.powerNeeded) chips.push('<span class="badge-chip">Power point needed</span>');
+  if(safe(r['vat1-serial'])) chips.push(`<span class="badge-chip">V1 SN ${safe(r['vat1-serial'])}</span>`);
+  if(safe(r['vat2-serial'])) chips.push(`<span class="badge-chip">V2 SN ${safe(r['vat2-serial'])}</span>`);
 
-  // build photo section
-  const photos = [];
-  ['vat1-condition','vat2-condition','gateway','agitator','vat-door-seal','rjt-seal'].forEach(k=>{
-    const b = r[`${k}-photo-base64`]; if(b) photos.push({k, b});
-  });
-
-  body.innerHTML = `
-  <div class="mb-2"><b>Dairy #${r.dairyNumber}</b></div>
-  <div class="d-flex flex-wrap gap-1 mb-3">${chips.map(c=>`<span class="badge rounded-pill badge-chip">${c}</span>`).join('')}</div>
-  <div class="row g-3">
-    <div class="col-md-6">
-      <div class="p-3 border rounded-3">
-        <div class="fw-bold mb-2">Vat</div>
-        <div class="small">Vat 1: ${r['vat1-capacity']||'-'} L • Cap: ${r['vat1-cap']||'-'} • Cond: ${r['vat1-condition']||'-'} • Serial: ${r['vat1-serial']||'-'}</div>
-        <div class="small">Vat 2: ${r['vat2-capacity']||'N/A'} L • Cap: ${r['vat2-cap']||'N/A'} • Cond: ${r['vat2-condition']||'N/A'} • Serial: ${r['vat2-serial']||'N/A'}</div>
-        <div class="mt-2 small">${r['vat1-comments']||''} ${r['vat2-comments']?(' / '+r['vat2-comments']):''}</div>
+  return `
+  <div class="farm-card">
+    <div class="d-flex align-items-start justify-content-between">
+      <div>
+        <div class="farm-title">#${dairy}</div>
+        <div class="text-muted">Vat1 ${safe(r['vat1-capacity'])||'—'} L • Vat2 ${safe(r['vat2-capacity'])||'—'} L</div>
+        <div class="mt-1">${chips.join(' ')}</div>
+      </div>
+      <div class="text-end">
+        <button class="btn btn-sm btn-outline-primary" onclick="openDetails('${dairy}')">Details</button>
+        <button class="btn btn-sm btn-brand" onclick="printBrochure('${dairy}')">Print</button>
       </div>
     </div>
-    <div class="col-md-6">
-      <div class="p-3 border rounded-3">
-        <div class="fw-bold mb-2">Telemetry & Power</div>
-        <div class="small">${r['current-telemetry']||''}</div>
-        <div class="small">${r['telemetry-comments']||''}</div>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="p-3 border rounded-3">
-        <div class="fw-bold mb-2">Rubberware</div>
-        <div class="small">Door Seal: ${r['vat-door-seal']||'-'} ${r['door-seal-size']?('('+r['door-seal-size']+')'):''}</div>
-        <div class="small">RJT: ${r['rjt-seal']||'-'} ${r['rjt-seal-size']?('('+r['rjt-seal-size']+')'):''}</div>
-      </div>
-    </div>
-    <div class="col-12">
-      <div class="row g-2">
-        ${photos.map(p=>`<div class="col-md-4"><img class="thumb" src="${p.b}" alt="${p.k}"></div>`).join('')}
-      </div>
-    </div>
-  </div>
-  `;
-  new bootstrap.Modal(m).show();
+  </div>`;
 }
 
-async function printFarm(dno){
-  const r = await fetchFull(dno);
-  if(!r){ banner(`No form found for #${dno}`, 'error'); return; }
+/* ---------- Drilled lists for each KPI ---------- */
+function showFiltered(predicate, title){
+  const rows = FILT.filter(predicate);
+  rebuildFarmList(rows);
+  window.scrollTo({top: document.getElementById('farmList').offsetTop-12, behavior:'smooth'});
+}
+
+/* ---------- Details Modal (labeled photos) ---------- */
+function photoRow(label, base64){
+  if(!base64) return '';
+  return `<div class="mb-2"><div class="fw-bold mb-1">${label}</div><img class="modal-photo" src="${base64}"></div>`;
+}
+
+window.openDetails = async function(dairy){
+  const r = await db.forms.get(dairy);
+  if(!r){ return; }
+  document.getElementById('modalTitle').textContent = `#${dairy}`;
+  const rows = [];
+  const K = (k)=> safe(r[k]);
+  rows.push(`<div class="mb-2"><span class="fw-bold">Vat 1:</span> ${K('vat1-capacity')} L • Cap ${K('vat1-cap')} • Cond ${K('vat1-condition')} • SN ${K('vat1-serial')}</div>`);
+  rows.push(`<div class="mb-2"><span class="fw-bold">Vat 2:</span> ${K('vat2-capacity')||'—'} L • Cap ${K('vat2-cap')} • Cond ${K('vat2-condition')} • SN ${K('vat2-serial')}</div>`);
+  rows.push(`<div class="mb-2"><span class="fw-bold">Agitator:</span> ${K('agitator-location')} — ${K('agitator-comments')}</div>`);
+  rows.push(`<div class="mb-2"><span class="fw-bold">Gateway:</span> ${K('gateway-location')} — ${K('gateway-comments')}</div>`);
+  rows.push(`<div class="mb-2"><span class="fw-bold">Telemetry:</span> ${K('current-telemetry')} ${K('telemetry-comments')}</div>`);
+  rows.push(`<hr>`);
+  // photos labeled
+  rows.push(photoRow('Vat 1 Cap Photo', K('vat1-cap-photo-base64')));
+  rows.push(photoRow('Vat 2 Cap Photo', K('vat2-cap-photo-base64')));
+  rows.push(photoRow('Agitator Location', K('agitator-photo-base64')));
+  rows.push(photoRow('Gateway Location', K('gateway-photo-base64')));
+  rows.push(photoRow('Vat 1 Condition', K('vat1-condition-photo-base64')));
+  rows.push(photoRow('Vat 2 Condition', K('vat2-condition-photo-base64')));
+  rows.push(photoRow('Door Seal Delivery', K('vat-door-seal-photo-base64')));
+  rows.push(photoRow('RJT Step Seal', K('rjt-seal-photo-base64')));
+  rows.push(photoRow('Chiller Condition', K('chiller-condition-photo-base64')));
+
+  document.getElementById('modalBody').innerHTML = rows.join('');
+  new bootstrap.Modal(document.getElementById('modalDetails')).show();
+}
+
+/* ---------- Print (A4 brochure) ---------- */
+async function printBrochure(dairy){
+  const rec = await db.forms.get(dairy);
+  if(!rec) return;
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF('p','pt','a4');
-  const margin = 40;
-  pdf.setFontSize(16); pdf.setTextColor(0,0,0);
-  pdf.text(`Agora Vat Pre-Check — Dairy #${r.dairyNumber}`, margin, 40);
-  const body = [
-    ['Vat 1', `${r['vat1-capacity']||'-'} L • Cap ${r['vat1-cap']||'-'} • ${r['vat1-condition']||'-'} • SN ${r['vat1-serial']||'-'}`],
-    ['Vat 2', `${r['vat2-capacity']||'N/A'} L • Cap ${r['vat2-cap']||'N/A'} • ${r['vat2-condition']||'N/A'} • SN ${r['vat2-serial']||'N/A'}`],
-    ['Agitator', r['agitator-comments']||''],
-    ['Gateway', r['gateway-comments']||''],
-    ['Telemetry', (r['current-telemetry']||'')+' '+(r['telemetry-comments']||'')],
-    ['Rubberware', `Door Seal: ${r['vat-door-seal']||'-'} ${r['door-seal-size']||''} • RJT: ${r['rjt-seal']||'-'} ${r['rjt-seal-size']||''}`]
+
+  const addHeading = (t,y)=>{ pdf.setFontSize(16); pdf.setTextColor(20,40,70); pdf.text(t, 40, y); }
+  const addKV = (y,k,v)=>{ pdf.setFontSize(12); pdf.setTextColor(60,60,60); pdf.text(`${k}: `,40,y); pdf.setTextColor(20,20,20); pdf.text(String(v||'—'),140,y); }
+
+  let y=40;
+  addHeading(`Agora Vat Pre-Check — #${dairy}`, y); y+=20;
+  addKV(y,'Vat 1', `${safe(rec['vat1-capacity'])||'—'} L • Cap ${safe(rec['vat1-cap'])} • Cond ${safe(rec['vat1-condition'])} • SN ${safe(rec['vat1-serial'])}`); y+=16;
+  addKV(y,'Vat 2', `${safe(rec['vat2-capacity'])||'—'} L • Cap ${safe(rec['vat2-cap'])} • Cond ${safe(rec['vat2-condition'])} • SN ${safe(rec['vat2-serial'])}`); y+=16;
+  addKV(y,'Agitator', `${safe(rec['agitator-location'])} — ${safe(rec['agitator-comments'])}`); y+=16;
+  addKV(y,'Gateway', `${safe(rec['gateway-location'])} — ${safe(rec['gateway-comments'])}`); y+=16;
+  addKV(y,'Telemetry', `${safe(rec['current-telemetry'])} ${safe(rec['telemetry-comments'])}`); y+=22;
+
+  pdf.autoTable({
+    startY: y,
+    styles:{fontSize:10,cellPadding:3},
+    headStyles:{fillColor:[0,43,92],textColor:255},
+    head:[['Field','Value']],
+    body:[
+      ['Door Seal', `${safe(rec['vat-door-seal'])} • Size ${safe(rec['vat-door-seal-size']||'unspecified')}`],
+      ['RJT Step Seal', safe(rec['rjt-seal'])],
+      ['Chiller', safe(rec['chiller-condition'])]
+    ]
+  });
+
+  // photos grid
+  let py = pdf.lastAutoTable ? pdf.lastAutoTable.finalY + 12 : y+60;
+  const photoKeys = [
+    ['Vat 1 Cap','vat1-cap-photo-base64'],['Vat 2 Cap','vat2-cap-photo-base64'],
+    ['Agitator','agitator-photo-base64'],['Gateway','gateway-photo-base64'],
+    ['Door Seal','vat-door-seal-photo-base64'],['RJT','rjt-seal-photo-base64'],
+    ['Chiller','chiller-condition-photo-base64']
   ];
-  pdf.autoTable({ startY: 60, head:[['Field','Details']], body, styles:{ fontSize:10 }, headStyles:{ fillColor:[0,43,92] } });
-
-  // Photos
-  let y = pdf.lastAutoTable.finalY + 16;
-  const photoKeys = ['vat1-condition','vat2-condition','gateway','agitator','vat-door-seal','rjt-seal'];
-  for(const k of photoKeys){
-    const b = r[`${k}-photo-base64`];
-    if(!b) continue;
-    if(y+170>780){ pdf.addPage(); y=40; }
-    pdf.setFontSize(12); pdf.text(k.replace(/-/g,' ').toUpperCase(), margin, y);
-    pdf.addImage(b, 'JPEG', margin, y+6, 500, 150);
-    y += 170;
+  const W = 240, H = 160, M = 40, G = 20;
+  for (let i=0;i<photoKeys.length;i++){
+    const [label,key] = photoKeys[i];
+    const b64 = rec[key];
+    if(!b64) continue;
+    if(py+H+40 > pdf.internal.pageSize.getHeight()){ pdf.addPage(); py = 40; }
+    const col = (i%2==0)? M : (M+W+G);
+    if(i%2==1) py -= (H+30);
+    pdf.setFontSize(11); pdf.text(label, col, py);
+    pdf.addImage(b64,'JPEG', col, py+8, W, H);
+    if(i%2==1) py += (H+40);
+    if(i%2==0 && i===photoKeys.length-1) py += (H+40);
   }
-  pdf.save(`PreCheck_${r.dairyNumber}.pdf`);
-}
 
-/* =================== CSV (Vat sizes / serial / manuf / cap) =================== */
-function downloadCSV(){
-  const rows = cache.map(r=>{
-    const flags = aiFlags(r);
-    return {
-      dairyNumber: r.dairyNumber,
-      vat1Size: r['vat1-capacity']||'',
-      vat1Serial: r['vat1-serial']||'',
-      vat1Cap: (r['vat1-cap']||'').toUpperCase(),
-      vat2Size: r['vat2-capacity']||'N/A',
-      vat2Serial: r['vat2-serial']||'',
-      vat2Cap: (r['vat2-cap']||'NA').toUpperCase(),
-      manufacturer: flags.manuf || '',
-    };
+  pdf.save(`PreCheck_${dairy}.pdf`);
+}
+window.printBrochure = printBrochure;
+
+/* ---------- CSV Export ---------- */
+document.getElementById('btnCSV').onclick = () => {
+  const rows = [['Vat Size','Serial','Manufacturer','Dairy #','Cap Available']];
+  FILT.forEach(r=>{
+    const v1 = safe(r['vat1-capacity']); if(v1) rows.push([v1, safe(r['vat1-serial']), normalizeManufacturer(r['vat1-comments']), r.dairyNumber, safe(r['vat1-cap']) ]);
+    const v2 = safe(r['vat2-capacity']); if(v2) rows.push([v2, safe(r['vat2-serial']), normalizeManufacturer(r['vat2-comments']), r.dairyNumber, safe(r['vat2-cap']) ]);
   });
-  const headers = Object.keys(rows[0]||{dairyNumber:'',vat1Size:'',vat1Serial:'',vat1Cap:'',vat2Size:'',vat2Serial:'',vat2Cap:'',manufacturer:''});
-  const data = [headers.join(','), ...rows.map(o=>headers.map(h=>String(o[h]).replace(/,/g,' ')).join(','))].join('\n');
-  const blob = new Blob([data], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='vat_sizes.csv'; a.click();
+  const csv = rows.map(r=>r.map(x=>`"${(x||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'vat_sizes.csv';
+  a.click();
 }
 
-/* =================== SUMMARY CONTROLS =================== */
-$('btnSync').addEventListener('click', syncFromCloud);
-$('btnSync2').addEventListener('click', syncFromCloud);
-$('btnCSV').addEventListener('click', downloadCSV);
-$('btnApply').addEventListener('click', (e)=>{ e.preventDefault(); renderSummary(); });
-$('btnClear').addEventListener('click', (e)=>{ e.preventDefault(); $('q').value=''; renderSummary(); });
-
-/* =================== SAVE + PDF FROM FORM =================== */
-function collectFormData(){
-  const f = new FormData($('form'));
-  const data = Object.fromEntries(f.entries());
-  // attach inline photos (base64) when chosen
-  ['vat1-condition','vat2-condition','gateway','agitator','vat-door-seal','rjt-seal'].forEach(k=>{
-    const img = $(k+'-preview'); if(img && img.getAttribute('data-base64')) data[`${k}-photo-base64`] = img.getAttribute('data-base64');
-  });
-  data.timestamp = Date.now();
-  // defaults for vat2
-  if(!data['vat2-cap']) data['vat2-cap']='na';
-  if(!data['vat2-condition']) data['vat2-condition']='na';
-  return data;
+/* ---------- Click cards to drill ---------- */
+document.getElementById('cardDTS').onclick = () => showFiltered(r=>aiTags(r).dtsCap, 'DTS / Vent Cap');
+document.getElementById('cardPP').onclick = () => showFiltered(r=>aiTags(r).powerNeeded, 'Power Points Needed');
+document.getElementById('cardSignalSpark').onclick = () => showFiltered(r=>aiTags(r).prefer==='Spark', 'Spark Preferred');
+document.getElementById('cardSignalOne').onclick = () => showFiltered(r=>aiTags(r).prefer==='One NZ', 'One NZ Preferred');
+document.getElementById('cardRubberware').onclick = () => {
+  // list farms with delivered seals; include photo thumb inside card when open details
+  showFiltered(r=>aiTags(r).doorSeal.delivered, 'Rubberware Delivered');
 }
-async function saveToCloud(data){
-  try{
-    const ref = storage.ref(`${CLOUD_FOLDER}/${data.dairyNumber}.json`);
-    await ref.put(new Blob([JSON.stringify(data)], {type:'application/json'}));
-    banner('Saved to cloud.');
-  }catch(e){ banner('Cloud save failed.', 'error'); }
+
+/* ---------- Search / Filter buttons ---------- */
+document.getElementById('btnApply').onclick = applyFilters;
+document.getElementById('btnClear').onclick = () => { document.getElementById('searchText').value=''; document.getElementById('dAll').checked=true; applyFilters(); };
+
+/* ---------- Sync buttons ---------- */
+async function doSync(){
+  document.getElementById('syncStatus').textContent='Listing cloud…';
+  const items = await listCloudFiles();
+  document.getElementById('cloudCount').textContent = items.length;
+  let downloaded=0;
+  const onProgress=(d,t)=>{
+    downloaded=d;
+    const pct = Math.round((d/t)*100);
+    document.getElementById('cacheProg').style.width = pct + '%';
+    document.getElementById('cacheCount').textContent = d;
+    document.getElementById('syncStatus').textContent = `Downloading ${d}/${t} (${pct}%)…`;
+  };
+  await downloadAll(onProgress);
+  document.getElementById('syncStatus').textContent = 'Completed';
+  ALL = await getAllCached();
+  applyFilters();
 }
-$('btnSave').addEventListener('click', async ()=>{
-  const data = collectFormData();
-  if(!data.dairyNumber){ banner('Enter Dairy Number', 'error'); return; }
-  // save locally (if available) + memory
-  if(idbOK){ try{ await db.forms.put(lightRecord(data, data.dairyNumber)); }catch(e){} }
-  const rec = lightRecord(data, data.dairyNumber);
-  recMap.set(String(rec.dairyNumber), rec);
-  const idx = cache.findIndex(x=>String(x.dairyNumber)===String(rec.dairyNumber));
-  if(idx>=0) cache[idx]=rec; else cache.push(rec);
-  $('cache-count').textContent = cache.length;
-  renderSummary();
+document.getElementById('btnSync').onclick = doSync;
+document.getElementById('btnAdminSync').onclick = doSync;
+document.getElementById('btnWipe').onclick = async ()=>{ await db.forms.clear(); document.getElementById('cacheCount').textContent='0'; ALL=[]; FILT=[]; rebuildKPIs(); rebuildBuckets(); rebuildFarmList(); };
 
-  // cloud + PDF
-  await saveToCloud(data);
-  await printFarm(data.dairyNumber);
-});
-
-/* =================== INIT =================== */
-initSummary();
+/* ---------- First load: read cache then (optionally) user triggers download ---------- */
+(async function boot(){
+  ALL = await getAllCached();
+  document.getElementById('cacheCount').textContent = ALL.length;
+  applyFilters();
+})();
 </script>
 </body>
 </html>
