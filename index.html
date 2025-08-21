@@ -5,42 +5,84 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Agora Vat Pre-Check</title>
 
+<!-- Fonts & CSS -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
 
 <style>
+/* =========================================================================================
+   DESIGN SYSTEM
+   =======================================================================================*/
 :root{
-  --brand:#001F3F; --accent:#FF851B; --muted:#6b7280; --bg:#f7f8fb; --ink:#0f172a; --radius:14px;
+  --brand:#001F3F;
+  --accent:#FF851B;
+  --muted:#6b7280;
+  --bg:#f7f8fb;
+  --ink:#0f172a;
+  --ok:#22c55e;
+  --warn:#ffb020;
+  --bad:#ff4136;
 }
 html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
-.app{max-width:1100px;margin:28px auto;padding:0 16px}
+.app{max-width:1180px;margin:28px auto;padding:0 16px}
+
+/* Header */
 .brand-header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
 .brand-logo{width:160px;height:auto;display:none}
-.brand-title{flex:1}
-.brand-title h1{margin:0;font-weight:800;color:var(--brand);letter-spacing:.2px}
+.brand-title h1{margin:0;font-weight:800;color:var(--brand);letter-spacing:.1px}
 .brand-sub{color:var(--muted);font-size:.95rem;margin-top:2px}
+
+/* Tabs */
 .top-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 18px}
-.tab-btn{border:1px solid #e5e7eb;background:#fff;color:#111827;border-radius:10px;padding:10px 14px;font-weight:600}
+.tab-btn{border:1px solid #e5e7eb;background:#fff;color:#111827;border-radius:10px;padding:10px 14px;font-weight:700}
 .tab-btn.active{border-color:var(--accent);box-shadow:0 0 0 3px #ff851b2b}
+
+/* Utility bars & cards */
 .bar{border:1px solid #e5e7eb;border-radius:14px;background:#fff;padding:14px;margin:10px 0}
-.section-title{font-size:1.05rem;font-weight:800;color:#111827;margin-bottom:8px}
+.section-title{font-weight:800;margin:6px 0 10px}
+.small{color:var(--muted)}
+.badge-soft{border:1px solid #e5e7eb;border-radius:999px;padding:2px 8px;font-size:.8rem}
+
+/* Sticky progress */
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.progress{height:10px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid #e5e7eb;border-radius:999px;background:#fff}
+
+/* KPI cards */
 .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.kpi{border:1px solid #e5e7eb;border-radius:14px;background:#fff;padding:12px}
-.kpi .num{font-size:1.4rem;font-weight:800}
+.kpi{border:1px solid #e5e7eb;border-radius:14px;background:#fff;padding:12px;cursor:pointer}
+.kpi .num{font-size:1.5rem;font-weight:800}
 .kpi .label{color:#6b7280;font-size:.9rem}
+.kpi:active{transform:scale(.996)}
+
+/* Farm list cards */
 .list{display:grid;grid-template-columns:1fr;gap:10px}
 .row-card{border:1px solid #e5e7eb;border-radius:14px;background:#fff;padding:12px}
 .row-flex{display:flex;gap:10px;justify-content:space-between;align-items:center}
-.small{color:#6b7280}
-.actions .btn{margin-left:6px}
-.badge-soft{border:1px solid #e5e7eb;border-radius:999px;padding:2px 8px;font-size:.8rem}
-.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.progress{height:10px}
-.hidden{display:none!important}
+.row-actions .btn{min-width:84px}
 
-/* Brochure sheet */
+/* Photo thumbnails (summary cards) */
+.media-line{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.thumb{width:86px;height:70px;border:1px solid #e5e7eb;border-radius:8px;object-fit:cover}
+
+/* FORM (kept lean but complete) */
+.form-card{border:1px solid #e5e7eb;border-radius:14px;background:#fff;padding:14px;margin-bottom:12px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}}
+label.form-label{font-weight:600}
+.photo-thumb{width:110px;height:86px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;margin-top:6px}
+.sticky-actions{position:sticky;bottom:8px;display:flex;gap:8px;flex-wrap:wrap}
+
+/* Buttons */
+.btn-brand{background:var(--accent);border:none;color:#fff;font-weight:800}
+.btn-brand:hover{background:#ff6d00}
+.btn-outline-brand{border:1px solid var(--accent);color:var(--accent);background:#fff}
+.btn-outline-brand:hover{background:var(--accent);color:#fff}
+
+/* Brochure print layout (customer-ready) */
 .print-sheet{max-width:900px;margin:0 auto;color:#0f172a}
 .print-head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #e5e7eb;padding-bottom:10px;margin-bottom:10px}
 .print-head img{height:44px}
@@ -51,22 +93,17 @@ html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Sego
 .print-label{font-weight:700;margin-bottom:6px}
 .print-photos img{width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:8px}
 
-/* Form */
-.form-card{border:1px solid #e5e7eb;border-radius:14px;background:#fff;padding:14px;margin-bottom:12px}
-.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-@media (max-width:900px){ .grid-3{grid-template-columns:1fr} }
-.photo-thumb{width:110px;height:86px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;margin-top:6px}
-.sticky-actions{position:sticky;bottom:8px;display:flex;gap:8px;flex-wrap:wrap}
-.btn-brand{background:var(--accent);border:none;color:#fff;font-weight:700}
-.btn-brand:hover{background:#ff6d00}
-.btn-outline-brand{border:1px solid var(--accent);color:var(--accent);background:#fff}
-.btn-outline-brand:hover{background:var(--accent);color:#fff}
+/* Helpers */
+.hidden{display:none!important}
 .footer{color:#6b7280;text-align:center;margin:22px 0 10px}
+hr.sep{border:0;border-top:1px solid #e5e7eb;margin:12px 0}
 </style>
 </head>
 <body>
 <div class="app">
-  <!-- Header -->
+  <!-- =====================================================================================
+       HEADER
+       ===================================================================================-->
   <div class="brand-header">
     <img id="logo" class="brand-logo" alt="Agora Logo">
     <div class="brand-title">
@@ -75,43 +112,50 @@ html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Sego
     </div>
   </div>
 
-  <!-- Tabs -->
+  <!-- =====================================================================================
+       TABS + PROGRESS
+       ===================================================================================-->
   <div class="top-tabs">
     <button id="tab-form" class="tab-btn">Form</button>
     <button id="tab-summary" class="tab-btn active">Summary</button>
     <button id="tab-admin" class="tab-btn">Admin</button>
     <div class="ms-auto controls">
-      <span class="small">Cloud:</span> <span id="cloud-count">–</span>
-      <span class="small">Loaded:</span> <span id="loaded-count">0</span>
-      <div class="progress" style="width:160px"><div id="load-bar" class="progress-bar" role="progressbar" style="width:0%"></div></div>
+      <span class="pill"><span class="small">Cloud</span><b id="cloud-count">–</b></span>
+      <span class="pill"><span class="small">Loaded</span><b id="loaded-count">0</b></span>
+      <div class="progress" style="width:180px"><div id="load-bar" class="progress-bar" style="width:0%"></div></div>
       <span id="load-pct" class="small">0%</span>
     </div>
   </div>
 
-  <!-- SUMMARY -->
+  <!-- =====================================================================================
+       SUMMARY VIEW
+       ===================================================================================-->
   <div id="view-summary">
+    <!-- Filters + KPI -->
     <div class="bar">
-      <div class="controls mb-2">
+      <div class="section-title mb-3">Overview</div>
+      <div class="controls mb-3">
         <input id="search" class="form-control" placeholder="Search dairy # or text…" style="max-width:360px">
-        <button id="btn-clear" class="btn btn-outline-secondary btn-sm">Clear</button>
+        <button id="btn-clear" class="btn btn-outline-secondary">Clear</button>
       </div>
-      <div class="section-title">Overview</div>
       <div class="kpi-grid">
-        <div class="kpi"><div class="num" id="kpi-dts">0</div><div class="label">DTS Vent Caps</div></div>
-        <div class="kpi"><div class="num" id="kpi-power">0</div><div class="label">Farms needing power point</div></div>
-        <div class="kpi"><div class="num" id="kpi-rubber">0</div><div class="label">Rubberware deliveries</div></div>
+        <div class="kpi" data-filter="dts"><div class="num" id="kpi-dts">0</div><div class="label">DTS / vent caps</div></div>
+        <div class="kpi" data-filter="power"><div class="num" id="kpi-power">0</div><div class="label">Farms needing power point</div></div>
+        <div class="kpi" data-filter="rubber"><div class="num" id="kpi-rubber">0</div><div class="label">Rubberware delivered</div></div>
       </div>
     </div>
 
+    <!-- Live vat size table -->
     <div class="bar">
       <div class="section-title">Vat Size Breakdown (live from cloud)</div>
       <div id="size-table" class="small">Starting…</div>
       <button id="btn-export-sizes" class="btn btn-outline-brand mt-2">Export Sizes CSV</button>
     </div>
 
+    <!-- Results list + bulk actions -->
     <div class="bar">
       <div class="section-title">Results</div>
-      <div class="mb-2">
+      <div class="d-flex flex-wrap gap-2 mb-2">
         <button id="btn-print-all" class="btn btn-brand">Print All Brochures</button>
         <button id="btn-zip-all" class="btn btn-outline-brand">Download All Brochures (ZIP)</button>
       </div>
@@ -119,14 +163,16 @@ html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Sego
     </div>
   </div>
 
-  <!-- FORM -->
+  <!-- =====================================================================================
+       FORM VIEW (Autofill from cloud + print single)
+       ===================================================================================-->
   <div id="view-form" class="hidden">
     <div class="form-card">
       <div class="grid-3">
         <div>
           <label class="form-label">Dairy Number</label>
-          <input class="form-control" id="dairyNumber" placeholder="e.g. 7016">
-          <div class="small">Blur to auto-fill from cloud if available.</div>
+          <input class="form-control" id="dairyNumber" placeholder="e.g. 7031">
+          <div class="small">Blur to auto-load from cloud (includes photos if embedded).</div>
         </div>
         <div>
           <label class="form-label">Gateway Location</label>
@@ -134,94 +180,210 @@ html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Sego
         </div>
         <div>
           <label class="form-label">Gateway Photo</label>
-          <input type="file" accept="image/*" id="gateway-photo" class="form-control">
+          <input id="gateway-photo" type="file" accept="image/*" class="form-control">
           <img id="gateway-preview" class="photo-thumb d-none" alt="">
         </div>
       </div>
     </div>
 
+    <!-- Vat 1 -->
     <div class="form-card">
-      <h6>Vat 1</h6>
+      <h6 class="mb-2">Vat 1</h6>
       <div class="grid-3">
-        <div><label class="form-label">Capacity (L)</label><input id="vat1-capacity" class="form-control"></div>
-        <div><label class="form-label">Cap</label><select id="vat1-cap" class="form-select"><option value="available">Available ✓</option><option value="unavailable">Unavailable ✗</option></select></div>
-        <div><label class="form-label">Cap Photo</label><input id="vat1-cap-photo" type="file" accept="image/*" class="form-control"><img id="vat1-cap-preview" class="photo-thumb d-none" alt=""></div>
-        <div><label class="form-label">Serial</label><input id="vat1-serial" class="form-control"></div>
-        <div><label class="form-label">Condition</label><select id="vat1-condition" class="form-select"><option value="ok">OK</option><option value="attention">Attention required</option></select></div>
-        <div><label class="form-label">Condition note</label><input id="vat1-condition-comments" class="form-control"></div>
-        <div><label class="form-label">Notes</label><input id="vat1-comments" class="form-control"></div>
-        <div><label class="form-label">Agitator Location</label><input id="agitator1-location" class="form-control"></div>
-        <div><label class="form-label">Agitator Photo</label><input id="agitator1-photo" type="file" accept="image/*" class="form-control"><img id="agitator1-preview" class="photo-thumb d-none" alt=""></div>
+        <div><label class="form-label">Capacity (L)</label><input class="form-control" id="vat1-capacity"></div>
+        <div>
+          <label class="form-label">Cap</label>
+          <select class="form-select" id="vat1-cap">
+            <option value="available">Available ✓</option>
+            <option value="unavailable">Unavailable ✗</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Cap Photo</label>
+          <input id="vat1-cap-photo" type="file" accept="image/*" class="form-control">
+          <img id="vat1-cap-preview" class="photo-thumb d-none" alt="">
+        </div>
+
+        <div><label class="form-label">Serial</label><input class="form-control" id="vat1-serial"></div>
+        <div>
+          <label class="form-label">Condition</label>
+          <select class="form-select" id="vat1-condition">
+            <option value="ok">OK</option>
+            <option value="attention">Attention</option>
+          </select>
+        </div>
+        <div><label class="form-label">Condition Comments</label><input class="form-control" id="vat1-condition-comments"></div>
+
+        <div class="col-12"><label class="form-label">Comments</label><input class="form-control" id="vat1-comments"></div>
+        <div><label class="form-label">Agitator Location</label><input class="form-control" id="agitator1-location"></div>
+        <div>
+          <label class="form-label">Agitator Photo</label>
+          <input id="agitator1-photo" type="file" accept="image/*" class="form-control">
+          <img id="agitator1-preview" class="photo-thumb d-none" alt="">
+        </div>
       </div>
     </div>
 
+    <!-- Vat 2 capacity -->
     <div class="form-card">
-      <h6>Vat 2 (enter capacity to enable)</h6>
+      <h6 class="mb-2">Vat 2 – Capacity</h6>
       <div class="grid-3">
-        <div><label class="form-label">Capacity (L)</label><input id="vat2-capacity" class="form-control"></div>
-        <div><label class="form-label">Cap</label><select id="vat2-cap" class="form-select"><option value="na">N/A</option><option value="available">Available ✓</option><option value="unavailable">Unavailable ✗</option></select></div>
-        <div><label class="form-label">Cap Photo</label><input id="vat2-cap-photo" type="file" accept="image/*" class="form-control"><img id="vat2-cap-preview" class="photo-thumb d-none" alt=""></div>
-        <div><label class="form-label">Serial</label><input id="vat2-serial" class="form-control"></div>
-        <div><label class="form-label">Condition</label><select id="vat2-condition" class="form-select"><option value="ok">OK</option><option value="attention">Attention required</option></select></div>
-        <div><label class="form-label">Condition note</label><input id="vat2-condition-comments" class="form-control"></div>
-        <div><label class="form-label">Notes</label><input id="vat2-comments" class="form-control"></div>
-        <div><label class="form-label">Agitator Location</label><input id="agitator2-location" class="form-control"></div>
-        <div><label class="form-label">Agitator Photo</label><input id="agitator2-photo" type="file" accept="image/*" class="form-control"><img id="agitator2-preview" class="photo-thumb d-none" alt=""></div>
+        <div>
+          <label class="form-label">Capacity (L)</label>
+          <input class="form-control" id="vat2-capacity" placeholder="leave blank if N/A">
+          <div class="small">Entering a value reveals Vat 2 details</div>
+        </div>
       </div>
     </div>
 
-    <div class="form-card">
-      <h6>Mobile Signal</h6>
+    <!-- Vat 2 details -->
+    <div class="form-card hidden" id="vat2-extra">
+      <h6 class="mb-2">Vat 2</h6>
       <div class="grid-3">
-        <div><label class="form-label">Spark (bars)</label><input id="spark-bars" class="form-control"></div>
-        <div><label class="form-label">Spark note</label><input id="spark-note" class="form-control"></div>
-        <div><label class="form-label">One NZ (bars)</label><input id="one-bars" class="form-control"></div>
-        <div><label class="form-label">One NZ note</label><input id="one-note" class="form-control"></div>
+        <div>
+          <label class="form-label">Cap</label>
+          <select class="form-select" id="vat2-cap">
+            <option value="na" selected>N/A</option>
+            <option value="available">Available ✓</option>
+            <option value="unavailable">Unavailable ✗</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Cap Photo</label>
+          <input id="vat2-cap-photo" type="file" accept="image/*" class="form-control">
+          <img id="vat2-cap-preview" class="photo-thumb d-none" alt="">
+        </div>
+        <div><label class="form-label">Serial</label><input class="form-control" id="vat2-serial"></div>
+
+        <div>
+          <label class="form-label">Condition</label>
+          <select class="form-select" id="vat2-condition">
+            <option value="ok">OK</option>
+            <option value="attention">Attention</option>
+          </select>
+        </div>
+        <div><label class="form-label">Condition Comments</label><input class="form-control" id="vat2-condition-comments"></div>
+
+        <div class="col-12"><label class="form-label">Comments</label><input class="form-control" id="vat2-comments"></div>
+        <div><label class="form-label">Agitator Location</label><input class="form-control" id="agitator2-location"></div>
+        <div>
+          <label class="form-label">Agitator Photo</label>
+          <input id="agitator2-photo" type="file" accept="image/*" class="form-control">
+          <img id="agitator2-preview" class="photo-thumb d-none" alt="">
+        </div>
       </div>
     </div>
 
+    <!-- Mobile signal -->
     <div class="form-card">
-      <h6>Other Telemetry</h6>
+      <h6 class="mb-2">Mobile Signal</h6>
       <div class="grid-3">
-        <div><label class="form-label">Brand</label><input id="other-brand" class="form-control"></div>
-        <div><label class="form-label">Type</label><input id="other-type" class="form-control" placeholder="vat, water, fuel…"></div>
-        <div><label class="form-label">Notes</label><input id="other-notes" class="form-control"></div>
+        <div><label class="form-label">Spark (bars)</label><input class="form-control" id="spark-bars"></div>
+        <div><label class="form-label">Spark Note</label><input class="form-control" id="spark-note"></div>
+        <div><label class="form-label">One NZ (bars)</label><input class="form-control" id="one-bars"></div>
+        <div><label class="form-label">One NZ Note</label><input class="form-control" id="one-note"></div>
       </div>
     </div>
 
+    <!-- Other telemetry -->
     <div class="form-card">
-      <h6>Rubberware</h6>
+      <h6 class="mb-2">Other Telemetry</h6>
       <div class="grid-3">
-        <div><label class="form-label">Door Seal delivered?</label><select id="door-delivered" class="form-select"><option value="no">No</option><option value="yes">Yes</option></select></div>
-        <div><label class="form-label">Door Seal size</label><select id="door-size" class="form-select"><option value="">Unspecified</option><option value="small">Small</option><option value="large">Large</option></select></div>
-        <div><label class="form-label">Door Seal photo</label><input id="door-photo" type="file" accept="image/*" class="form-control"><img id="door-preview" class="photo-thumb d-none" alt=""></div>
-        <div><label class="form-label">RJT delivered?</label><select id="rjt-delivered" class="form-select"><option value="no">No</option><option value="yes">Yes</option></select></div>
-        <div><label class="form-label">RJT size</label><select id="rjt-size" class="form-select"><option value="">Unspecified</option><option value="small">Small</option><option value="large">Large</option></select></div>
-        <div><label class="form-label">RJT photo</label><input id="rjt-photo" type="file" accept="image/*" class="form-control"><img id="rjt-preview" class="photo-thumb d-none" alt=""></div>
+        <div><label class="form-label">Brand</label><input class="form-control" id="other-brand" placeholder="Halo • Levno • DTS • NDA"></div>
+        <div>
+          <label class="form-label">Type</label>
+          <select id="other-type" class="form-select">
+            <option value="">Select…</option>
+            <option value="vat">Vat</option>
+            <option value="water">Water</option>
+            <option value="fuel">Fuel</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div><label class="form-label">Notes</label><input class="form-control" id="other-notes"></div>
+      </div>
+      <div class="grid-3 mt-2">
+        <div><label class="form-label">Current Telemetry (legacy)</label><input class="form-control" id="current-telemetry"></div>
+        <div class="col-12"><label class="form-label">Telemetry Comments</label><input class="form-control" id="telemetry-comments"></div>
+      </div>
+    </div>
+
+    <!-- Rubberware -->
+    <div class="form-card">
+      <h6 class="mb-2">Rubberware</h6>
+      <div class="grid-3">
+        <div>
+          <label class="form-label">Door Seal Delivered?</label>
+          <select class="form-select" id="door-delivered">
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+            <option value="delivered">Delivered</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Door Seal Size</label>
+          <select class="form-select" id="door-size">
+            <option value="">Select…</option>
+            <option value="small">Small</option>
+            <option value="large">Large</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Door Seal Photo</label>
+          <input id="door-photo" type="file" accept="image/*" class="form-control">
+          <img id="door-preview" class="photo-thumb d-none" alt="">
+        </div>
+
+        <div>
+          <label class="form-label">RJT Delivered?</label>
+          <select class="form-select" id="rjt-delivered">
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+            <option value="delivered">Delivered</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">RJT Size</label>
+          <select class="form-select" id="rjt-size">
+            <option value="">Select…</option>
+            <option value="small">Small</option>
+            <option value="large">Large</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">RJT Photo</label>
+          <input id="rjt-photo" type="file" accept="image/*" class="form-control">
+          <img id="rjt-preview" class="photo-thumb d-none" alt="">
+        </div>
       </div>
     </div>
 
     <div class="sticky-actions">
-      <button id="btn-save" class="btn btn-brand">Save / Update</button>
       <button id="btn-print-one" class="btn btn-outline-brand">Print This Farm</button>
       <button id="btn-to-summary" class="btn btn-outline-secondary">Back to Summary</button>
-      <div class="ms-auto small" id="save-status"></div>
     </div>
   </div>
 
-  <!-- ADMIN -->
+  <!-- =====================================================================================
+       ADMIN VIEW
+       ===================================================================================-->
   <div id="view-admin" class="hidden">
     <div class="bar">
       <div class="section-title">Admin</div>
-      <div class="small">This build streams from cloud (no IndexedDB). Service worker caches the shell only.</div>
-      <div class="mt-2"><button id="btn-reload" class="btn btn-brand">Reload Summary</button></div>
+      <div class="small">Streaming from cloud; Service Worker caches the shell for offline display.</div>
+      <div class="mt-2 d-flex gap-2">
+        <button id="btn-reload" class="btn btn-brand">Reload Summary</button>
+        <button id="btn-clear-sw" class="btn btn-outline-brand">Reset SW Cache</button>
+      </div>
+      <hr class="sep">
+      <div class="small"><b>Tip:</b> To test offline brochure viewing, open a farm, then go offline and open its details again. Brochures are simple HTML—safe to save from ZIP and share.</div>
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v4.2.2</div>
+  <div class="footer">Agora • Vat Pre-Check • v4.3</div>
 </div>
 
-<!-- libs -->
+<!-- Libraries -->
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -229,210 +391,175 @@ html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Sego
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <script>
-/* ========= Firebase ========= */
-const firebaseConfig = {
+/* =========================================================================================
+   FIREBASE INIT
+   =======================================================================================*/
+firebase.initializeApp({
   apiKey:"AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
   authDomain:"dairy-farm-record-system.firebaseapp.com",
   projectId:"dairy-farm-record-system",
   storageBucket:"dairy-farm-record-system.appspot.com",
   messagingSenderId:"422124188212",
   appId:"1:422124188212:web:1bd31bee8d6e91e301d061"
-};
-firebase.initializeApp(firebaseConfig);
-const storage = firebase.storage();
-const FOLDER = 'Pre Check';
-
-/* ========= In-memory state ========= */
-let MANIFEST = [];
-const RECORDS = new Map();
-let LOGO_URL = '';
-
-/* ========= DOM helpers ========= */
-const $ = id => document.getElementById(id);
-function show(id){ $(id).classList.remove('hidden'); }
-function hide(id){ $(id).classList.add('hidden'); }
-function setPct(done,total){
-  const pct = total? Math.floor((done/total)*100) : 0;
-  $('load-bar').style.width = pct+'%';
-  $('load-pct').textContent = pct+'%';
-  $('loaded-count').textContent = String(done);
-}
-
-/* ========= Logo ========= */
-(async ()=>{ try{ const ref=storage.ref('Agora Logo/2F6-1YdaEP.jpeg'); LOGO_URL = await ref.getDownloadURL(); $('logo').src=LOGO_URL; $('logo').style.display='block'; }catch(e){} })();
-
-/* ========= Tabs ========= */
-const views = { 'tab-form':'view-form', 'tab-summary':'view-summary', 'tab-admin':'view-admin' };
-Object.keys(views).forEach(t=>{
-  $(t).onclick = ()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    $(t).classList.add('active');
-    Object.values(views).forEach(v=>hide(v));
-    show(views[t]);
-    if(views[t]==='view-summary') startSummary();
-  };
 });
+const storage = firebase.storage();
+const FOLDER  = 'Pre Check';
 
-/* ========= Utilities: robust field mapping ========= */
-const N = s => (s==null? '' : String(s));
+/* =========================================================================================
+   DOM HELPERS & STATE
+   =======================================================================================*/
+const $ = id => document.getElementById(id);
+const N = v => v==null ? '' : String(v);
 const low = s => N(s).toLowerCase();
-function pick(rec, ...keys){
-  for(const k of keys){ if(rec && rec[k]!=null && rec[k]!=='' ) return rec[k]; }
-  return '';
-}
-// Normalize cap: available / unavailable / na
-function normCap(v){
-  const t = low(v);
-  if(/unavailable|no|✗/.test(t)) return 'unavailable';
-  if(/available|yes|✓/.test(t)) return 'available';
-  if(/na|n\/a/.test(t)) return 'na';
-  return v || '';
-}
-// Door/RJT delivered (supports old schema)
-function doorDelivered(rec){ const v = pick(rec,'door-delivered','vat-door-seal'); return /yes|delivered/i.test(N(v)); }
-function rjtDelivered(rec){ const v = pick(rec,'rjt-delivered','rjt-seal'); return /yes|delivered/i.test(N(v)); }
-function doorSize(rec){ return pick(rec,'door-size','vat-door-seal-size'); }
-function rjtSize(rec){ return pick(rec,'rjt-size','rjt-seal-size'); }
+let LOGO_URL = '';
+let MANIFEST = [];
+const RECORDS = new Map();        // dn -> record json
+const sizeCounts = new Map();     // numeric size -> count
+const KPIs = { dts:0, power:0, rubber:0 };
 
-// Size normalization: keep numeric only for breakdown
-function normSizeNumeric(s){
-  const m = N(s).match(/(\d{3,6})/); // 3-6 digits
-  return m? m[1] : '';
-}
+function setPct(done,total){ const p = total? Math.floor(done/total*100):0; $('load-bar').style.width=p+'%'; $('load-pct').textContent=p+'%'; $('loaded-count').textContent=done; }
+function bump(m,k){ m.set(k,(m.get(k)||0)+1) }
+function clearNode(n){ while(n.firstChild) n.removeChild(n.firstChild) }
 
-// Photos (cover legacy names)
+/* =========================================================================================
+   BRAND LOGO
+   =======================================================================================*/
+(async()=>{ try{ LOGO_URL = await storage.ref('Agora Logo/2F6-1YdaEP.jpeg').getDownloadURL(); $('logo').src = LOGO_URL; $('logo').style.display='block'; }catch(e){} })();
+
+/* =========================================================================================
+   FIELD MAPPING (legacy + new)
+   =======================================================================================*/
+function pick(obj, ...keys){ for(const k of keys){ if(obj && obj[k]!=null && obj[k]!=='' ) return obj[k] } return '' }
+function normCap(v){ const t=low(v); if(/unavailable|no|✗/.test(t)) return 'unavailable'; if(/available|yes|✓/.test(t)) return 'available'; if(/na|n\/a/.test(t)) return 'na'; return v||'' }
+function doorDelivered(rec){ return /yes|delivered/i.test(N(pick(rec,'door-delivered','vat-door-seal'))) }
+function rjtDelivered(rec){  return /yes|delivered/i.test(N(pick(rec,'rjt-delivered','rjt-seal'))) }
+function doorSize(rec){ return pick(rec,'door-size','vat-door-seal-size') }
+function rjtSize(rec){  return pick(rec,'rjt-size','rjt-seal-size') }
+function normSizeNumeric(s){ const m=N(s).match(/(\d{3,6})/); return m? m[1] : '' }
 function photoOf(rec, which){
-  const map = {
-    'gateway': ['gateway-photo-base64'],
-    'v1cap': ['vat1-cap-photo-base64'],
-    'v1agit': ['agitator1-photo-base64','agitator-photo-base64'],
-    'v2cap': ['vat2-cap-photo-base64'],
-    'v2agit': ['agitator2-photo-base64'],
-    'door': ['door-photo-base64','vat-door-seal-photo-base64'],
-    'rjt': ['rjt-photo-base64','rjt-seal-photo-base64']
+  const map={
+    gateway:['gateway-photo-base64'],
+    v1cap:['vat1-cap-photo-base64'],
+    v1agit:['agitator1-photo-base64','agitator-photo-base64'],
+    v2cap:['vat2-cap-photo-base64'],
+    v2agit:['agitator2-photo-base64'],
+    door:['door-photo-base64','vat-door-seal-photo-base64'],
+    rjt:['rjt-photo-base64','rjt-seal-photo-base64']
   };
-  const list = map[which] || [];
-  for(const k of list){ if(rec[k]) return rec[k]; }
+  for(const k of (map[which]||[])){ if(rec[k]) return rec[k] }
   return '';
 }
 function manufacturerGuess(rec){
-  const blob = low([rec['vat1-comments'],rec['vat2-comments'],rec['other-brand']].join(' '));
+  const blob = low([rec['vat1-comments'],rec['vat2-comments'],rec['other-brand'],rec['current-telemetry']].join(' '));
   if(/\bdts\b/.test(blob)) return 'DTS';
   if(/\bnda\b/.test(blob)) return 'NDA';
   if(/\bhalo\b/.test(blob)) return 'Halo';
   if(/\blevno\b/.test(blob)) return 'Levno';
-  return rec['other-brand'] || '';
+  return pick(rec,'other-brand') || '';
 }
-function needsPower(rec){
-  const blob = low(JSON.stringify(rec));
-  return /(power\s*point|splitter\s*plug|double\s*adapter)/.test(blob);
-}
+function needsPower(rec){ return /(power\s*point|splitter\s*plug|double\s*adapter)/i.test(JSON.stringify(rec)) }
 function hasDts(rec){
-  const blob = low([rec['vat1-comments'],rec['vat2-comments'],rec['other-brand']].join(' '));
-  return /\bdts\b/.test(blob) || /(grey|gray)\s+halo/.test(blob) || /nda\s*(cap|vent)/.test(blob);
+  const b=low(JSON.stringify(rec));
+  return /\bdts\b/.test(b) || /(grey|gray)\s+halo/.test(b) || /vent\s*cap|cap\s*available/.test(b);
 }
 
-/* ========= Summary bootstrap ========= */
-async function listCloudKeys(){
+/* =========================================================================================
+   SUMMARY LOAD (streamed with concurrency + immediate skeleton)
+   =======================================================================================*/
+async function listCloud(){
   const res = await storage.ref(FOLDER).listAll();
-  const keys = res.items.filter(it=>/\.json$/i.test(it.name)).map(it=>it.name);
+  const keys = res.items.filter(i=>/\.json$/i.test(i.name)).map(i=>i.name);
   $('cloud-count').textContent = keys.length;
   return keys;
 }
-function renderSkeletonList(keys){
-  const box = $('result-list');
-  box.innerHTML = keys.sort().map(k=>{
-    const dn = k.replace('.json','');
+function skeleton(keys){
+  const html = keys.sort().map(k=>{
+    const dn=k.replace('.json','');
     return `
       <div class="row-card" id="row-${dn}">
         <div class="row-flex">
-          <div><strong>#${dn}</strong> <span class="badge-soft small">loading…</span></div>
-          <div class="actions">
+          <div>
+            <strong>#${dn}</strong> <span class="badge-soft small">loading…</span>
+          </div>
+          <div class="row-actions">
             <button class="btn btn-sm btn-outline-secondary" disabled>Details</button>
             <button class="btn btn-sm btn-outline-secondary" disabled>Print</button>
           </div>
         </div>
       </div>`;
   }).join('');
+  $('result-list').innerHTML = html;
 }
-function applySearchFilter(){
-  const term = low($('search').value);
-  document.querySelectorAll('#result-list .row-card').forEach(card=>{
-    const text = low(card.textContent);
-    card.style.display = (!term || text.includes(term))? '' : 'none';
-  });
-}
-$('search').addEventListener('input', applySearchFilter);
-$('btn-clear').onclick = ()=>{ $('search').value=''; applySearchFilter(); };
-
-/* Sizes & KPIs */
-const sizeCounts = new Map();
-const KPIs = { dts:0, power:0, rubber:0 };
-function bump(map,key,inc=1){ map.set(key,(map.get(key)||0)+inc); }
-function updateSizesUI(){
-  const rows = [...sizeCounts.entries()].sort((a,b)=>parseInt(a[0])-parseInt(b[0]));
+function updateSizesTable(){
   let html = '<table class="table table-sm table-bordered mb-0"><thead><tr><th>Vat Size (L)</th><th>Count</th></tr></thead><tbody>';
-  rows.forEach(([sz,c])=> html += `<tr><td>${sz}</td><td>${c}</td></tr>`);
-  html += '</tbody></table>';
-  $('size-table').innerHTML = html;
+  [...sizeCounts.entries()].sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([sz,c])=>{
+    html += `<tr><td>${sz}</td><td>${c}</td></tr>`;
+  });
+  $('size-table').innerHTML = html + '</tbody></table>';
 }
-function refreshKPI(){ $('kpi-dts').textContent=KPIs.dts; $('kpi-power').textContent=KPIs.power; $('kpi-rubber').textContent=KPIs.rubber; }
+function refreshKPI(){
+  $('kpi-dts').textContent = KPIs.dts;
+  $('kpi-power').textContent = KPIs.power;
+  $('kpi-rubber').textContent = KPIs.rubber;
+}
+function cardHTML(rec){
+  const dn=rec.dairyNumber;
+  const v1=N(pick(rec,'vat1-capacity'))||'—';
+  const v2=N(pick(rec,'vat2-capacity'))||'';
+  const cap1=normCap(pick(rec,'vat1-cap'));
+  const cap2=normCap(pick(rec,'vat2-cap'));
+  const seals=`${doorDelivered(rec)?'Door ✔':'Door —'} • ${rjtDelivered(rec)?'RJT ✔':'RJT —'}`;
 
-/* Hydrated row */
-function rowHTML(rec){
-  const dn = rec.dairyNumber;
-  const v1 = N(rec['vat1-capacity']) || '—';
-  const v2 = N(rec['vat2-capacity']);
-  const cap1 = normCap(pick(rec,'vat1-cap'));
-  const cap2 = normCap(pick(rec,'vat2-cap'));
-  const seals = `${doorDelivered(rec)?'Door ✔':'Door —'} • ${rjtDelivered(rec)?'RJT ✔':'RJT —'}`;
+  // small media strip (up to 3 photos)
+  const media=[photoOf(rec,'gateway'),photoOf(rec,'v1cap'),photoOf(rec,'v1agit'),photoOf(rec,'v2cap'),photoOf(rec,'v2agit'),photoOf(rec,'door'),photoOf(rec,'rjt')]
+    .filter(Boolean).slice(0,3).map(src=>`<img src="${src}" class="thumb" alt="">`).join('');
+
   return `
     <div class="row-flex">
-      <div>
-        <strong>#${dn}</strong>
-        <span class="badge-soft small">${v1}${v2? ' • '+v2:''}</span><br>
-        <span class="small">Caps: V1 ${cap1||'—'}${v2? ' · V2 '+(cap2||'—'):''}</span><br>
-        <span class="small">Seals: ${seals}</span>
+      <div style="flex:1">
+        <div><strong>#${dn}</strong> <span class="badge-soft small">${v1}${v2? ' • '+v2:''}</span></div>
+        <div class="small">Caps: V1 ${cap1||'—'}${v2? ' · V2 '+(cap2||'—'):''}</div>
+        <div class="small">Seals: ${seals}</div>
+        ${media? `<div class="media-line">${media}</div>`:''}
       </div>
-      <div class="actions">
+      <div class="row-actions">
         <button class="btn btn-sm btn-outline-brand" onclick="openDetails('${dn}')">Details</button>
         <button class="btn btn-sm btn-brand" onclick="openPrint('${dn}')">Print</button>
       </div>
     </div>`;
 }
-
-/* Stream loader with concurrency */
-async function hydrateAll(keys){
-  const total = keys.length;
-  let done = 0;
-  const queue = keys.slice();
-  const workers = 8;
+async function hydrate(keys){
+  const total=keys.length; let done=0;
+  // 8 concurrent fetchers
+  const q=keys.slice();
+  const workers=8;
 
   async function worker(){
-    while(queue.length){
-      const key = queue.shift();
-      const dn = key.replace('.json','');
+    while(q.length){
+      const key=q.shift(); const dn=key.replace('.json','');
       try{
-        const url = await storage.ref(`${FOLDER}/${key}`).getDownloadURL();
-        const rec = await fetch(url).then(r=>r.json());
+        const url=await storage.ref(`${FOLDER}/${key}`).getDownloadURL();
+        const rec=await fetch(url).then(r=>r.json());
         rec.dairyNumber = rec.dairyNumber || dn;
         RECORDS.set(dn, rec);
 
-        // Sizes: numeric only
-        const s1 = normSizeNumeric(pick(rec,'vat1-capacity')); if(s1) bump(sizeCounts,s1);
-        const s2 = normSizeNumeric(pick(rec,'vat2-capacity')); if(s2) bump(sizeCounts,s2);
+        // sizes
+        const s1=normSizeNumeric(pick(rec,'vat1-capacity')); if(s1) bump(sizeCounts,s1);
+        const s2=normSizeNumeric(pick(rec,'vat2-capacity')); if(s2) bump(sizeCounts,s2);
+        updateSizesTable();
 
+        // KPIs
         if(hasDts(rec)) KPIs.dts++;
         if(needsPower(rec)) KPIs.power++;
-        if(doorDelivered(rec) || rjtDelivered(rec)) KPIs.rubber++;
+        if(doorDelivered(rec)||rjtDelivered(rec)) KPIs.rubber++;
+        refreshKPI();
 
-        updateSizesUI(); refreshKPI();
-
-        const row = $('row-'+dn);
-        if(row) row.innerHTML = rowHTML(rec);
+        // replace skeleton row
+        const row=$('row-'+dn);
+        if(row) row.innerHTML = cardHTML(rec);
       }catch(e){
-        const row = $('row-'+dn);
-        if(row) row.querySelector('.badge-soft')?.classList.add('text-danger');
+        const row=$('row-'+dn);
+        if(row) row.innerHTML = `<div class="small text-danger">#${dn} failed to load.</div>`;
       }finally{
         done++; setPct(done,total);
       }
@@ -442,20 +569,44 @@ async function hydrateAll(keys){
 }
 
 async function startSummary(){
-  if(MANIFEST.length){ applySearchFilter(); return; }
+  if(MANIFEST.length){ applySearch(); return; }
   try{
-    MANIFEST = await listCloudKeys();
-    renderSkeletonList(MANIFEST);
-    await hydrateAll(MANIFEST);
+    MANIFEST = await listCloud();
+    skeleton(MANIFEST);         // show dairy numbers immediately
+    await hydrate(MANIFEST);    // progressively fills
   }catch(e){
-    $('result-list').innerHTML = `<div class="small text-danger">Failed to load list.</div>`;
+    $('result-list').innerHTML = '<div class="small text-danger">Failed to load. Check connectivity.</div>';
   }
 }
 
-/* ========= Brochure ========= */
-function photo(label, src){ return src? `<div class="print-card"><div class="print-label">${label}</div><div class="print-photos"><img src="${src}" alt=""></div></div>` : ''; }
+/* =========================================================================================
+   SEARCH & KPI FILTER
+   =======================================================================================*/
+function applySearch(){
+  const term=low($('search').value);
+  document.querySelectorAll('#result-list .row-card').forEach(card=>{
+    card.style.display = (!term || low(card.textContent).includes(term)) ? '' : 'none';
+  });
+}
+$('search').addEventListener('input',applySearch);
+$('btn-clear').onclick=()=>{$('search').value='';applySearch()};
+
+document.addEventListener('click',e=>{
+  const k = e.target.closest('.kpi'); if(!k) return;
+  const type = k.dataset.filter;
+  let pred = ()=>true;
+  if(type==='dts')    pred=(r)=>hasDts(r);
+  if(type==='power')  pred=(r)=>needsPower(r);
+  if(type==='rubber') pred=(r)=>doorDelivered(r)||rjtDelivered(r);
+  for(const [dn,rec] of RECORDS){ $('row-'+dn).style.display = pred(rec)? '' : 'none' }
+});
+
+/* =========================================================================================
+   BROCHURE (customer-ready, keeps your layout, includes ALL comments + photos)
+   =======================================================================================*/
+function p(label,src){ return src?`<div class="print-card"><div class="print-label">${label}</div><div class="print-photos"><img src="${src}" alt=""></div></div>`:'' }
 function brochureHTML(rec){
-  const doorCount = doorDelivered(rec) ? (pick(rec,'vat2-capacity') ? 2 : 1) : 0;
+  const doorCount = doorDelivered(rec) ? (pick(rec,'vat2-capacity')?2:1) : 0;
   return `
   <div class="print-sheet">
     <div class="print-head">
@@ -476,6 +627,7 @@ function brochureHTML(rec){
         <div>Agitator: ${pick(rec,'agitator1-location','agitator-location')||'-'}</div>
         <div>Notes: ${pick(rec,'vat1-comments')||'-'}</div>
       </div>
+
       <div class="print-card">
         <div class="print-label">Vat 2</div>
         <div>Capacity: <b>${pick(rec,'vat2-capacity')||'-'}</b></div>
@@ -488,12 +640,14 @@ function brochureHTML(rec){
 
       <div class="print-card">
         <div class="print-label">Gateway</div>
-        <div>Location: <b>${pick(rec,'gateway-location')||'-'}</b></div>
+        <div>Location: <b>${pick(rec,'gateway-location')||'-'}</b>${pick(rec,'gateway-comments')? ' • '+pick(rec,'gateway-comments'):''}</div>
       </div>
+
       <div class="print-card">
         <div class="print-label">Other Telemetry</div>
         <div>Brand: <b>${pick(rec,'other-brand')||'-'}</b> • Type: <b>${pick(rec,'other-type')||'-'}</b></div>
-        <div>Notes: ${pick(rec,'other-notes')||'-'}</div>
+        <div>Notes: ${pick(rec,'other-notes')||pick(rec,'current-telemetry')||'-'}</div>
+        ${pick(rec,'telemetry-comments')?('<div>Comments: '+pick(rec,'telemetry-comments')+'</div>'):''}
       </div>
 
       <div class="print-card">
@@ -501,6 +655,7 @@ function brochureHTML(rec){
         <div>Spark: <b>${pick(rec,'spark-bars')||'-'}</b> ${pick(rec,'spark-note')? '• '+pick(rec,'spark-note'):''}</div>
         <div>One NZ: <b>${pick(rec,'one-bars')||'-'}</b> ${pick(rec,'one-note')? '• '+pick(rec,'one-note'):''}</div>
       </div>
+
       <div class="print-card">
         <div class="print-label">Rubberware</div>
         <div>Door Seal: <b>${doorDelivered(rec)?'Delivered':'No'}</b> ${doorSize(rec)? '• '+doorSize(rec):''} ${doorCount? '(x'+doorCount+')':''}</div>
@@ -509,177 +664,181 @@ function brochureHTML(rec){
     </div>
 
     <div class="print-grid" style="margin-top:10px">
-      ${photo('Gateway', photoOf(rec,'gateway'))}
-      ${photo('Vat 1 Cap', photoOf(rec,'v1cap'))}
-      ${photo('Agitator (Vat 1)', photoOf(rec,'v1agit'))}
-      ${photo('Vat 2 Cap', photoOf(rec,'v2cap'))}
-      ${photo('Agitator (Vat 2)', photoOf(rec,'v2agit'))}
-      ${photo('Door Seal', photoOf(rec,'door'))}
-      ${photo('RJT', photoOf(rec,'rjt'))}
+      ${p('Gateway',            photoOf(rec,'gateway'))}
+      ${p('Vat 1 Cap',          photoOf(rec,'v1cap'))}
+      ${p('Agitator (Vat 1)',   photoOf(rec,'v1agit'))}
+      ${p('Vat 2 Cap',          photoOf(rec,'v2cap'))}
+      ${p('Agitator (Vat 2)',   photoOf(rec,'v2agit'))}
+      ${p('Door Seal',          photoOf(rec,'door'))}
+      ${p('RJT',                photoOf(rec,'rjt'))}
     </div>
   </div>`;
 }
 
-window.openDetails = async (dn)=>{
+window.openDetails = dn => {
   const rec = RECORDS.get(dn); if(!rec) return;
-  const row = $('row-'+dn);
+  const host = $('row-'+dn);
   const id = 'details-'+dn;
-  const existing = document.getElementById(id);
-  if(existing){ existing.remove(); return; }
+  const prev = document.getElementById(id);
+  if(prev){ prev.remove(); return; }
   const div = document.createElement('div');
   div.id = id; div.className = 'mt-2';
   div.innerHTML = brochureHTML(rec);
-  row.appendChild(div);
+  host.appendChild(div);
 };
-window.openPrint = async (dn)=>{
+window.openPrint = dn => {
   const rec = RECORDS.get(dn); if(!rec) return;
   const w = window.open('', '_blank');
   const sheet = brochureHTML(rec);
   const css = document.querySelector('style').innerHTML;
-  w.document.write(`<html><head><title>Print #${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body>${sheet}</body></html>`);
+  w.document.write(`<html><head><title>#${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body>${sheet}</body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>w.print(), 250);
 };
 
-/* ========= Export / Print All (no 100% gate) ========= */
-$('btn-export-sizes').onclick = ()=>{
-  const rows = [...sizeCounts.entries()].map(([size,count])=>({Size:size, Count:count}));
-  const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Vat Sizes'); XLSX.writeFile(wb, 'vat_sizes.csv');
-};
-
-function ensureSomeLoadedOrWarn(){
-  if(RECORDS.size===0){ alert('Still loading records… give it a moment.'); return false; }
-  const missing = Math.max(0, (MANIFEST.length - RECORDS.size));
-  if(missing>0){ alert(`Proceeding with ${RECORDS.size} farms (${missing} could not be loaded).`); }
-  return true;
-}
-
-$('btn-print-all').onclick = async ()=>{
-  if(!ensureSomeLoadedOrWarn()) return;
+/* =========================================================================================
+   PRINT / ZIP ALL (batched – safe for iOS Safari)
+   =======================================================================================*/
+function ensureLoaded(){ if(RECORDS.size===0){ alert('Records are still loading…'); return false } return true }
+$('btn-print-all').onclick = async () => {
+  if(!ensureLoaded()) return;
+  const css = document.querySelector('style').innerHTML;
   const w = window.open('', '_blank');
-  const css = document.querySelector('style').innerHTML;
-  const html = [...RECORDS.values()].map(brochureHTML).join('<div style="page-break-after:always"></div>');
-  w.document.write(`<html><head><title>All Brochures</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body>${html}</body></html>`);
-  w.document.close(); w.focus(); setTimeout(()=>w.print(), 400);
-};
-
-$('btn-zip-all').onclick = async ()=>{
-  if(!ensureSomeLoadedOrWarn()) return;
-  const zip = new JSZip();
-  const css = document.querySelector('style').innerHTML;
-  for(const [dn,rec] of RECORDS.entries()){
-    const html = `<!doctype html><meta charset="utf-8"><title>${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${brochureHTML(rec)}`;
-    zip.file(`brochure_${dn}.html`, html);
+  w.document.write(`<html><head><title>All Brochures</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body></body></html>`);
+  w.document.close();
+  const batch = 10; const entries = [...RECORDS.values()];
+  let i = 0;
+  function step(){ try{
+      for(let k=0;k<batch && i<entries.length;k++,i++){
+        const sheet = brochureHTML(entries[i]);
+        const div = w.document.createElement('div');
+        div.innerHTML = sheet + (i<entries.length?'<div style="page-break-after:always"></div>':'');
+        w.document.body.appendChild(div);
+      }
+      if(i<entries.length) setTimeout(step, 60);
+      else setTimeout(()=>w.print(), 300);
+    }catch(e){ alert('Printing stopped (memory). Prepared '+i+' farms.'); }
   }
-  const blob = await zip.generateAsync({type:'blob'});
-  saveAs(blob, 'agora_precheck_brochures.zip');
+  step();
 };
 
-/* ========= FORM: auto-fill & save ========= */
-function setVal(id, v){ const el=$(id); if(el) el.value = v ?? ''; }
-function setPrev(id, b64){ const el=$(id); if(!el) return; if(b64){ el.src=b64; el.classList.remove('d-none'); } else el.classList.add('d-none'); }
+$('btn-zip-all').onclick = async () => {
+  if(!ensureLoaded()) return;
+  const css = document.querySelector('style').innerHTML;
+  const zip = new JSZip();
+  const entries = [...RECORDS.entries()];
+  const batch = 12; let i=0;
+  async function chunk(){ try{
+      for(let k=0;k<batch && i<entries.length;k++,i++){
+        const [dn,rec] = entries[i];
+        const html = `<!doctype html><meta charset="utf-8"><title>${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${brochureHTML(rec)}`;
+        zip.file(`brochure_${dn}.html`, html);
+      }
+      if(i<entries.length) setTimeout(chunk, 0);
+      else { const blob = await zip.generateAsync({type:'blob'}); saveAs(blob, 'agora_precheck_brochures.zip'); }
+    }catch(e){ alert('ZIP build stopped (memory). Try fewer at a time.'); }
+  }
+  chunk();
+};
 
-$('dairyNumber').addEventListener('blur', async ()=>{
-  const dn = N($('dairyNumber').value).trim(); if(!dn) return;
+/* =========================================================================================
+   SIZES CSV
+   =======================================================================================*/
+$('btn-export-sizes').onclick = () => {
+  const rows = [...sizeCounts.entries()].map(([Size,Count])=>({Size,Count}));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Vat Sizes');
+  XLSX.writeFile(wb, 'vat_sizes.csv');
+};
+
+/* =========================================================================================
+   FORM GLUE (autofill cloud, print one)
+   =======================================================================================*/
+function toggleVat2Extra(){ $('vat2-extra').classList.toggle('hidden', !N($('vat2-capacity').value).trim()) }
+$('vat2-capacity').addEventListener('input',toggleVat2Extra); $('vat2-capacity').addEventListener('blur',toggleVat2Extra);
+
+function setVal(id,v){ const el=$(id); if(el) el.value = v ?? '' }
+function setPrev(id,b64){ const el=$(id); if(!el) return; if(b64){ el.src=b64; el.classList.remove('d-none'); } else { el.classList.add('d-none'); } }
+
+async function autofill(dn){
   try{
-    const url = await storage.ref(`${FOLDER}/${dn}.json`).getDownloadURL();
-    const rec = await fetch(url).then(r=>r.json());
-    // cache in memory for this session
-    RECORDS.set(dn, rec);
-    // populate
+    const url=await storage.ref(`${FOLDER}/${dn}.json`).getDownloadURL();
+    const rec=await fetch(url).then(r=>r.json());
+    rec.dairyNumber = rec.dairyNumber || dn;
+
+    // map -> form
+    setVal('dairyNumber', rec.dairyNumber);
     setVal('gateway-location', pick(rec,'gateway-location'));
-    setVal('vat1-capacity', pick(rec,'vat1-capacity')); setVal('vat1-cap', normCap(pick(rec,'vat1-cap'))); setVal('vat1-serial', pick(rec,'vat1-serial'));
-    setVal('vat1-condition', pick(rec,'vat1-condition')); setVal('vat1-condition-comments', pick(rec,'vat1-condition-comments')); setVal('vat1-comments', pick(rec,'vat1-comments'));
+    setVal('vat1-capacity', pick(rec,'vat1-capacity'));
+    setVal('vat1-cap', normCap(pick(rec,'vat1-cap'))||'available');
+    setVal('vat1-serial', pick(rec,'vat1-serial'));
+    setVal('vat1-condition', pick(rec,'vat1-condition')||'ok');
+    setVal('vat1-condition-comments', pick(rec,'vat1-condition-comments'));
+    setVal('vat1-comments', pick(rec,'vat1-comments'));
     setVal('agitator1-location', pick(rec,'agitator1-location','agitator-location'));
-    setVal('vat2-capacity', pick(rec,'vat2-capacity')); setVal('vat2-cap', normCap(pick(rec,'vat2-cap')) || 'na'); setVal('vat2-serial', pick(rec,'vat2-serial'));
-    setVal('vat2-condition', pick(rec,'vat2-condition')); setVal('vat2-condition-comments', pick(rec,'vat2-condition-comments')); setVal('vat2-comments', pick(rec,'vat2-comments'));
-    setVal('agitator2-location', pick(rec,'agitator2-location'));
-    setVal('spark-bars', pick(rec,'spark-bars')); setVal('spark-note', pick(rec,'spark-note'));
-    setVal('one-bars', pick(rec,'one-bars')); setVal('one-note', pick(rec,'one-note'));
-    setVal('other-brand', pick(rec,'other-brand')); setVal('other-type', pick(rec,'other-type')); setVal('other-notes', pick(rec,'other-notes'));
-    setVal('door-delivered', doorDelivered(rec)?'yes':'no'); setVal('door-size', doorSize(rec));
-    setVal('rjt-delivered', rjtDelivered(rec)?'yes':'no'); setVal('rjt-size', rjtSize(rec));
-    // photos
     setPrev('gateway-preview', photoOf(rec,'gateway'));
     setPrev('vat1-cap-preview', photoOf(rec,'v1cap'));
     setPrev('agitator1-preview', photoOf(rec,'v1agit'));
+
+    setVal('vat2-capacity', pick(rec,'vat2-capacity')); toggleVat2Extra();
+    setVal('vat2-cap', normCap(pick(rec,'vat2-cap')) || (pick(rec,'vat2-capacity')?'available':'na'));
+    setVal('vat2-serial', pick(rec,'vat2-serial'));
+    setVal('vat2-condition', pick(rec,'vat2-condition')||'ok');
+    setVal('vat2-condition-comments', pick(rec,'vat2-condition-comments'));
+    setVal('vat2-comments', pick(rec,'vat2-comments'));
+    setVal('agitator2-location', pick(rec,'agitator2-location'));
     setPrev('vat2-cap-preview', photoOf(rec,'v2cap'));
     setPrev('agitator2-preview', photoOf(rec,'v2agit'));
+
+    setVal('spark-bars', pick(rec,'spark-bars'));
+    setVal('spark-note', pick(rec,'spark-note'));
+    setVal('one-bars', pick(rec,'one-bars'));
+    setVal('one-note', pick(rec,'one-note'));
+
+    setVal('other-brand', pick(rec,'other-brand'));
+    setVal('other-type', pick(rec,'other-type'));
+    setVal('other-notes', pick(rec,'other-notes'));
+    setVal('current-telemetry', pick(rec,'current-telemetry'));
+    setVal('telemetry-comments', pick(rec,'telemetry-comments'));
+
+    setVal('door-delivered', pick(rec,'door-delivered','vat-door-seal')||'no');
+    setVal('door-size', doorSize(rec));
+    setVal('rjt-delivered', pick(rec,'rjt-delivered','rjt-seal')||'no');
+    setVal('rjt-size', rjtSize(rec));
     setPrev('door-preview', photoOf(rec,'door'));
     setPrev('rjt-preview', photoOf(rec,'rjt'));
-  }catch(e){}
-});
-$('btn-to-summary').onclick = ()=>$('tab-summary').click();
 
-async function readFileAsB64(input){
-  const f = input.files && input.files[0]; if(!f) return '';
-  return await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(f); });
-}
-$('btn-save').onclick = async ()=>{
-  const dn = N($('dairyNumber').value).trim(); if(!dn){ alert('Enter a dairy number'); return; }
-  $('save-status').textContent = 'Saving…';
-  try{
-    const data = {
-      dairyNumber: dn,
-      'gateway-location': $('gateway-location').value,
-      'vat1-capacity': $('vat1-capacity').value,
-      'vat1-cap': normCap($('vat1-cap').value),
-      'vat1-serial': $('vat1-serial').value,
-      'vat1-condition': $('vat1-condition').value,
-      'vat1-condition-comments': $('vat1-condition-comments').value,
-      'vat1-comments': $('vat1-comments').value,
-      'agitator1-location': $('agitator1-location').value,
-      'vat2-capacity': $('vat2-capacity').value,
-      'vat2-cap': normCap($('vat2-cap').value),
-      'vat2-serial': $('vat2-serial').value,
-      'vat2-condition': $('vat2-condition').value,
-      'vat2-condition-comments': $('vat2-condition-comments').value,
-      'vat2-comments': $('vat2-comments').value,
-      'agitator2-location': $('agitator2-location').value,
-      'spark-bars': $('spark-bars').value, 'spark-note': $('spark-note').value,
-      'one-bars': $('one-bars').value, 'one-note': $('one-note').value,
-      'other-brand': $('other-brand').value, 'other-type': $('other-type').value, 'other-notes': $('other-notes').value,
-      'door-delivered': $('door-delivered').value, 'door-size': $('door-size').value,
-      'rjt-delivered': $('rjt-delivered').value, 'rjt-size': $('rjt-size').value,
-      timestamp: Date.now()
-    };
-    // new photos
-    data['gateway-photo-base64'] = await readFileAsB64($('gateway-photo'));
-    data['vat1-cap-photo-base64'] = await readFileAsB64($('vat1-cap-photo'));
-    data['agitator1-photo-base64'] = await readFileAsB64($('agitator1-photo'));
-    data['vat2-cap-photo-base64'] = await readFileAsB64($('vat2-cap-photo'));
-    data['agitator2-photo-base64'] = await readFileAsB64($('agitator2-photo'));
-    data['door-photo-base64'] = await readFileAsB64($('door-photo'));
-    data['rjt-photo-base64'] = await readFileAsB64($('rjt-photo'));
-
-    const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
-    await storage.ref(`${FOLDER}/${dn}.json`).put(blob);
-    $('save-status').textContent = 'Saved ✔';
-    // reflect session
-    RECORDS.set(dn, data);
-    const row = $('row-'+dn); if(row) row.innerHTML = rowHTML(data);
+    // also drop into RECORDS for print-one
+    RECORDS.set(rec.dairyNumber, rec);
   }catch(e){
-    $('save-status').textContent = 'Save failed';
-    alert('Save failed');
+    alert('Could not load from cloud for #'+dn);
   }
-};
+}
+$('dairyNumber').addEventListener('blur', ()=>{ const dn=N($('dairyNumber').value).trim(); if(dn) autofill(dn) });
 
-/* ========= Admin ========= */
-$('btn-reload').onclick = ()=>{
-  MANIFEST = []; RECORDS.clear(); sizeCounts.clear();
-  $('size-table').textContent = 'Starting…';
-  $('result-list').innerHTML = '';
-  $('kpi-dts').textContent = '0'; $('kpi-power').textContent='0'; $('kpi-rubber').textContent='0';
-  setPct(0,1);
-  $('tab-summary').click();
-};
+$('btn-print-one').onclick = ()=>{ const dn=N($('dairyNumber').value).trim(); if(!dn){ alert('Enter a Dairy # first'); return } if(!RECORDS.has(dn)){ alert('Load the farm first (blur dairy #).'); return } openPrint(dn) };
+$('btn-to-summary').onclick = () => $('tab-summary').click();
 
-/* ========= Start ========= */
+/* =========================================================================================
+   TAB NAVIGATION
+   =======================================================================================*/
+function activate(tab, viewId){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  tab.classList.add('active');
+  ['view-summary','view-form','view-admin'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  $(viewId).classList.remove('hidden');
+}
+$('tab-summary').onclick = ()=>{ activate($('tab-summary'),'view-summary'); startSummary() };
+$('tab-form').onclick    = ()=>{ activate($('tab-form'),   'view-form')    };
+$('tab-admin').onclick   = ()=>{ activate($('tab-admin'),  'view-admin')   };
+$('btn-reload').onclick  = ()=>{ MANIFEST=[]; RECORDS.clear(); sizeCounts.clear(); $('kpi-dts').textContent='0';$('kpi-power').textContent='0';$('kpi-rubber').textContent='0'; $('result-list').innerHTML=''; $('size-table').textContent='Starting…'; setPct(0,1); startSummary() };
+$('btn-clear-sw').onclick= async ()=>{ if(!('serviceWorker' in navigator)) return alert('No SW'); const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); caches.keys().then(ns=>ns.forEach(n=>caches.delete(n))); alert('Service Worker cache cleared. Reload the page.'); };
+
+/* =========================================================================================
+   SERVICE WORKER REGISTER
+   =======================================================================================*/
 window.addEventListener('DOMContentLoaded', ()=>{
-  $('tab-summary').classList.add('active');
-  show('view-summary');
   startSummary();
-
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
   }
