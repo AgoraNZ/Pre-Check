@@ -59,7 +59,7 @@ label.form-label{font-weight:600}
 .footer{color:#6b7280;text-align:center;margin:22px 0 10px}
 .hidden{display:none!important}
 
-/* Print sheet (brochure) – your preferred layout */
+/* Print sheet (brochure) */
 .print-sheet{max-width:900px;margin:0 auto;color:#0f172a}
 .print-head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #e5e7eb;padding-bottom:10px;margin-bottom:10px}
 .print-head img{height:44px}
@@ -117,7 +117,7 @@ label.form-label{font-weight:600}
       </div>
     </div>
 
-    <!-- Vat 1 (all first) -->
+    <!-- Vat 1 -->
     <div class="form-card">
       <h6>Vat 1</h6>
       <div class="grid-3">
@@ -170,7 +170,7 @@ label.form-label{font-weight:600}
       </div>
     </div>
 
-    <!-- Vat 2 – Capacity (reveals rest) -->
+    <!-- Vat 2 capacity -->
     <div class="form-card">
       <h6>Vat 2 – Capacity</h6>
       <div class="grid-3">
@@ -182,7 +182,7 @@ label.form-label{font-weight:600}
       </div>
     </div>
 
-    <!-- Vat 2 – Details (hidden until capacity entered) -->
+    <!-- Vat 2 details -->
     <div id="vat2-extra" class="form-card d-none">
       <h6>Vat 2</h6>
       <div class="grid-3">
@@ -232,7 +232,7 @@ label.form-label{font-weight:600}
       </div>
     </div>
 
-    <!-- Mobile Signal -->
+    <!-- Mobile -->
     <div class="form-card">
       <h6>Mobile Signal</h6>
       <div class="grid-3">
@@ -357,7 +357,7 @@ label.form-label{font-weight:600}
     </div>
 
     <div class="bar">
-      <div class="section-title">Vat Size Breakdown (live from cloud)</div>
+      <div class="section-title">Vat Size Breakdown (live from cloud/memory)</div>
       <div id="size-table"></div>
       <button id="btn-export-sizes" class="btn btn-outline-brand mt-2">Export Sizes CSV</button>
     </div>
@@ -372,6 +372,7 @@ label.form-label{font-weight:600}
 
     <div class="bar">
       <div id="result-cards" class="card-list"></div>
+      <div id="cards-status" class="small-note mt-2"></div>
     </div>
   </div>
 
@@ -387,10 +388,10 @@ label.form-label{font-weight:600}
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v4.0</div>
+  <div class="footer">Agora • Vat Pre-Check • v4.1</div>
 </div>
 
-<!-- Print Sheet Modal (inline details reuse brochure layout) -->
+<!-- Print Sheet holder (details inline) -->
 <div id="print-modal" class="hidden">
   <div class="print-sheet" id="print-sheet"></div>
 </div>
@@ -416,8 +417,8 @@ firebase.initializeApp(firebaseConfig);
 const storage = firebase.storage();
 const FOLDER = 'Pre Check';
 
-/* ========= State (memory only, no Dexie) ========= */
-let CloudKeys = [];                // [{key, ts?}] file list
+/* ========= State (memory only) ========= */
+let CloudKeys = [];                // [{key}]
 const Forms = new Map();           // dairyNumber -> normalized record
 let AgoraLogoURL = '';             // for page & brochure
 
@@ -452,7 +453,7 @@ Object.keys(views).forEach(t=>{
   };
 });
 
-/* ========= Reveal VAT2 extras ========= */
+/* ========= VAT2 reveal ========= */
 function toggleVat2Extra(){
   const has = ($('vat2-capacity').value || '').trim() !== '';
   $('vat2-extra').classList.toggle('d-none', !has);
@@ -466,17 +467,13 @@ function setImgPreview(inputEl, imgEl){
   const url = URL.createObjectURL(f);
   imgEl.src = url; imgEl.classList.remove('d-none');
 }
-$('gateway-photo').addEventListener('change', ()=>setImgPreview($('gateway-photo'),$('gateway-preview')));
-$('vat1-cap-photo').addEventListener('change', ()=>setImgPreview($('vat1-cap-photo'),$('vat1-cap-preview')));
-$('agitator1-photo').addEventListener('change', ()=>setImgPreview($('agitator1-photo'),$('agitator1-preview')));
-$('vat2-cap-photo').addEventListener('change', ()=>setImgPreview($('vat2-cap-photo'),$('vat2-cap-preview')));
-$('agitator2-photo').addEventListener('change', ()=>setImgPreview($('agitator2-photo'),$('agitator2-preview')));
-$('door-photo').addEventListener('change', ()=>setImgPreview($('door-photo'),$('door-preview')));
-$('rjt-photo').addEventListener('change', ()=>setImgPreview($('rjt-photo'),$('rjt-preview')));
+['gateway','vat1-cap','agitator1','vat2-cap','agitator2','door','rjt'].forEach(k=>{
+  const fi=$(k+'-photo'), pi=$(k.replace('-','_')+'-preview')||$(k+'-preview');
+  if(fi && pi){ fi.addEventListener('change', ()=>setImgPreview(fi,pi)); }
+});
 
 /* ========= Normalisers ========= */
 function normText(s){ return (''+(s||'')).toLowerCase() }
-function parseBars(s){ const m=normText(s).match(/(\d+)\s*bar/); return m? parseInt(m[1],10):null; }
 function hasDtsCap(rec){
   const blob = normText(JSON.stringify(rec.raw||{}));
   return /(grey|gray)\s+(halo|sensor)/.test(blob) || /\bdts\b.*(cap|vent)/.test(blob);
@@ -497,12 +494,12 @@ function normalizePhotos(o){
     rjt:       pick('rjt-photo-base64','rjt-seal-photo-base64','rjtPhotoBase64','rjt_preview_base64')
   };
 }
-/* Convert raw JSON (varied keys) → normalized record used everywhere */
 function normalizeRecord(raw){
+  const dn = raw?.dairyNumber || raw?.dairy || raw?.id || '';
+  if(!dn) return null; // guard
   const n = {
-    dairyNumber: raw.dairyNumber || raw.dairy || raw.id || '',
+    dairyNumber: dn,
     gatewayLocation: raw['gateway-location'] || raw.gatewayLocation || '',
-    // vat1
     vat1Capacity: raw['vat1-capacity'] || raw.vat1Capacity || '',
     vat1Cap: raw['vat1-cap'] || raw.vat1Cap || 'available',
     vat1Serial: raw['vat1-serial'] || raw.vat1Serial || '',
@@ -510,24 +507,20 @@ function normalizeRecord(raw){
     vat1ConditionComments: raw['vat1-condition-comments'] || raw.vat1ConditionComments || '',
     vat1Comments: raw['vat1-comments'] || raw.vat1Comments || '',
     agitator1Location: raw['agitator1-location'] || raw['agitator-location'] || raw.agitator1Location || '',
-    // vat2
     vat2Capacity: raw['vat2-capacity'] || raw.vat2Capacity || '',
-    vat2Cap: raw['vat2-cap'] || raw.vat2Cap || (raw['vat2-capacity']?'available':'na'),
+    vat2Cap: raw['vat2-cap'] || raw.vat2Cap || ( (raw['vat2-capacity']||'').trim()? 'available':'na'),
     vat2Serial: raw['vat2-serial'] || raw.vat2Serial || '',
     vat2Condition: raw['vat2-condition'] || raw.vat2Condition || 'ok',
     vat2ConditionComments: raw['vat2-condition-comments'] || raw.vat2ConditionComments || '',
     vat2Comments: raw['vat2-comments'] || raw.vat2Comments || '',
     agitator2Location: raw['agitator2-location'] || raw.agitator2Location || '',
-    // mobile
     sparkBars: raw['spark-bars'] || raw.sparkBars || '',
     sparkNote: raw['spark-note'] || raw.sparkNote || '',
     oneBars: raw['one-bars'] || raw.oneBars || '',
     oneNote: raw['one-note'] || raw.oneNote || '',
-    // other telemetry
     otherBrand: raw['telemetry-brand'] || raw['other-brand'] || raw.otherBrand || '',
     otherType: raw['telemetry-type'] || raw['other-type'] || raw.otherType || '',
     otherNotes: raw['telemetry-comments'] || raw['other-notes'] || raw.otherNotes || '',
-    // rubberware
     doorDelivered: (raw['vat-door-seal']==='delivered' || raw['door-delivered']==='yes') ? 'yes' : (raw['door-delivered']||'no'),
     doorSize: raw['door-seal-size'] || raw['door-size'] || '',
     rjtDelivered: (raw['rjt-seal']==='delivered' || raw['rjt-delivered']==='yes') ? 'yes' : (raw['rjt-delivered']||'no'),
@@ -539,7 +532,7 @@ function normalizeRecord(raw){
   return n;
 }
 
-/* ========= Cloud listing & fetching ========= */
+/* ========= Cloud listing & fetching (defensive) ========= */
 async function listCloudKeys(){
   const folder = storage.ref(FOLDER);
   const res = await folder.listAll();
@@ -551,19 +544,30 @@ async function listCloudKeys(){
 }
 async function fetchJsonByKey(key){
   const url = await storage.ref(FOLDER+'/'+key).getDownloadURL();
-  return await fetch(url).then(r=>r.json());
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  // defensive parse
+  let raw=null;
+  try{ raw = await r.json(); }catch(e){ throw new Error('Bad JSON: '+key); }
+  return raw;
 }
 async function fetchRecord(kOrDn){
-  // accepts "7008" or "7008.json"
   const key = String(kOrDn).endsWith('.json') ? kOrDn : (String(kOrDn)+'.json');
-  const raw = await fetchJsonByKey(key);
+  let raw=null;
+  try{
+    raw = await fetchJsonByKey(key);
+  }catch(e){
+    console.warn('fetch failed', key, e);
+    return null;
+  }
   if(!raw.dairyNumber){ raw.dairyNumber = key.replace('.json',''); }
   const rec = normalizeRecord(raw);
+  if(!rec){ console.warn('skip invalid record (no dairyNumber):', key); return null; }
   Forms.set(rec.dairyNumber, rec);
   $('loaded-count').textContent = Forms.size;
   return rec;
 }
-async function fetchMany(keys, concurrency=12, onTick){
+async function fetchMany(keys, concurrency=8, onTick){
   let i=0, done=0;
   const out = new Array(keys.length);
   const work = async ()=>{
@@ -573,7 +577,7 @@ async function fetchMany(keys, concurrency=12, onTick){
         const r = await fetchRecord(k.key||k);
         out[idx]=r;
       }catch(e){
-        console.warn('fetch failed', k, e);
+        console.warn('fetch worker failed', k, e);
         out[idx]=null;
       }finally{
         done++; onTick && onTick(done, keys.length);
@@ -591,7 +595,7 @@ $('dairyNumber').addEventListener('blur', async ()=>{
   if(!dn) return;
   try{
     const rec = Forms.get(dn) || await fetchRecord(dn);
-    populateForm(rec);
+    if(rec) populateForm(rec);
   }catch(e){ console.warn('Auto-fill failed', e); }
 });
 function setVal(id,v){ const el=$(id); if(el) el.value = v ?? ''; }
@@ -636,7 +640,7 @@ function populateForm(rec){
   setVal('rjt-delivered', rec.rjtDelivered||'no');
   setVal('rjt-size', rec.rjtSize||'');
 
-  // hydrate photo previews
+  // photo previews
   setPreviewFromB64('gateway-preview',   rec.photos.gateway);
   setPreviewFromB64('vat1-cap-preview',  rec.photos.vat1Cap);
   setPreviewFromB64('agitator1-preview', rec.photos.agitator1);
@@ -646,7 +650,7 @@ function populateForm(rec){
   setPreviewFromB64('rjt-preview',       rec.photos.rjt);
 }
 
-/* ========= Save (to cloud only) ========= */
+/* ========= Save (cloud only) ========= */
 async function toB64(fileInput){ const f=fileInput.files && fileInput.files[0]; if(!f) return ''; return await new Promise(res=>{const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(f);}); }
 $('btn-save').onclick = async (e)=>{
   e.preventDefault();
@@ -690,7 +694,7 @@ $('btn-save').onclick = async (e)=>{
     timestamp: Date.now()
   };
 
-  // attach any uploaded photos
+  // attach uploaded photos
   data['gateway-photo-base64']    = await toB64($('gateway-photo'));
   data['vat1-cap-photo-base64']   = await toB64($('vat1-cap-photo'));
   data['agitator1-photo-base64']  = await toB64($('agitator1-photo'));
@@ -699,34 +703,16 @@ $('btn-save').onclick = async (e)=>{
   data['door-photo-base64']       = await toB64($('door-photo'));
   data['rjt-photo-base64']        = await toB64($('rjt-photo'));
 
-  // upload JSON
   const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
   await storage.ref(`${FOLDER}/${dn}.json`).put(blob);
 
-  // keep in memory (so you can print immediately)
-  Forms.set(dn, normalizeRecord(data));
+  // update in-memory
+  const rec = normalizeRecord(data);
+  if(rec){ Forms.set(dn, rec); $('loaded-count').textContent = Forms.size; }
   alert('Saved.');
 };
 
-/* ========= Summary (fast) ========= */
-async function sizeBreakdownLive(){
-  // Build size counts without fetching all—use already loaded if present, otherwise fetch progressively
-  // For accuracy, if not loaded, we will fetch all (bounded concurrency) then compute.
-  if(!CloudKeys.length) CloudKeys = await listCloudKeys();
-  if(Forms.size !== CloudKeys.length){
-    await fetchMany(CloudKeys, 12, setProgress);
-  }
-  const sizes = {};
-  for(const r of Forms.values()){
-    const s1=(r.vat1Capacity||'').trim(); if(s1) sizes[s1]=(sizes[s1]||0)+1;
-    const s2=(r.vat2Capacity||'').trim(); if(s2) sizes[s2]=(sizes[s2]||0)+1;
-  }
-  let html='<table class="table table-sm table-bordered"><thead><tr><th>Vat Size (L)</th><th>Count</th></tr></thead><tbody>';
-  Object.entries(sizes).sort((a,b)=>(+a[0])-(+b[0])).forEach(([sz,c])=> html+=`<tr><td>${sz}</td><td>${c}</td></tr>`);
-  html+='</tbody></table>';
-  $('size-table').innerHTML = html;
-  return sizes;
-}
+/* ========= Summary (safe & progressive) ========= */
 function farmCardHTML(rec){
   const dn = rec.dairyNumber;
   const v1 = rec.vat1Capacity||'-';
@@ -751,44 +737,77 @@ function farmCardHTML(rec){
       </div>
     </div>`;
 }
-function renderResultCards(rows){
-  $('result-cards').innerHTML = rows
-    .sort((a,b)=>String(a.dairyNumber).localeCompare(String(b.dairyNumber)))
-    .map(farmCardHTML).join('');
+async function renderCardsProgressive(rows, batch=40){
+  const wrap = $('result-cards');
+  wrap.innerHTML = '';
+  $('cards-status').textContent = `Rendering 0 / ${rows.length}…`;
+
+  let i=0;
+  while(i<rows.length){
+    const end = Math.min(i+batch, rows.length);
+    const chunk = rows.slice(i, end).map(farmCardHTML).join('');
+    const frag = document.createElement('div');
+    frag.innerHTML = chunk;
+    // Append children to avoid reparse outer HTML
+    while(frag.firstChild) wrap.appendChild(frag.firstChild);
+    i = end;
+    $('cards-status').textContent = `Rendering ${i} / ${rows.length}`;
+    await new Promise(requestAnimationFrame); // yield to keep UI responsive
+  }
+  $('cards-status').textContent = `Done (${rows.length})`;
+}
+async function sizeBreakdownFromMemory(){
+  const sizes = {};
+  for(const r of Forms.values()){
+    const s1=(r.vat1Capacity||'').trim(); if(s1) sizes[s1]=(sizes[s1]||0)+1;
+    const s2=(r.vat2Capacity||'').trim(); if(s2) sizes[s2]=(sizes[s2]||0)+1;
+  }
+  let html='<table class="table table-sm table-bordered"><thead><tr><th>Vat Size (L)</th><th>Count</th></tr></thead><tbody>';
+  Object.entries(sizes).sort((a,b)=>(+a[0])-(+b[0])).forEach(([sz,c])=> html+=`<tr><td>${sz}</td><td>${c}</td></tr>`);
+  html+='</tbody></table>';
+  $('size-table').innerHTML = html;
+  return sizes;
 }
 async function buildSummary(){
-  if(!CloudKeys.length) CloudKeys = await listCloudKeys();
-  // Load progressively if not yet loaded
-  if(Forms.size===0){
-    await fetchMany(CloudKeys, 12, setProgress);
+  try{
+    if(!CloudKeys.length) CloudKeys = await listCloudKeys();
+    // If memory empty, load all progressively (safe concurrency)
+    if(Forms.size===0){
+      await fetchMany(CloudKeys, 8, setProgress);
+    }
+
+    const all = Array.from(Forms.values());
+    const dtsCount = all.filter(hasDtsCap).length;
+    const powerCount = all.filter(needsPowerPoint).length;
+    const rubberCount = all.filter(r=> r.doorDelivered==='yes' || r.rjtDelivered==='yes').length;
+    const sizes = await sizeBreakdownFromMemory();
+
+    $('kpi-dts').textContent=dtsCount;
+    $('kpi-power').textContent=powerCount;
+    $('kpi-rubber').textContent=rubberCount;
+    $('kpi-sizes').textContent=Object.keys(sizes).length;
+
+    // KPI filters (progressive render)
+    document.querySelectorAll('.kpi.clickable').forEach(el=>{
+      el.onclick=async ()=>{
+        const type = el.getAttribute('data-kpi');
+        let rows = [];
+        if(type==='dts') rows = all.filter(hasDtsCap);
+        if(type==='power') rows = all.filter(needsPowerPoint);
+        if(type==='rubber') rows = all.filter(r=> r.doorDelivered==='yes' || r.rjtDelivered==='yes');
+        if(type==='sizes') rows = all.slice();
+        rows.sort((a,b)=>String(a.dairyNumber).localeCompare(String(b.dairyNumber)));
+        await renderCardsProgressive(rows);
+      };
+    });
+
+    // default list
+    const sorted = all.sort((a,b)=>String(a.dairyNumber).localeCompare(String(b.dairyNumber)));
+    await renderCardsProgressive(sorted);
+  }catch(err){
+    console.error('Summary build failed:', err);
+    $('result-cards').innerHTML = `<div class="small-note text-danger">Summary failed to load. Check console for details.</div>`;
   }
-  // KPIs
-  const all = Array.from(Forms.values());
-  const dtsCount = all.filter(hasDtsCap).length;
-  const powerCount = all.filter(needsPowerPoint).length;
-  const rubberCount = all.filter(r=> r.doorDelivered==='yes' || r.rjtDelivered==='yes').length;
-  const sizes = await sizeBreakdownLive();
-
-  $('kpi-dts').textContent=dtsCount;
-  $('kpi-power').textContent=powerCount;
-  $('kpi-rubber').textContent=rubberCount;
-  $('kpi-sizes').textContent=Object.keys(sizes).length;
-
-  // KPI filters
-  document.querySelectorAll('.kpi.clickable').forEach(el=>{
-    el.onclick=()=>{
-      const type = el.getAttribute('data-kpi');
-      let rows = [];
-      if(type==='dts') rows = all.filter(hasDtsCap);
-      if(type==='power') rows = all.filter(needsPowerPoint);
-      if(type==='rubber') rows = all.filter(r=> r.doorDelivered==='yes' || r.rjtDelivered==='yes');
-      if(type==='sizes') rows = all.slice();
-      renderResultCards(rows);
-    };
-  });
-
-  // default list
-  renderResultCards(all);
 }
 
 /* ========= Brochure (print/details) ========= */
@@ -862,33 +881,40 @@ function brochureHTML(rec, includeLogo){
 window.openDetails = async (dn)=>{
   const rec = Forms.get(dn) || await fetchRecord(dn);
   if(!rec) return;
-  $('tab-summary').click(); // ensure summary visible
+  $('tab-summary').click(); // show summary
   window.scrollTo({top:0,behavior:'smooth'});
-  $('result-cards').innerHTML = farmCardHTML(rec) + '<div class="page-break"></div>' + $('result-cards').innerHTML;
-  // Also show brochure at top as an inline details view
   $('print-sheet').innerHTML = brochureHTML(rec, true);
 };
+function getPrintCSS(){
+  const styleEl = document.querySelector('style');
+  if(styleEl && styleEl.innerHTML) return styleEl.innerHTML;
+  // fallback minimal CSS so print never crashes
+  return `.print-sheet{max-width:900px;margin:0 auto;font-family:Inter,Arial,sans-serif}
+    .print-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .print-card{border:1px solid #ddd;border-radius:10px;padding:10px}
+    .print-head{display:flex;gap:16px;border-bottom:1px solid #ddd;margin-bottom:10px;padding-bottom:8px}
+    img{max-width:100%}`;
+}
 window.openPrint = async (dn)=>{
   const rec = Forms.get(dn) || await fetchRecord(dn);
   if(!rec) return;
   const sheet = brochureHTML(rec, true);
-  const css=document.querySelector('style').innerHTML;
+  const css = getPrintCSS();
   const w=window.open('', '_blank');
   w.document.write(`<html><head><meta charset="utf-8"><title>Print #${dn}</title>
     <style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body>${sheet}</body></html>`);
   w.document.close(); setTimeout(()=>w.print(),350);
 };
-$('btn-print').onclick = async ()=>{
-  const dn = ($('dairyNumber').value||'').trim();
-  if(!dn){ alert('Enter a Dairy # first'); return; }
-  openPrint(dn);
-};
 
 /* ========= Admin: Load All / Clear ========= */
 $('btn-load-all').onclick = async ()=>{
-  CloudKeys = await listCloudKeys();
-  await fetchMany(CloudKeys, 12, setProgress);
-  alert('Loaded all records into memory.');
+  try{
+    CloudKeys = await listCloudKeys();
+    await fetchMany(CloudKeys, 8, setProgress);
+    alert('Loaded all records into memory.');
+  }catch(e){
+    console.error(e); alert('Load failed. See console.');
+  }
 };
 $('btn-clear-memory').onclick = ()=>{
   Forms.clear();
@@ -901,11 +927,11 @@ $('btn-clear-memory').onclick = ()=>{
 $('btn-print-all').onclick = async ()=>{
   if(!CloudKeys.length) CloudKeys = await listCloudKeys();
   if(Forms.size !== CloudKeys.length){
-    await fetchMany(CloudKeys, 12, setProgress);
+    await fetchMany(CloudKeys, 8, setProgress);
   }
   const rows = Array.from(Forms.values()).sort((a,b)=>String(a.dairyNumber).localeCompare(String(b.dairyNumber)));
   const htmls = rows.map(r=>brochureHTML(r, true)).join('<div class="page-break"></div>');
-  const css=document.querySelector('style').innerHTML;
+  const css=getPrintCSS();
   const w=window.open('', '_blank');
   w.document.write(`<html><head><meta charset="utf-8"><title>Print All</title>
     <style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body>${htmls}</body></html>`);
@@ -914,10 +940,10 @@ $('btn-print-all').onclick = async ()=>{
 $('btn-download-all').onclick = async ()=>{
   if(!CloudKeys.length) CloudKeys = await listCloudKeys();
   if(Forms.size !== CloudKeys.length){
-    await fetchMany(CloudKeys, 12, setProgress);
+    await fetchMany(CloudKeys, 8, setProgress);
   }
   const rows = Array.from(Forms.values()).sort((a,b)=>String(a.dairyNumber).localeCompare(String(b.dairyNumber)));
-  const css = document.querySelector('style').innerHTML;
+  const css = getPrintCSS();
 
   const chunkSize = 100;
   let part = 1;
@@ -933,7 +959,7 @@ $('btn-download-all').onclick = async ()=>{
     }
     const blob = await zip.generateAsync({type:'blob'});
     saveAs(blob, `agora_brochures_part${part++}.zip`);
-    await new Promise(r=>setTimeout(r,50)); // yield
+    await new Promise(r=>setTimeout(r,20)); // yield
   }
   alert('Download complete.');
 };
@@ -942,7 +968,7 @@ $('btn-download-all').onclick = async ()=>{
 $('btn-export-sizes').onclick = async ()=>{
   if(!CloudKeys.length) CloudKeys = await listCloudKeys();
   if(Forms.size !== CloudKeys.length){
-    await fetchMany(CloudKeys, 12, setProgress);
+    await fetchMany(CloudKeys, 8, setProgress);
   }
   const rows=[];
   for(const r of Forms.values()){
@@ -956,13 +982,13 @@ $('btn-export-sizes').onclick = async ()=>{
 /* ========= Jump to Summary ========= */
 $('btn-summary-jump').onclick = ()=>$('tab-summary').click();
 
-/* ========= Init: list keys so counts show fast ========= */
+/* ========= Init ========= */
 window.addEventListener('DOMContentLoaded', async ()=>{
   try{
     CloudKeys = await listCloudKeys();
-    // Optionally preload first 20 to make Summary instant
+    // Preload a small slice to make Summary snappy, but not block UI
     const first = CloudKeys.slice(0,20);
-    await fetchMany(first, 12, setProgress);
+    await fetchMany(first, 8, setProgress);
   }catch(e){ console.warn(e); }
 });
 </script>
