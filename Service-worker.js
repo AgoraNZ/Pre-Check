@@ -1,6 +1,6 @@
-// Offline shell + basic cache. JSON is network-first; shell is cache-first.
+// Simple offline shell cache. JSON stays network-first for freshness.
 const CACHE_NAME='agora-precheck-shell-v9';
-const urlsToCache=[
+const SHELL=[
   './','./index.html',
   'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css',
   'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
@@ -12,27 +12,24 @@ const urlsToCache=[
 ];
 
 self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(urlsToCache)).catch(()=>{}));
+  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(SHELL)).catch(()=>{}));
   self.skipWaiting();
 });
 self.addEventListener('activate',e=>{
   e.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(k=>k===CACHE_NAME?null:caches.delete(k)))));
   self.clients.claim();
 });
-
 self.addEventListener('fetch',e=>{
   const url=new URL(e.request.url);
-  const isJSON=url.pathname.endsWith('.json')||url.search.includes('alt=media');
-
+  const isJSON = url.pathname.endsWith('.json') || url.search.includes('alt=media');
   if(isJSON){
+    // network first, fallback to cache if offline
     e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
     return;
   }
   e.respondWith(
-    caches.match(e.request).then(resp=>{
-      return resp||fetch(e.request).then(net=>{
-        const copy=net.clone(); caches.open(CACHE_NAME).then(c=>c.put(e.request,copy)); return net;
-      });
-    }).catch(()=>caches.match('./index.html'))
+    caches.match(e.request).then(resp=>resp||fetch(e.request).then(net=>{
+      const copy=net.clone(); caches.open(CACHE_NAME).then(c=>c.put(e.request,copy)); return net;
+    })).catch(()=>caches.match('./index.html'))
   );
 });
