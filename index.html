@@ -51,7 +51,7 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
 .hidden{display:none!important}
 .small-note{color:#6b7280}
 
-/* Brochure */
+/* Brochure (one page) */
 .print-sheet{max-width:950px;margin:0 auto;color:#0f172a}
 .print-head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #e5e7eb;padding-bottom:10px;margin-bottom:10px}
 .print-head img{height:44px}
@@ -62,7 +62,11 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
 .print-label{font-weight:800;margin-bottom:6px}
 .print-photos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .print-photos img{width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb}
-.page-break{page-break-after:always;margin:18px 0}
+@media print {.page-break{page-break-after:always}}
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:10px}
+.modal-box{background:#fff;border-radius:14px;max-width:980px;width:96vw;max-height:92vh;overflow:auto;padding:12px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-bottom:6px}
+
 .footer{color:#6b7280;text-align:center;margin:22px 0 10px}
 </style>
 </head>
@@ -110,27 +114,26 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
         <input id="search" class="form-control" placeholder="Search dairy # or text…" style="max-width:320px">
         <button id="clear" class="btn btn-outline-secondary">Clear</button>
       </div>
-      <!-- Just dairy numbers for speed -->
       <div id="results" class="list"></div>
     </div>
   </div>
 
-  <!-- FORM (same as before; auto-fill from cloud on blur) -->
+  <!-- FORM (simple; cloud autofill) -->
   <div id="view-form" class="hidden">
     <div class="form-card">
       <div class="grid-3">
         <div>
           <label class="form-label">Dairy Number</label>
           <input id="dairyNumber" class="form-control" placeholder="e.g. 7038">
-          <div class="small-note">Blur to auto-fill from cloud if available.</div>
+          <div class="small-note">Blur to auto-fill from cloud.</div>
         </div>
         <div>
           <label class="form-label">Gateway Location</label>
-          <input id="gateway-location" class="form-control" placeholder="e.g. plant room">
+          <input id="gateway-location" class="form-control">
         </div>
         <div>
           <label class="form-label">Gateway Comments</label>
-          <input id="gateway-comments" class="form-control" placeholder="notes (not signal)">
+          <input id="gateway-comments" class="form-control">
         </div>
       </div>
     </div>
@@ -188,10 +191,10 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
     <div class="bar">
       <div class="section-title">Bulk Output</div>
       <div class="d-flex flex-wrap gap-2">
+        <button id="btn-owner-csv" class="btn btn-outline-brand">Download Owners Report (CSV)</button>
         <button id="btn-print-all" class="btn btn-brand">Print All Brochures</button>
         <button id="btn-zip-all" class="btn btn-outline-brand">Download All Brochures (ZIP)</button>
       </div>
-      <div class="small-note mt-2">Loads progressively; Service Worker caches brochures you open for offline.</div>
     </div>
 
     <div class="bar">
@@ -201,11 +204,19 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v4.3</div>
+  <div class="footer">Agora • Vat Pre-Check • v4.4</div>
 </div>
 
-<!-- Brochure mount -->
-<div id="print-host" class="hidden"></div>
+<!-- DETAILS MODAL -->
+<div id="detail-modal" class="modal-mask" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal-box">
+    <div class="modal-actions">
+      <button id="detail-print" class="btn btn-outline-brand">Print</button>
+      <button id="detail-close" class="btn btn-secondary">Close</button>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
@@ -222,8 +233,8 @@ const FOLDER='Pre Check';
 
 /* ---------- Helpers ---------- */
 const $=id=>document.getElementById(id);
-const show=id=>$(id).classList.remove('hidden');
-const hide=id=>$(id).classList.add('hidden');
+const show=(idOrEl)=> (typeof idOrEl==='string'?$(idOrEl):idOrEl).classList.remove('hidden');
+const hide=(idOrEl)=> (typeof idOrEl==='string'?$(idOrEl):idOrEl).classList.add('hidden');
 const setActive=id=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));$(id).classList.add('active')};
 function setProgress(done,total){const pct=total?Math.min(100,Math.round(done*100/total)):0;$('bar').style.width=pct+'%';$('pct').textContent=pct;$('loaded-count').textContent=done;}
 const keyToDn=k=>k.replace('.json','');
@@ -248,24 +259,36 @@ async function listCloudKeys(){
   $('cloud-count').textContent=CLOUD_KEYS.length;
 }
 
-/* ---------- Parsing / mapping ---------- */
+/* ---------- Robust field access / normalization ---------- */
+function first(rec, keys, dflt=''){
+  for(const k of keys){ if(rec[k]!=null && rec[k]!=='' ) return rec[k]; }
+  return dflt;
+}
+function yesDelivered(v){
+  if(v===true) return true;
+  const s=String(v||'').toLowerCase();
+  return ['yes','delivered','y','true','1'].includes(s);
+}
+function rubberFrom(rec){
+  const doorDelivered = yesDelivered(first(rec,['door-delivered','vat-door-seal']));
+  const rjtDelivered  = yesDelivered(first(rec,['rjt-delivered','rjt-seal']));
+  const doorSize = first(rec,['door-size','vat-door-seal-size','vat-door-seal-comments']).toString();
+  const rjtSize  = first(rec,['rjt-size','rjt-seal-size','rjt-seal-comments']).toString();
+  return {doorDelivered,rjtDelivered,doorSize,rjtSize};
+}
 function splitSignalFromGateway(rec){
   const g=(rec['gateway-comments']||'')+' '+(rec['gateway-location']||'');
   const text=g.toLowerCase();
   let spark='', one='';
-  // explicit numeric bars (also supports phrases)
   const sNum=/(spark)\D*(\d+)\s*bar/.exec(text); if(sNum) spark=sNum[2];
   const oNum=/(one\s*nz|vodafone)\D*(\d+)\s*bar/.exec(text); if(oNum) one=oNum[2];
   if(/no\s*signal/.test(text)){ spark=spark||'0'; one=one||'0'; }
-  // fallbacks if explicit fields exist
-  spark = rec['spark-bars'] || spark;
-  one   = rec['one-bars']   || one;
-  // remove signal-like pieces from gateway "other" notes
+  spark = first(rec,['spark-bars'], spark);
+  one   = first(rec,['one-bars'],   one);
   const cleaned=g.replace(/(spark|one\s*nz|vodafone)[^,;]*bar[s]?/ig,'').replace(/no\s*signal/ig,'').trim();
   return {spark, one, gatewayOther: cleaned};
 }
 function detectDtsCap(rec){
-  // from vat cap comments + notes
   const blob=[rec['vat1-cap-comments'],rec['vat2-cap-comments'],rec['vat1-comments'],rec['vat2-comments']].join(' ');
   return /(grey|gray)\s+(halo|sensor)|\bdts\b.*(cap|vent)|reducing\s+cap/i.test(blob);
 }
@@ -273,14 +296,17 @@ function detectPowerPoint(rec){
   const blob=[rec['gateway-comments'],rec['gateway-location'],rec['vat1-comments'],rec['vat2-comments'],rec['other-notes']].join(' ');
   return /(power\s*point.*(need|req|install)|no\s*power|splitter\s*plug)/i.test(blob);
 }
-function deliveredDoorCount(rec){return rec['door-delivered']==='yes' ? (rec['vat2-capacity']?2:1) : 0;}
+function deliveredDoorCount(rec){
+  const {doorDelivered}=rubberFrom(rec);
+  return doorDelivered ? (rec['vat2-capacity']?2:1) : 0;
+}
 function manuFromNotes(rec){
   const blob=[rec['vat1-comments'],rec['vat2-comments'],rec['other-brand']].join(' ');
   if(/\bdts\b/i.test(blob)) return 'DTS';
   if(/\bnda\b/i.test(blob)) return 'NDA';
   if(/\bhalo\b/i.test(blob)) return 'Halo';
   if(/\blevno\b/i.test(blob)) return 'Levno';
-  return rec['other-brand']||'-';
+  return first(rec,['other-brand'],'-');
 }
 function collectPhotos(rec){
   const arr=[
@@ -296,9 +322,20 @@ function collectPhotos(rec){
 }
 
 /* ---------- Sizes / KPIs ---------- */
-function addToSizes(rec){const s1=(rec['vat1-capacity']||'').toString().trim(); if(s1) SIZES_MAP[s1]=(SIZES_MAP[s1]||0)+1; const s2=(rec['vat2-capacity']||'').toString().trim(); if(s2) SIZES_MAP[s2]=(SIZES_MAP[s2]||0)+1;}
-function renderSizes(){let h='<table class="table table-sm table-bordered"><thead><tr><th>Vat Size (L)</th><th>Count</th></tr></thead><tbody>';Object.entries(SIZES_MAP).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([sz,c])=>{h+=`<tr><td>${sz||'—'}</td><td>${c}</td></tr>`});h+='</tbody></table>';$('sizes-table').innerHTML=h;}
-function renderKpis(){ $('kpi-dts').textContent=RECORDS.filter(detectDtsCap).length; $('kpi-power').textContent=RECORDS.filter(detectPowerPoint).length; $('kpi-rubber').textContent=RECORDS.filter(r=>r['door-delivered']==='yes'||r['rjt-delivered']==='yes').length; }
+function addToSizes(rec){
+  const s1=String(first(rec,['vat1-capacity'],'')).trim(); if(s1) SIZES_MAP[s1]=(SIZES_MAP[s1]||0)+1;
+  const s2=String(first(rec,['vat2-capacity'],'')).trim(); if(s2) SIZES_MAP[s2]=(SIZES_MAP[s2]||0)+1;
+}
+function renderSizes(){
+  let h='<table class="table table-sm table-bordered"><thead><tr><th>Vat Size (L)</th><th>Count</th></tr></thead><tbody>';
+  Object.entries(SIZES_MAP).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([sz,c])=>h+=`<tr><td>${sz||'—'}</td><td>${c}</td></tr>`);
+  h+='</tbody></table>'; $('sizes-table').innerHTML=h;
+}
+function renderKpis(){
+  $('kpi-dts').textContent=RECORDS.filter(detectDtsCap).length;
+  $('kpi-power').textContent=RECORDS.filter(detectPowerPoint).length;
+  $('kpi-rubber').textContent=RECORDS.filter(r=>rubberFrom(r).doorDelivered || rubberFrom(r).rjtDelivered).length;
+}
 
 /* ---------- List (just dairy numbers for speed) ---------- */
 function renderList(rows){
@@ -309,11 +346,11 @@ function renderList(rows){
     .map(r=>`
       <div class="item">
         <div class="left"><strong>#${r.dairyNumber}</strong>
-          <span class="badge-soft">${r['vat1-capacity']||'-'}${r['vat2-capacity']?' • '+r['vat2-capacity']:''}</span>
+          <span class="badge-soft">${first(r,['vat1-capacity'],'-')}${first(r,['vat2-capacity'])?' • '+first(r,['vat2-capacity']):''}</span>
         </div>
         <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-brand" onclick="openDetails('${r.dairyNumber}')">Details</button>
-          <button class="btn btn-sm btn-brand" onclick="openPrint('${r.dairyNumber}')">Print</button>
+          <button class="btn btn-sm btn-outline-brand" onclick="window.openDetails('${r.dairyNumber}')">Details</button>
+          <button class="btn btn-sm btn-brand" onclick="window.openPrint('${r.dairyNumber}')">Print</button>
         </div>
       </div>`).join('');
 }
@@ -329,7 +366,7 @@ async function loadAll(){
       if(!rec.dairyNumber) rec.dairyNumber=keyToDn(key);
       RECORDS.push(rec);
       addToSizes(rec);
-      if(done<40) renderList(RECORDS);          // fast first impression
+      if(done<40) renderList(RECORDS);            // quick feedback
       if(done%10===0){renderSizes();renderKpis();}
     }catch(e){}
     done++;setProgress(done,CLOUD_KEYS.length);
@@ -337,10 +374,11 @@ async function loadAll(){
   renderSizes();renderKpis();renderList(RECORDS);
 }
 
-/* ---------- Brochure ---------- */
+/* ---------- Brochure HTML (one page) ---------- */
 async function brochureHTML(rec){
   let logo=''; try{logo=`<img src="${await storage.ref('Agora Logo/2F6-1YdaEP.jpeg').getDownloadURL()}" alt="logo">`;}catch(e){}
   const {spark,one,gatewayOther}=splitSignalFromGateway(rec);
+  const {doorDelivered,rjtDelivered,doorSize,rjtSize}=rubberFrom(rec);
   const manu=manuFromNotes(rec);
   const doorCount=deliveredDoorCount(rec);
   const photos=collectPhotos(rec);
@@ -353,27 +391,27 @@ async function brochureHTML(rec){
     <div class="print-grid">
       <div class="print-card">
         <div class="print-label">Vat 1</div>
-        <div>Capacity: <b>${rec['vat1-capacity']||'-'}</b></div>
-        <div>Cap: <b>${(rec['vat1-cap']||'-').toUpperCase()}</b></div>
-        <div>Serial: <b>${rec['vat1-serial']||'-'}</b></div>
-        <div>Condition: <b>${rec['vat1-condition']||'-'}</b></div>
-        <div>Notes: ${rec['vat1-comments']||'-'}</div>
-        <div>Cap comments: ${rec['vat1-cap-comments']||'-'}</div>
+        <div>Capacity: <b>${first(rec,['vat1-capacity'],'-')}</b></div>
+        <div>Cap: <b>${(first(rec,['vat1-cap'],'-')||'-').toUpperCase()}</b></div>
+        <div>Serial: <b>${first(rec,['vat1-serial'],'-')}</b></div>
+        <div>Condition: <b>${first(rec,['vat1-condition'],'-')}</b></div>
+        <div>Notes: ${first(rec,['vat1-comments'],'-')}</div>
+        <div>Cap comments: ${first(rec,['vat1-cap-comments'],'-')}</div>
       </div>
       <div class="print-card">
         <div class="print-label">Vat 2</div>
-        <div>Capacity: <b>${rec['vat2-capacity']||'-'}</b></div>
-        <div>Cap: <b>${(rec['vat2-cap']||'-').toUpperCase()}</b></div>
-        <div>Serial: <b>${rec['vat2-serial']||'-'}</b></div>
-        <div>Condition: <b>${rec['vat2-condition']||'-'}</b></div>
-        <div>Notes: ${rec['vat2-comments']||'-'}</div>
-        <div>Cap comments: ${rec['vat2-cap-comments']||'-'}</div>
+        <div>Capacity: <b>${first(rec,['vat2-capacity'],'-')}</b></div>
+        <div>Cap: <b>${(first(rec,['vat2-cap'],'-')||'-').toUpperCase()}</b></div>
+        <div>Serial: <b>${first(rec,['vat2-serial'],'-')}</b></div>
+        <div>Condition: <b>${first(rec,['vat2-condition'],'-')}</b></div>
+        <div>Notes: ${first(rec,['vat2-comments'],'-')}</div>
+        <div>Cap comments: ${first(rec,['vat2-cap-comments'],'-')}</div>
       </div>
 
       <div class="print-card">
         <div class="print-label">Gateway</div>
-        <div>Location: <b>${rec['gateway-location']||'-'}</b></div>
-        <div>Comments: ${gatewayOther || (rec['gateway-comments']||'-')}</div>
+        <div>Location: <b>${first(rec,['gateway-location'],'-')}</b></div>
+        <div>Comments: ${gatewayOther || first(rec,['gateway-comments'],'-')}</div>
       </div>
       <div class="print-card">
         <div class="print-label">Mobile Signal</div>
@@ -383,13 +421,13 @@ async function brochureHTML(rec){
 
       <div class="print-card">
         <div class="print-label">Other Telemetry</div>
-        <div>Brand: <b>${rec['other-brand']||'-'}</b> • Type: <b>${rec['other-type']||'-'}</b></div>
-        <div>Notes: ${rec['other-notes']||'-'}</div>
+        <div>Brand: <b>${first(rec,['other-brand'],'-')}</b> • Type: <b>${first(rec,['other-type'],'-')}</b></div>
+        <div>Notes: ${first(rec,['other-notes'],'-')}</div>
       </div>
       <div class="print-card">
         <div class="print-label">Rubberware</div>
-        <div>Door Seal: <b>${rec['door-delivered']==='yes'?'Delivered':'No'}</b> ${rec['door-size']? '• '+rec['door-size']:''} ${doorCount? `(x${doorCount})`:''}</div>
-        <div>RJT: <b>${rec['rjt-delivered']==='yes'?'Delivered':'No'}</b> ${rec['rjt-size']? '• '+rec['rjt-size']:''}</div>
+        <div>Door Seal: <b>${doorDelivered?'Delivered':'No'}</b>${doorSize? ' • '+doorSize:''}${doorDelivered? ` (x${doorCount})`:''}</div>
+        <div>RJT: <b>${rjtDelivered?'Delivered':'No'}</b>${rjtSize? ' • '+rjtSize:''}</div>
       </div>
     </div>
 
@@ -397,11 +435,17 @@ async function brochureHTML(rec){
   </div>`;
 }
 
-/* ---------- Print / Details ---------- */
+/* ---------- Details modal & print ---------- */
 window.openDetails=async(dn)=>{
   const rec=RECORDS.find(r=>String(r.dairyNumber)===String(dn)); if(!rec) return;
-  const html=await brochureHTML(rec);
-  $('print-host').innerHTML=html; $('tab-summary').click(); window.scrollTo({top:0,behavior:'smooth'});
+  $('detail-body').innerHTML=await brochureHTML(rec);
+  $('detail-print').onclick=()=>window.openPrint(dn);
+  $('detail-modal').style.display='flex';
+  $('detail-modal').setAttribute('aria-hidden','false');
+};
+$('detail-close').onclick=()=>{
+  $('detail-modal').style.display='none';
+  $('detail-modal').setAttribute('aria-hidden','true');
 };
 window.openPrint=async(dn)=>{
   const rec=RECORDS.find(r=>String(r.dairyNumber)===String(dn)); if(!rec) return;
@@ -433,6 +477,40 @@ $('btn-zip-all').onclick=async()=>{
   }
   const blob=await zip.generateAsync({type:'blob'}); saveAs(blob,'agora_brochures.zip');
 };
+$('btn-owner-csv').onclick=()=>{
+  if(!RECORDS.length){alert('Loading records… wait for 100%.');return;}
+  const rows=[];
+  for(const r of RECORDS){
+    const {spark,one}=splitSignalFromGateway(r);
+    const {doorDelivered,rjtDelivered,doorSize,rjtSize}=rubberFrom(r);
+    const manu=manuFromNotes(r);
+    const add=(vat)=>rows.push({
+      Dairy:r.dairyNumber,
+      Vat:vat,
+      Size: first(r,[`vat${vat}-capacity`],''),
+      Serial: first(r,[`vat${vat}-serial`],''),
+      Cap: (first(r,[`vat${vat}-cap`],'')||'').toUpperCase(),
+      Condition: first(r,[`vat${vat}-condition`],''),
+      Notes: first(r,[`vat${vat}-comments`],''),
+      CapComments: first(r,[`vat${vat}-cap-comments`],''),
+      Manufacturer: manu,
+      DoorDelivered: doorDelivered?'Yes':'No',
+      DoorSize: doorSize||'',
+      RJTDelivered: rjtDelivered?'Yes':'No',
+      RJTSize: rjtSize||'',
+      SparkBars: spark||'',
+      OneNZBars: one||'',
+      GatewayLocation: first(r,['gateway-location'],''),
+      OtherBrand: first(r,['other-brand'],''),
+      OtherType: first(r,['other-type'],''),
+      OtherNotes: first(r,['other-notes'],'')
+    });
+    if(first(r,['vat1-capacity'])) add(1);
+    if(first(r,['vat2-capacity'])) add(2);
+  }
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Owners Report'); XLSX.writeFile(wb,'owners_report.csv');
+};
 $('btn-reload').onclick=async()=>{await bootstrap();};
 $('btn-download-json').onclick=async()=>{
   const zip=new JSZip();
@@ -451,7 +529,7 @@ document.querySelectorAll('.kpi').forEach(el=>{
     let rows=RECORDS;
     if(k==='dts') rows=RECORDS.filter(detectDtsCap);
     if(k==='power') rows=RECORDS.filter(detectPowerPoint);
-    if(k==='rubber') rows=RECORDS.filter(r=>r['door-delivered']==='yes'||r['rjt-delivered']==='yes');
+    if(k==='rubber') rows=RECORDS.filter(r=>rubberFrom(r).doorDelivered || rubberFrom(r).rjtDelivered);
     renderList(rows);
   });
 });
@@ -465,7 +543,7 @@ $('dairyNumber').addEventListener('blur', async ()=>{
     const url=await storage.ref(`${FOLDER}/${dn}.json`).getDownloadURL();
     const rec=await fetch(url).then(r=>r.json());
     const fields=['gateway-location','gateway-comments','vat1-capacity','vat1-cap','vat1-serial','vat1-condition','vat1-comments','vat1-cap-comments','vat2-capacity','vat2-cap','vat2-serial','vat2-condition','vat2-comments','vat2-cap-comments','other-brand','other-type','other-notes','door-delivered','door-size','rjt-delivered'];
-    fields.forEach(f=>{const el=$(f); if(el) el.value=rec[f]||el.value||''});
+    fields.forEach(f=>{const el=$(f); if(el) el.value=rec[f]??el.value});
   }catch(e){}
 });
 $('btn-save').onclick=async()=>{
@@ -486,8 +564,7 @@ $('btn-save').onclick=async()=>{
 };
 $('btn-print-this').onclick=async()=>{
   const dn=($('dairyNumber').value||'').trim(); if(!dn){alert('Enter a Dairy #');return;}
-  const rec=RECORDS.find(r=>String(r.dairyNumber)===dn) || (await fetch(await storage.ref(`${FOLDER}/${dn}.json`).getDownloadURL()).then(r=>r.json()));
-  if(rec){ openPrint(dn); }
+  window.openPrint(dn);
 };
 
 /* ---------- Export sizes ---------- */
@@ -499,19 +576,19 @@ $('btn-export-sizes').onclick=()=>{
 
 /* ---------- Bootstrap ---------- */
 async function bootstrap(){
-  try{
-    const url=await storage.ref('Agora Logo/2F6-1YdaEP.jpeg').getDownloadURL(); // prefetch logo (also used in print)
-  }catch(e){}
-  await listCloudKeys();
-  renderSizes(); renderList([]); // immediate placeholders
-  loadAll();                     // progressive fill
+  try{ await storage.ref('Agora Logo/2F6-1YdaEP.jpeg').getDownloadURL(); }catch(e){}
+  const res=await storage.ref(FOLDER).listAll();
+  CLOUD_KEYS=res.items.filter(x=>/\.json$/i.test(x.name)).map(x=>x.name).sort((a,b)=>keyToDn(a).localeCompare(keyToDn(b)));
+  $('cloud-count').textContent=CLOUD_KEYS.length;
+  renderSizes(); renderList([]); // placeholders quickly
+  loadAll();                     // progressive fill (fast first screen, then full)
 }
 bootstrap();
 
 /* ---------- Service Worker (inline) ---------- */
 if('serviceWorker' in navigator){
   const swCode=`
-    const CACHE='agora-precheck-v8';
+    const CACHE='agora-precheck-v9';
     const CORE=[
       location.origin+location.pathname,
       'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css',
