@@ -1,7 +1,7 @@
-/* Agora Vat Pre-Check – SW (cloud-only app)
+/* Agora Vat Pre-Check – SW (cloud-only + lazy load)
    - Caches shell and fetched Firebase JSONs so brochures you’ve opened stay available offline.
 */
-const VERSION = 'vpc-sw-cloudonly-1';
+const VERSION = 'vpc-sw-3-4';
 const SHELL = [
   './',
   './index.html',
