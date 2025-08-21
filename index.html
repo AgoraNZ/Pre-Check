@@ -36,7 +36,11 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
 @media (max-width:900px){.card-list{grid-template-columns:1fr}}
 .farm-card{border:1px solid #e5e7eb;border-radius:16px;background:#fff;padding:14px}
 .farm-card:hover{box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.farm-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.farm-title{font-size:1.15rem;font-weight:800}
 .badge-soft{border:1px solid #e5e7eb;border-radius:999px;padding:2px 8px;font-size:.82rem}
+.farm-lines{color:#111827}
+.farm-actions{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
 .btn-brand{background:var(--accent);border:none;color:#fff;font-weight:700}
 .btn-brand:hover{background:#ff6d00}
 .btn-outline-brand{border:1px solid var(--accent);color:var(--accent);background:#fff;font-weight:700}
@@ -79,7 +83,7 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
     </div>
   </div>
 
-  <!-- ============ FORM (cloud-only, no local cache) ============ -->
+  <!-- ============ FORM (cloud-only) ============ -->
   <div id="view-form">
     <div class="form-card">
       <div class="grid-3">
@@ -170,14 +174,15 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
     </div>
   </div>
 
-  <!-- ============ SUMMARY (cloud-only, in-memory) ============ -->
+  <!-- ============ SUMMARY (lazy cloud fetch) ============ -->
   <div id="view-summary" class="hidden">
     <div class="panel">
       <div class="section-title">Overview</div>
       <div class="input-group mb-2">
         <span class="input-group-text">Search</span>
-        <input id="searchBox" class="form-control" placeholder="Search dairy # or text…">
+        <input id="searchBox" class="form-control" placeholder="Search dairy #… (full-text requires Load All)">
         <button class="btn btn-outline-secondary" id="btnClearSearch">Clear</button>
+        <button class="btn btn-outline-brand" id="btnLoadAll">Load All</button>
       </div>
       <div class="d-flex flex-wrap gap-2">
         <div class="badge-soft p-2">DTS Vent Caps: <b id="kpi-dts">0</b></div>
@@ -195,6 +200,7 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
     <div class="panel">
       <div class="section-title">Results</div>
       <div id="result-cards" class="card-list"></div>
+      <div id="list-status" class="text-muted small mt-2"></div>
     </div>
   </div>
 
@@ -203,14 +209,14 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
     <div class="panel">
       <div class="section-title">Data Tools</div>
       <div class="d-flex flex-wrap gap-2">
-        <button id="btn-sync" class="btn btn-brand">Force Full Sync (prefetch to offline)</button>
+        <button id="btn-sync" class="btn btn-brand">Force Full Sync (prefetch for offline)</button>
         <button id="btn-owner-report" class="btn btn-outline-brand">Download Owner Report (HTML)</button>
       </div>
-      <div class="small text-muted mt-2">No local DB is used. “Full Sync” downloads all JSONs now and the Service Worker caches them for offline brochure viewing.</div>
+      <div class="small text-muted mt-2">No local DB. “Full Sync” streams all JSONs and lets the Service Worker keep them for offline brochures.</div>
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v3.3 (cloud-only)</div>
+  <div class="footer">Agora • Vat Pre-Check • v3.4</div>
 </div>
 
 <div id="print-modal" class="hidden">
@@ -236,14 +242,16 @@ const storage = firebase.storage();
 const FOLDER = 'Pre Check';
 
 /* ---------- App state (memory only) ---------- */
-const Forms = new Map(); // dairyNumber -> record
-function clearMemory(){ Forms.clear(); }
+const Forms = new Map();            // dairyNumber -> record (full JSON)
+let CloudKeys = [];                 // file names "7008.json"…
+let loadedCount = 0;                // fetched into Forms (for KPIs)
 
 /* ---------- Utilities ---------- */
 const $ = id=>document.getElementById(id);
 const show = el=>el.classList.remove('hidden');
 const hide = el=>el.classList.add('hidden');
 function setProgress(done,total){ $('sync-bar').style.width = (total?Math.round(done/total*100):0)+'%'; }
+const text = v => (v==null?'':String(v));
 
 /* Logo */
 (async()=>{ try{ const url=await storage.ref('Agora Logo/2F6-1YdaEP.jpeg').getDownloadURL(); $('logo').src=url; $('logo').style.display='block'; window._logoURL=url; }catch(_){}})();
@@ -256,18 +264,18 @@ Object.keys(views).forEach(t=>{
     $(t).classList.add('active');
     Object.values(views).forEach(v=>hide($(v)));
     show($(views[t]));
-    if(views[t]==='view-summary') buildSummary();
+    if(views[t]==='view-summary') initSummary();
   };
 });
 $('btn-summary-jump').onclick = ()=>$('tab-summary').click();
 
-/* Reveal Vat2 block */
+/* Show Vat2 only when capacity present */
 function toggleVat2Extra(){ $('vat2-extra').classList.toggle('d-none', !($('vat2-capacity').value||'').trim()); }
 $('vat2-capacity').addEventListener('input', toggleVat2Extra);
 $('door-delivered').addEventListener('change', e=>$('door-size-wrap').classList.toggle('d-none', e.target.value!=='yes'));
 $('rjt-delivered').addEventListener('change', e=>$('rjt-size-wrap').classList.toggle('d-none', e.target.value!=='yes'));
 
-/* Photo previews */
+/* Photo previews (form) */
 function setImgPreview(inputEl, imgEl){ const f=inputEl.files&&inputEl.files[0]; if(!f){ imgEl.classList.add('d-none'); return; } imgEl.src = URL.createObjectURL(f); imgEl.classList.remove('d-none'); }
 ['gateway','vat1-cap','agitator1','vat2-cap','agitator2','door','rjt'].forEach(k=>{
   const inp=$(k+'-photo'), img=$(k+'-preview'); if(inp) inp.addEventListener('change', ()=>setImgPreview(inp,img));
@@ -297,24 +305,18 @@ async function fetchRecord(dnOrKey){
     const rec = await fetch(url,{cache:'no-store'}).then(r=>r.json());
     rec.dairyNumber = rec.dairyNumber || key.replace('.json','');
     Forms.set(rec.dairyNumber, rec);
+    loadedCount++;
     // pre-cache via SW so brochures are offline
     try{ caches && caches.open('vpc-runtime').then(c=>c.add(url)).catch(()=>{});}catch(_){}
     return rec;
   }catch(e){ console.warn('fetch failed', dnOrKey, e); return null; }
 }
 
-/* Full sync (memory + SW cache) */
-async function fullSyncFromCloud(){
-  const keys = await listCloudKeys();
-  let done=0;
-  for(const k of keys){ await fetchRecord(k); done++; setProgress(done, keys.length); }
-}
-
-/* -------- Form: autofill directly from cloud -------- */
+/* ---------- FORM: auto-fill from cloud ---------- */
 function setVal(id,v){ const el=$(id); if(el) el.value = v ?? ''; }
 function populateForm(rec){
   setVal('dairyNumber', rec.dairyNumber);
-  setVal('gateway-location', rec['gateway-location']);
+  setVal('gateway-location', rec['gateway-location'] || rec['gatewayLocation'] || rec['gateway']);
   setVal('vat1-capacity', rec['vat1-capacity']); setVal('vat1-cap', rec['vat1-cap']||'available');
   setVal('vat1-serial', rec['vat1-serial']); setVal('vat1-condition', rec['vat1-condition']||'ok');
   setVal('vat1-condition-comments', rec['vat1-condition-comments']); setVal('vat1-comments', rec['vat1-comments']);
@@ -336,7 +338,7 @@ $('dairyNumber').addEventListener('blur', async ()=>{
   if(rec) populateForm(rec);
 });
 
-/* -------- Save (cloud JSON only) -------- */
+/* ---------- SAVE (cloud only) ---------- */
 async function fileToB64(input){ const f=input.files&&input.files[0]; if(!f) return ''; return await new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(f); }); }
 async function gatherForm(){
   const dn = ($('dairyNumber').value||'').trim(); if(!dn) throw new Error('Dairy # required');
@@ -369,67 +371,170 @@ $('btn-save').onclick = async ()=>{
     $('btn-save').disabled = true; setProgress(0,1);
     const data = await gatherForm();
     await uploadJson(`${FOLDER}/${data.dairyNumber}.json`, data);
-    Forms.set(data.dairyNumber, data); // memory update
+    Forms.set(data.dairyNumber, data);
     setProgress(1,1); alert('Saved ✔');
   }catch(e){ alert('Save failed: '+(e?.message||e)); }
   $('btn-save').disabled = false;
 };
+$('btn-print').onclick = async ()=>{
+  const dn = ($('dairyNumber').value||'').trim();
+  if(!dn){ alert('Enter a Dairy # first'); return; }
+  const rec = Forms.get(dn) || await fetchRecord(dn);
+  if(!rec){ alert('Save or sync first'); return; }
+  openPrint(dn);
+};
 
-/* -------- Summary (memory) -------- */
-function hasDtsCap(r){ const blob=(JSON.stringify(r)||'').toLowerCase(); return /(grey|gray)\s+halo/.test(blob)||/\bdts\b.*(cap|vent)/.test(blob); }
+/* ---------- SUMMARY (lazy) ---------- */
+function norm(s){return (s||'').toString().toLowerCase()}
+function hasDtsCap(r){ return /(grey|gray)\s+halo/.test(norm(JSON.stringify(r))) || /\bdts\b.*(cap|vent)/.test(norm(JSON.stringify(r))); }
 function needsPowerPoint(r){ return /(power\s*point|splitter\s*plug|double\s*adapter)/i.test(JSON.stringify(r)||''); }
-function farmCardHTML(r){
-  const dn=r.dairyNumber, v1=r['vat1-capacity']||'—', v2=r['vat2-capacity']||'';
-  const caps=[r['vat1-cap']==='available'?'V1 cap ✓':(r['vat1-cap']==='unavailable'?'V1 cap ✗':''), r['vat2-cap']==='available'?'V2 cap ✓':(r['vat2-cap']==='unavailable'?'V2 cap ✗':'')].filter(Boolean).join(' · ');
-  return `<div class="farm-card"><div class="d-flex justify-content-between align-items-center"><div><strong>#${dn}</strong> <span class="badge-soft">${v1}${v2?' • '+v2:''}</span></div><div class="badge-soft">${caps||'—'}</div></div><div class="mt-2 d-flex gap-2"><button class="btn btn-sm btn-outline-brand" onclick="openDetails('${dn}')">Details</button><button class="btn btn-sm btn-brand" onclick="openPrint('${dn}')">Print</button></div></div>`;
+
+/* build card HTML from a record */
+function vatLine(rec, n){
+  const size = rec[`vat${n}-capacity`]||'—';
+  const cap = rec[`vat${n}-cap`];
+  const capTxt = (cap==='available'?'Cap available':(cap==='unavailable'?'Cap unavailable':(cap==='na'?'Cap N/A':'Cap —')));
+  const cond = (rec[`vat${n}-condition`]||'ok').replace(/^ok$/,'ok');
+  const sn = rec[`vat${n}-serial`] ? ` • SN ${rec[`vat${n}-serial`]}` : '';
+  return `Vat ${n}: ${size} L • ${capTxt} • Cond ${cond}${sn}`;
 }
-function renderCards(list){ $('result-cards').innerHTML = list.sort((a,b)=>String(a.dairyNumber).localeCompare(String(b.dairyNumber))).map(farmCardHTML).join(''); }
-async function buildSummary(){
-  // ensure we have something in memory; if not, pull key list and lazily fetch
-  if(!Forms.size){
-    const keys = await listCloudKeys();
-    // fetch in batches to remain smooth
-    let done=0; const total=keys.length;
-    const batchSize = 15;
-    for(let i=0;i<keys.length;i+=batchSize){
-      const slice = keys.slice(i,i+batchSize);
-      await Promise.all(slice.map(k=>fetchRecord(k)));
-      done += slice.length; setProgress(done,total);
-      // progressively render
-      renderNow();
-    }
-  } else {
-    renderNow();
-  }
+function signalLine(r){
+  const s = r['spark-bars'] ? `Spark ${r['spark-bars']}` : '';
+  const o = r['one-bars'] ? `One NZ ${r['one-bars']}` : '';
+  const bits = [s,o].filter(Boolean).join(' • ');
+  return bits ? `Signal: ${bits}` : '';
+}
+function rubberLine(r){
+  const d = r['door-delivered']==='yes' ? `Door seal delivered${r['door-size']? ' ('+r['door-size']+')':''}` : 'Door seal notdelivered';
+  const j = r['rjt-delivered']==='yes' ? `RJT delivered${r['rjt-size']? ' ('+r['rjt-size']+')':''}` : 'RJT notdelivered';
+  return `Rubberware: ${d} • ${j}`;
+}
+function farmCardHTML(r){
+  const dn=r.dairyNumber;
+  const line1 = vatLine(r,1);
+  const line2 = r['vat2-capacity'] ? vatLine(r,2) : '';
+  const line3 = signalLine(r);
+  const line4 = rubberLine(r);
+  return `
+  <div class="farm-card" id="card-${dn}">
+    <div class="farm-head">
+      <div class="farm-title">#${dn}</div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-brand" onclick="openDetails('${dn}')">Details</button>
+        <button class="btn btn-sm btn-brand" onclick="openPrint('${dn}')">Print</button>
+      </div>
+    </div>
+    <div class="farm-lines mt-1">
+      <div>${line1}</div>
+      ${line2?`<div>${line2}</div>`:''}
+      ${line3?`<div>${line3}</div>`:''}
+      <div>${line4}</div>
+    </div>
+  </div>`;
+}
 
-  function renderNow(){
+/* render only with keys; lazy-fetch records as they scroll into view */
+let observer;
+async function initSummary(){
+  if(!CloudKeys.length){
+    CloudKeys = await listCloudKeys();
+    $('list-status').textContent = 'Scroll to load farms…';
+  }
+  const container = $('result-cards');
+  container.innerHTML = '';
+  // Make placeholders quickly
+  CloudKeys.forEach(k=>{
+    const dn = k.replace('.json','');
+    const card = document.createElement('div');
+    card.className = 'farm-card';
+    card.id = 'card-'+dn;
+    card.innerHTML = `
+      <div class="farm-head">
+        <div class="farm-title">#${dn}</div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-brand" onclick="openDetails('${dn}')">Details</button>
+          <button class="btn btn-sm btn-brand" onclick="openPrint('${dn}')">Print</button>
+        </div>
+      </div>
+      <div class="text-muted">Loading quick facts…</div>`;
+    container.appendChild(card);
+  });
+
+  // Observe and fetch just-in-time
+  if(observer) observer.disconnect();
+  observer = new IntersectionObserver(async entries=>{
+    for(const e of entries){
+      if(e.isIntersecting){
+        const dn = e.target.id.replace('card-','');
+        if(!Forms.get(dn)){
+          const rec = await fetchRecord(dn);
+          if(rec){
+            e.target.outerHTML = farmCardHTML(rec);
+            refreshKPIs();
+          }
+        }
+      }
+    }
+  }, {rootMargin:'600px 0px'});
+
+  document.querySelectorAll('.farm-card').forEach(el=>observer.observe(el));
+
+  // search (by dairy # fast)
+  $('searchBox').oninput = ()=>{
+    const q = ($('searchBox').value||'').trim();
+    document.querySelectorAll('.farm-card').forEach(el=>{
+      const dn = el.id.replace('card-','');
+      el.style.display = dn.includes(q) ? '' : 'none';
+    });
+  };
+  $('btnClearSearch').onclick = ()=>{ $('searchBox').value=''; $('searchBox').dispatchEvent(new Event('input')); };
+  $('btnLoadAll').onclick = async ()=>{
+    setProgress(0,1);
+    let done = 0;
+    for(const k of CloudKeys){
+      const dn = k.replace('.json','');
+      if(!Forms.get(dn)){
+        await fetchRecord(dn);
+        const node = document.getElementById('card-'+dn);
+        if(node) node.outerHTML = farmCardHTML(Forms.get(dn));
+      }
+      done++; setProgress(done, CloudKeys.length);
+    }
+    $('list-status').textContent = 'All farms loaded. Full-text search is now available.';
+    enableFullTextSearch();
+    refreshKPIs();
+  };
+}
+
+/* full-text search once everything is loaded */
+function enableFullTextSearch(){
+  $('searchBox').oninput = ()=>{
+    const q = norm(($('searchBox').value||''));
     const rows = Array.from(Forms.values());
-    // KPIs
-    $('kpi-dts').textContent = rows.filter(hasDtsCap).length;
-    $('kpi-power').textContent = rows.filter(needsPowerPoint).length;
-    $('kpi-rubber').textContent = rows.filter(r=>r['door-delivered']==='yes' || r['rjt-delivered']==='yes').length;
+    rows.forEach(r=>{
+      const show = !q || norm(JSON.stringify(r)).includes(q);
+      const el = document.getElementById('card-'+r.dairyNumber);
+      if(el) el.style.display = show? '' : 'none';
+    });
+  };
+}
 
-    // Sizes
-    const sizes={}; rows.forEach(r=>{ const a=r['vat1-capacity']; const b=r['vat2-capacity']; if(a) sizes[a]=(sizes[a]||0)+1; if(b) sizes[b]=(sizes[b]||0)+1; });
-    let html='<table class="table table-sm table-bordered mb-2"><thead><tr><th>Vat Size (L)</th><th>Count</th></tr></thead><tbody>';
-    Object.entries(sizes).sort((x,y)=>parseInt(x[0])-parseInt(y[0])).forEach(([s,c])=>{ html+=`<tr><td>${s}</td><td>${c}</td></tr>`; });
-    html+='</tbody></table>'; $('size-table').innerHTML=html;
-
-    // Search
-    function apply(){
-      const q = ($('searchBox').value||'').toLowerCase();
-      const list = q? rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q)) : rows;
-      renderCards(list);
-    }
-    $('searchBox').oninput = apply; $('btnClearSearch').onclick = ()=>{ $('searchBox').value=''; apply(); };
-
-    apply();
-  }
+function refreshKPIs(){
+  const rows = Array.from(Forms.values());
+  $('kpi-dts').textContent = rows.filter(hasDtsCap).length;
+  $('kpi-power').textContent = rows.filter(needsPowerPoint).length;
+  $('kpi-rubber').textContent = rows.filter(r=>r['door-delivered']==='yes'||r['rjt-delivered']==='yes').length;
+  // sizes table (computed from loaded only)
+  const sizes={}; rows.forEach(r=>{ const a=r['vat1-capacity']; const b=r['vat2-capacity']; if(a) sizes[a]=(sizes[a]||0)+1; if(b) sizes[b]=(sizes[b]||0)+1; });
+  let html='<table class="table table-sm table-bordered mb-2"><thead><tr><th>Vat Size (L)</th><th>Count</th></tr></thead><tbody>';
+  Object.entries(sizes).sort((x,y)=>parseInt(x[0])-parseInt(y[0])).forEach(([s,c])=>{ html+=`<tr><td>${s}</td><td>${c}</td></tr>`; });
+  html+='</tbody></table>'; $('size-table').innerHTML=html;
 }
 
 /* -------- Details / Print brochure -------- */
 function labeledPhoto(label,src){ if(!src) return ''; return `<div class="print-card"><div class="print-label">${label}</div><div class="print-photos"><img src="${src}"></div></div>`; }
-function brochureHTML(rec){
+
+function brochureHTML(rec, includePhotos){
   const doorCount = (rec['door-delivered']==='yes') ? (rec['vat2-capacity']?2:1) : 0;
   return `
   <div class="print-head">
@@ -460,20 +565,39 @@ function brochureHTML(rec){
       <div>RJT: <b>${rec['rjt-delivered']==='yes'?'Delivered':'No'}</b> ${rec['rjt-size']?'• '+rec['rjt-size']:''}</div>
     </div>
   </div>
+  ${includePhotos ? `
   <div class="print-grid" style="margin-top:10px">
     ${labeledPhoto('Gateway', rec['gateway-photo-base64'])}
     ${labeledPhoto('Vat 1 Cap', rec['vat1-cap-photo-base64'])}
-    ${labeledPhoto('Agitator (Vat 1)', rec['agitator1-photo-base64'])}
+    ${labeledPhoto('Agitator (Vat 1)', rec['agitator1-photo-base64'] || rec['agitator-photo-base64'])}
     ${labeledPhoto('Vat 2 Cap', rec['vat2-cap-photo-base64'])}
     ${labeledPhoto('Agitator (Vat 2)', rec['agitator2-photo-base64'])}
-    ${labeledPhoto('Door Seal', rec['door-photo-base64'])}
-    ${labeledPhoto('RJT', rec['rjt-photo-base64'])}
-  </div>`;
+    ${labeledPhoto('Door Seal', rec['door-photo-base64'] || rec['vat-door-seal-photo-base64'])}
+    ${labeledPhoto('RJT', rec['rjt-photo-base64'] || rec['rjt-seal-photo-base64'])}
+  </div>`:''}
+  `;
 }
-window.openDetails = (dn)=>{ const rec=Forms.get(dn); if(!rec) return; $('tab-summary').click(); $('result-cards').innerHTML = `<div class="farm-card">${brochureHTML(rec)}</div>`; window.scrollTo({top:0,behavior:'smooth'}); };
-window.openPrint = (dn)=>{ const rec=Forms.get(dn); if(!rec) return; const sheet=brochureHTML(rec); const css=document.querySelector('style').innerHTML; const w=window.open('', '_blank'); w.document.write(`<html><head><title>Print #${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body>${sheet}</body></html>`); w.document.close(); w.focus(); setTimeout(()=>w.print(),350); };
 
-/* Export sizes CSV */
+/* DETAILS = brochure (text only, no photos) */
+window.openDetails = async (dn)=>{
+  const rec = Forms.get(dn) || await fetchRecord(dn);
+  if(!rec) return;
+  $('tab-summary').click();
+  $('result-cards').innerHTML = `<div class="farm-card">${brochureHTML(rec,false)}</div>`;
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+/* PRINT = brochure with ALL PHOTOS */
+window.openPrint = async (dn)=>{
+  const rec = Forms.get(dn) || await fetchRecord(dn);
+  if(!rec) return;
+  const sheet=brochureHTML(rec,true);
+  const css=document.querySelector('style').innerHTML;
+  const w=window.open('', '_blank');
+  w.document.write(`<html><head><title>Print #${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body>${sheet}</body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(),350);
+};
+
+/* Export sizes CSV (loaded records only) */
 $('btn-export-sizes').onclick = ()=>{
   const rows = Array.from(Forms.values());
   const out=[['Dairy','Vat','Size (L)','Serial','Door Seal','RJT']];
@@ -483,17 +607,22 @@ $('btn-export-sizes').onclick = ()=>{
 };
 
 /* Admin */
-$('btn-sync').onclick = async ()=>{ clearMemory(); setProgress(0,1); await fullSyncFromCloud(); alert('Synced. You can now use Summary offline for viewed farms.'); };
+$('btn-sync').onclick = async ()=>{
+  setProgress(0,1);
+  let done=0; const keys = CloudKeys.length? CloudKeys : await listCloudKeys();
+  for(const k of keys){ await fetchRecord(k); done++; setProgress(done, keys.length); }
+  alert('Full sync complete. You can print or view details offline for fetched farms.');
+};
 $('btn-owner-report').onclick = ()=>{
   const all = Array.from(Forms.values()).sort((a,b)=>String(a.dairyNumber).localeCompare(String(b.dairyNumber)));
-  if(!all.length){ alert('Load Summary first (or run Full Sync).'); return; }
+  if(!all.length){ alert('Load Summary (or run Full Sync) first.'); return; }
   const css = document.querySelector('style').innerHTML;
   const sizes={}; all.forEach(r=>{ const a=r['vat1-capacity']; const b=r['vat2-capacity']; if(a) sizes[a]=(sizes[a]||0)+1; if(b) sizes[b]=(sizes[b]||0)+1; });
   let sizeHtml = '<table class="table table-sm table-bordered"><thead><tr><th>Vat Size (L)</th><th>Count</th></tr></thead><tbody>';
   Object.entries(sizes).sort((x,y)=>parseInt(x[0])-parseInt(y[0])).forEach(([s,c])=>sizeHtml+=`<tr><td>${s}</td><td>${c}</td></tr>`); sizeHtml+='</tbody></table>';
   let serialHtml = '<table class="table table-sm table-bordered"><thead><tr><th>Dairy</th><th>Vat</th><th>Size</th><th>Serial</th></tr></thead><tbody>';
   all.forEach(r=>{ if(r['vat1-capacity']) serialHtml+=`<tr><td>${r.dairyNumber}</td><td>1</td><td>${r['vat1-capacity']}</td><td>${r['vat1-serial']||''}</td></tr>`; if(r['vat2-capacity']) serialHtml+=`<tr><td>${r.dairyNumber}</td><td>2</td><td>${r['vat2-capacity']}</td><td>${r['vat2-serial']||''}</td></tr>`; }); serialHtml+='</tbody></table>';
-  const body = `<div class="app"><div class="brand-header"><img src="${window._logoURL||''}" class="brand-logo" style="display:block"><div class="brand-title"><h1>Owner Report</h1><div class="brand-sub">${new Date().toISOString().slice(0,10)}</div></div></div><div class="panel"><div class="section-title">Vat Size Breakdown</div>${sizeHtml}</div><div class="panel"><div class="section-title">Serial Numbers</div>${serialHtml}</div>${all.map(r=>`<div class="panel">${brochureHTML(r)}</div>`).join('')}</div>`;
+  const body = `<div class="app"><div class="brand-header"><img src="${window._logoURL||''}" class="brand-logo" style="display:block"><div class="brand-title"><h1>Owner Report</h1><div class="brand-sub">${new Date().toISOString().slice(0,10)}</div></div></div><div class="panel"><div class="section-title">Vat Size Breakdown</div>${sizeHtml}</div><div class="panel"><div class="section-title">Serial Numbers</div>${serialHtml}</div>${all.map(r=>`<div class="panel">${brochureHTML(r,true)}</div>`).join('')}</div>`;
   const blob = new Blob([`<html><head><meta charset="utf-8"><title>Owner Report</title><style>${css}</style></head><body>${body}</body></html>`],{type:'text/html'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='owner_report.html'; a.click();
 };
@@ -503,7 +632,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('./service-wo
 
 /* Init */
 window.addEventListener('DOMContentLoaded', async ()=>{
-  try{ const keys = await listCloudKeys(); $('cloud-count').textContent = keys.length; }catch(_){ $('cloud-count').textContent='—'; }
+  try{ CloudKeys = await listCloudKeys(); $('cloud-count').textContent = CloudKeys.length; }catch(_){ $('cloud-count').textContent='—'; }
 });
 </script>
 </body>
