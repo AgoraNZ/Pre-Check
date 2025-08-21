@@ -12,9 +12,8 @@
 
 <style>
   :root{
-    --brand:#a7ab01; --ink:#0f1b2d; --muted:#6c7a90; --bg:#f5f7fb; --card:#fff;
-    --navy:#0c2d57; --orange:#ff851b; --danger:#ff5a5f; --ok:#0aa06e; --chip:#eef2f6;
-    --radius:14px;
+    --brand:#a7ab01; --ink:#0f1b2d; --muted:#6c7a90; --bg:#f6f8fb; --card:#fff;
+    --navy:#0c2d57; --orange:#ff851b; --chip:#eef2f6; --radius:14px;
   }
   html,body{height:100%}
   body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -35,8 +34,6 @@
   .summary-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
   .sumcard{background:#fff;border:1px solid #e7edf6;border-radius:14px;padding:16px;cursor:pointer}
   .sumcard:hover{box-shadow:0 8px 18px rgba(15,27,45,.08)}
-  .sumcard .n{font-size:34px;font-weight:800;line-height:1}
-  .sumcard .t{color:var(--muted);font-weight:600}
   .farm-card{background:#fff;border:1px solid #e7edf6;border-radius:16px;padding:14px;margin-bottom:12px}
   .farm-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
   .farm-title{font-weight:800;font-size:20px}
@@ -50,6 +47,12 @@
   .thumbs img{width:100%;border-radius:8px;border:1px solid #e7edf6}
   .searchbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .hidden{display:none!important}
+  .status{font-size:13px;color:#5a6a85}
+  .error{color:#b00020}
+  .hr-sm{margin:10px 0}
+  /* sticky footer action bar */
+  .sticky-save{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(246,248,251,0),var(--bg) 35%);padding-top:8px}
+  .spinner{display:inline-flex;align-items:center;gap:8px}
 </style>
 </head>
 <body>
@@ -75,7 +78,7 @@
 
   <!-- ================= FORM ================= -->
   <section id="pageForm" class="panel">
-    <h4 class="section-h">Create / Update Pre-Check</h4>
+    <h5 class="section-h">Create / Update Pre-Check</h5>
 
     <div class="card-block">
       <h6 class="mb-2 fw-bold">Dairy</h6>
@@ -83,11 +86,10 @@
         <div>
           <label class="form-label">Dairy Number</label>
           <input id="dairyNumber" class="form-control" placeholder="e.g. 7016">
-          <div class="form-text">Auto-fill triggers when you leave this field (and loads photos).</div>
+          <div class="form-text">Leave this field to auto-fill (values & photos) if found in cloud.</div>
         </div>
         <div class="align-self-end">
-          <button class="btn btn-navy" id="btnSave">Save</button>
-          <button class="btn btn-outline-secondary" id="btnPrint">Print</button>
+          <button class="btn btn-outline-secondary" id="btnPrintTop">Print</button>
         </div>
       </div>
     </div>
@@ -112,7 +114,7 @@
       </div>
     </div>
 
-    <!-- Vat 2 (hidden until capacity entered) -->
+    <!-- Vat 2 (revealed by capacity) -->
     <div class="card-block" id="blockVat2">
       <h6 class="fw-bold mb-2">Vat 2</h6>
       <div class="grid-2">
@@ -172,11 +174,25 @@
           <div><label class="form-label">Count</label><input id="door-count" class="form-control" inputmode="numeric" placeholder="auto = vat count"></div>
         </div>
         <input type="file" id="door-photo" class="form-control mt-2" accept="image/*"><img id="door-prev" class="preview">
-        <hr class="my-3">
+        <hr class="hr-sm">
         <label class="form-label">RJT Step Seal</label>
         <select id="rjt" class="form-select"><option value="notdelivered">Not delivered</option><option value="delivered">Delivered</option></select>
         <label class="form-label mt-2">RJT Size</label><select id="rjt-size" class="form-select"><option value="">Unspecified</option><option value="small">Small</option><option value="large">Large</option></select>
         <input type="file" id="rjt-photo" class="form-control mt-2" accept="image/*"><img id="rjt-prev" class="preview">
+      </div>
+    </div>
+
+    <!-- Sticky bottom action bar -->
+    <div class="sticky-save">
+      <div class="d-flex align-items-center gap-2">
+        <div class="spinner hidden" id="saveSpinner">
+          <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+          <span class="small">Saving…</span>
+        </div>
+        <div class="ms-auto">
+          <button class="btn btn-outline-secondary me-2" id="btnPrint">Print</button>
+          <button class="btn btn-navy" id="btnSave">Save</button>
+        </div>
       </div>
     </div>
   </section>
@@ -188,7 +204,7 @@
       <button class="btn btn-outline-secondary" id="btnApply">Apply</button>
       <span class="badge-soft">Cloud: <span id="cloudCount">0</span></span>
     </div>
-
+    <div id="sumStatus" class="status mb-2"></div>
     <div id="overview" class="summary-cards mb-3"></div>
     <div id="filterNote" class="mb-2 hidden"></div>
     <div id="list"></div>
@@ -197,6 +213,19 @@
   <!-- ================= ADMIN ================= -->
   <section id="pageAdmin" class="panel hidden">
     <h5 class="section-h">Admin</h5>
+    <div class="mb-2 status">Load data for Summary: fetch from Firebase or load a local JSON dump.</div>
+    <div class="d-flex flex-wrap gap-2 mb-2">
+      <button class="btn btn-navy" id="btnFetchAll">Fetch ALL from Cloud</button>
+      <button class="btn btn-outline-secondary" id="btnExportDump">Export merged JSON</button>
+      <label class="btn btn-outline-primary mb-0">
+        Load JSON file <input type="file" id="fileLoad" accept="application/json" hidden>
+      </label>
+    </div>
+    <div class="progress mb-2" role="progressbar" aria-label="Fetch progress" style="height:10px;">
+      <div id="progBar" class="progress-bar" style="width:0%"></div>
+    </div>
+    <div id="adminInfo" class="status"></div>
+    <hr>
     <div class="kv">
       <div class="muted">Logo</div><div>Agora Logo/2F6-1YdaEP.jpeg</div>
       <div class="muted">Data folder</div><div>Pre Check/*.json</div>
@@ -225,9 +254,7 @@ const storage = firebase.storage();
 /* ------------ Helpers ------------ */
 const $ = id=>document.getElementById(id);
 const show = (el, on=true)=>{(typeof el==='string'?$(el):el).classList.toggle('hidden',!on)};
-function setLogo(){
-  storage.ref("Agora Logo/2F6-1YdaEP.jpeg").getDownloadURL().then(u=>{$('agoraLogo').src=u}).catch(()=>{});
-}
+function setLogo(){ storage.ref("Agora Logo/2F6-1YdaEP.jpeg").getDownloadURL().then(u=>{$('agoraLogo').src=u}).catch(()=>{}); }
 setLogo();
 
 /* ------------ Router ------------ */
@@ -236,41 +263,15 @@ function go(tab){
   $('tabForm').classList.toggle('active',tab==='form');
   $('tabSummary').classList.toggle('active',tab==='sum');
   $('tabAdmin').classList.toggle('active',tab==='adm');
-  if(tab==='sum') renderSummary(); 
+  if(tab==='sum') ensureSummaryData().then(renderSummary);
 }
 $('tabForm').onclick=()=>go('form');
 $('tabSummary').onclick=()=>go('sum');
 $('tabAdmin').onclick=()=>go('adm');
 
-/* ------------ In-memory store (no cache) ------------ */
-let ALL = []; // array of farm objects loaded from Firebase
-
-async function loadAllFromCloud(){
-  const folder = storage.ref('Pre Check');
-  const listing = await folder.listAll();
-  $('cloudCount').innerText = listing.items.length;
-  // fetch all JSONs; do it in small parallel batches to be fast & stable
-  const batchSize = 12;
-  const files = listing.items;
-  const out = [];
-  for(let i=0;i<files.length;i+=batchSize){
-    const slice = files.slice(i,i+batchSize);
-    const jobs = slice.map(async it=>{
-      try{
-        const url = await it.getDownloadURL();
-        const rec = await fetch(url).then(r=>r.json());
-        // carry dairyNumber from name if missing
-        rec.dairyNumber = rec.dairyNumber || it.name.replace('.json','');
-        return rec;
-      }catch(e){ return null; }
-    });
-    const part = await Promise.all(jobs);
-    out.push(...part.filter(Boolean));
-  }
-  // newest first
-  out.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
-  ALL = out;
-}
+/* ------------ Dataset in memory ------------ */
+let ALL = [];  // farms
+const setStatus = (msg, isErr=false)=>{$('sumStatus').innerHTML = msg? `<span class="${isErr?'error':''}">${msg}</span>`:''};
 
 /* ------------ Slang → signals ------------ */
 function ai(text){
@@ -286,61 +287,46 @@ function ai(text){
   return {dts,needsPower,sp,one,pref};
 }
 
-/* ------------ UI: Form bindings ------------ */
-function toggleVat2Block(){
-  const on = !!$('v2-cap').value.trim();
-  // just fades disabled fields for clarity
+/* ------------ File preview helpers ------------ */
+function wireFile(fid, pid){
+  $(fid).addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=ev=>{ const b64=ev.target.result; const img=$(pid); img.src=b64; img.style.display='block'; img.dataset.b64=b64; };
+    rd.readAsDataURL(f);
+  });
+}
+[['v1-capPhoto','v1-capPrev'],['v1-condPhoto','v1-condPrev'],['ag1-photo','ag1-prev'],
+ ['v2-capPhoto','v2-capPrev'],['v2-condPhoto','v2-condPrev'],['ag2-photo','ag2-prev'],
+ ['gw-photo','gw-prev'],['door-photo','door-prev'],['rjt-photo','rjt-prev']].forEach(w=>wireFile(...w));
+
+function toggleVat2Block(){ const on = !!$('v2-cap').value.trim();
   ['v2-capAvail','v2-cond','v2-serial','v2-comments','v2-capPhoto','v2-condPhoto','ag2-loc','ag2-photo'].forEach(id=>{
     const el=$(id); el.disabled=!on; el.parentElement.style.opacity = on?1:.5;
   });
 }
 $('v2-cap').addEventListener('input',toggleVat2Block); toggleVat2Block();
 
-function wireFile(fid, pid, target){
-  $(fid).addEventListener('change',e=>{
-    const f=e.target.files[0]; if(!f) return;
-    const rd=new FileReader();
-    rd.onload=ev=>{ const b64=ev.target.result; const img=$(pid); img.src=b64; img.style.display='block'; img.dataset.b64=b64; target.img=b64; };
-    rd.readAsDataURL(f);
-  });
-}
-// temp holder for current form images while editing
-const formImg = {};
-[['v1-capPhoto','v1-capPrev','v1CapPhoto'],['v1-condPhoto','v1-condPrev','v1CondPhoto'],
- ['ag1-photo','ag1-prev','ag1Photo'],['v2-capPhoto','v2-capPrev','v2CapPhoto'],
- ['v2-condPhoto','v2-condPrev','v2CondPhoto'],['ag2-photo','ag2-prev','ag2Photo'],
- ['gw-photo','gw-prev','gatewayPhoto'],['door-photo','door-prev','doorSealPhoto'],
- ['rjt-photo','rjt-prev','rjtPhoto']].forEach(([a,b,c])=>wireFile(a,b,formImg));
-
-/* ------------ Auto-fill (loads from Firebase + hydrates photos) ------------ */
+/* ------------ Auto-fill (cloud) ------------ */
 async function autofill(num){
   if(!num) return;
   try{
     const url = await storage.ref(`Pre Check/${num}.json`).getDownloadURL();
     const rec = await fetch(url).then(r=>r.json());
     rec.dairyNumber = rec.dairyNumber||num;
-
     const set=(id,val)=>{const el=$(id); if(el) el.value = (val??'');};
     set('v1-cap',rec['vat1-capacity']); set('v1-capAvail',rec['vat1-cap']); set('v1-cond',rec['vat1-condition']);
     set('v1-serial',rec['vat1-serial']); set('v1-comments',rec['vat1-comments']); set('ag1-loc',rec['agitator1-location']);
-
     set('v2-cap',rec['vat2-capacity']); set('v2-capAvail',rec['vat2-cap']||'na'); set('v2-cond',rec['vat2-condition']);
     set('v2-serial',rec['vat2-serial']); set('v2-comments',rec['vat2-comments']); set('ag2-loc',rec['agitator2-location']);
     toggleVat2Block();
-
     set('gw-loc',rec['gateway-location']); set('gw-comments',rec['gateway-comments']);
     set('spark',rec['spark-bars']||'0'); set('one',rec['one-bars']||'0'); set('signal-pref',rec['signal-preferred']||'');
-
     set('tel-brand',rec['telemetry-brand']); set('tel-type',rec['telemetry-type']); set('tel-comments',rec['telemetry-comments']);
-
     set('door',rec['vat-door-seal']||'notdelivered'); set('door-size',rec['door-seal-size']||''); set('door-count',rec['door-seal-count']||'');
     set('rjt',rec['rjt-seal']||'notdelivered'); set('rjt-size',rec['rjt-size']||'');
 
-    // hydrate images (support both old and new keys)
-    function hyd(keyList, imgId){
-      const src = keyList.map(k=>rec[k]).find(Boolean);
-      if(src){ const img=$(imgId); img.src=src; img.style.display='block'; img.dataset.b64=src; }
-    }
+    function hyd(keys, imgId){ const src = keys.map(k=>rec[k]).find(Boolean); if(src){ const i=$(imgId); i.src=src; i.style.display='block'; i.dataset.b64=src; } }
     hyd(['vat1CapPhoto','vat1-cap-photo-base64'],'v1-capPrev');
     hyd(['vat1CondPhoto','vat1-condition-photo-base64'],'v1-condPrev');
     hyd(['agitator1Photo','agitator-photo-base64','agitator1-photo-base64'],'ag1-prev');
@@ -350,12 +336,11 @@ async function autofill(num){
     hyd(['gatewayPhoto','gateway-photo-base64'],'gw-prev');
     hyd(['doorSealPhoto','vat-door-seal-photo-base64'],'door-prev');
     hyd(['rjtPhoto','rjt-seal-photo-base64'],'rjt-prev');
-
-  }catch(e){ /* not found is fine */ }
+  }catch(e){ /* not found ok */ }
 }
 $('dairyNumber').addEventListener('blur',e=>autofill(e.target.value.trim()));
 
-/* ------------ Save ------------ */
+/* ------------ Save to cloud (with spinner) ------------ */
 function collect(){
   const d = {
     dairyNumber:$('dairyNumber').value.trim(), timestamp:Date.now(),
@@ -370,24 +355,88 @@ function collect(){
     'rjt-seal':$('rjt').value, 'rjt-size':$('rjt-size').value
   };
   if(!d['door-seal-count']){ let n=0; if(d['vat1-capacity']) n++; if(d['vat2-capacity']) n++; d['door-seal-count']=String(n||1); }
-  // attach image base64
   function take(id,key){ const img=$(id); if(img && img.dataset.b64) d[key]=img.dataset.b64; }
   take('v1-capPrev','vat1CapPhoto'); take('v1-condPrev','vat1CondPhoto'); take('ag1-prev','agitator1Photo');
   take('v2-capPrev','vat2CapPhoto'); take('v2-condPrev','vat2CondPhoto'); take('ag2-prev','agitator2Photo');
   take('gw-prev','gatewayPhoto'); take('door-prev','doorSealPhoto'); take('rjt-prev','rjtPhoto');
   return d;
 }
-$('btnSave').onclick = async ()=>{
+async function save(){
   const rec = collect();
   if(!rec.dairyNumber){ alert('Enter a dairy number'); return; }
-  const blob = new Blob([JSON.stringify(rec)],{type:'application/json'});
-  await storage.ref(`Pre Check/${rec.dairyNumber}.json`).put(blob);
-  alert('Saved ✔');
-  // refresh in-memory data if we are on summary
-  if(!document.getElementById('pageSummary').classList.contains('hidden')){ await loadAllFromCloud(); renderSummary(); }
-};
+  show('saveSpinner',true);
+  try{
+    const blob = new Blob([JSON.stringify(rec)],{type:'application/json'});
+    await storage.ref(`Pre Check/${rec.dairyNumber}.json`).put(blob);
+    // update in-memory if present
+    const idx = ALL.findIndex(r=>String(r.dairyNumber)===String(rec.dairyNumber));
+    if(idx>=0) ALL[idx]=rec;
+    alert('Saved ✔');
+  }catch(e){
+    alert('Save failed');
+  }finally{
+    show('saveSpinner',false);
+  }
+}
+$('btnSave').onclick = save;
+$('btnPrint').onclick = ()=>{ const num=$('dairyNumber').value.trim(); const rec = ALL.find(r=>String(r.dairyNumber)===String(num)); if(rec) makePDF(rec); };
+$('btnPrintTop').onclick = $('btnPrint').onclick;
 
-/* ------------ Summary (instant from cloud, clickable cards) ------------ */
+/* ------------ Admin: Fetch ALL / Load dump / Export dump ------------ */
+async function fetchAllFromCloud(){
+  $('adminInfo').innerHTML = 'Listing cloud files…';
+  $('progBar').style.width = '0%';
+  try{
+    const folder = storage.ref('Pre Check');
+    const listing = await folder.listAll();
+    $('cloudCount').innerText = listing.items.length;
+    const files = listing.items;
+    const out = [];
+    for(let i=0;i<files.length;i++){
+      const it = files[i];
+      try{
+        const url = await it.getDownloadURL();
+        const rec = await fetch(url).then(r=>r.json());
+        rec.dairyNumber = rec.dairyNumber || it.name.replace('.json','');
+        out.push(rec);
+      }catch(e){}
+      $('progBar').style.width = ((i+1)/files.length*100)+'%';
+    }
+    out.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+    ALL = out;
+    $('adminInfo').innerHTML = `Loaded <b>${ALL.length}</b> farms from cloud. Open <b>Summary</b>.`;
+    setStatus('Data loaded from cloud. You can search/filter now.');
+  }catch(err){
+    $('adminInfo').innerHTML = `<span class="error">Error: could not read Firebase Storage (permissions?).</span>`;
+  }
+}
+$('btnFetchAll').onclick = fetchAllFromCloud;
+
+$('btnExportDump').onclick = ()=>{
+  if(!ALL.length){ alert('Nothing loaded. Fetch or load JSON first.'); return; }
+  const blob = new Blob([JSON.stringify(ALL,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='vat_precheck_dump.json'; a.click();
+};
+$('fileLoad').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const text = await file.text();
+  try{
+    const data = JSON.parse(text);
+    let arr = [];
+    if(Array.isArray(data)) arr = data;
+    else if(data && typeof data==='object') arr = Object.keys(data).map(k=>({dairyNumber:k, ...(data[k]||{})}));
+    arr.forEach(r=>{ r.dairyNumber = r.dairyNumber || r.id || ''; });
+    arr = arr.filter(r=>r.dairyNumber);
+    arr.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+    ALL = arr;
+    $('adminInfo').innerHTML = `Loaded <b>${ALL.length}</b> farms from local JSON. Open <b>Summary</b>.`;
+    setStatus('Data loaded from local file. You can search/filter now.');
+  }catch{
+    $('adminInfo').innerHTML = '<span class="error">Invalid JSON file.</span>';
+  }
+});
+
+/* ------------ Summary rendering ------------ */
 function countsFrom(rows){
   let dts=0,pwr=0,sp=0,one=0,rub=0; const sizes=new Set();
   rows.forEach(f=>{
@@ -418,7 +467,6 @@ function overviewHTML(stats){
   return items.map(i=>`<div class="sumcard" data-k="${i.id}"><div class="n">${i.n}</div><div class="t">${i.txt}</div></div>`).join('');
 }
 function cardHTML(rec){
-  // build short lines; hide Vat 2 completely if NA/empty
   const v1 = `Vat 1: ${rec['vat1-capacity']||'—'} L • Cap ${rec['vat1-cap']||'—'} • Cond ${rec['vat1-condition']||'—'} • SN ${rec['vat1-serial']||'—'}`;
   let v2 = '';
   if(rec['vat2-capacity'] && rec['vat2-cap']!=='na'){
@@ -426,13 +474,10 @@ function cardHTML(rec){
   }
   const sig = `Signal: Spark ${rec['spark-bars']||0} bars • One NZ ${rec['one-bars']||0} bars • Pref ${rec['signal-preferred']||'—'}`;
   const rub = `Rubberware: Door seal ${rec['vat-door-seal']||'—'} (${rec['door-seal-size']||'unspecified'}, x${rec['door-seal-count']||'1'}) • RJT ${rec['rjt-seal']||'—'} ${rec['rjt-size']? '('+rec['rjt-size']+')':''}`;
-
-  // thumbnails (first 3); details section shows all with labels
   const pics=[['Gateway',rec.gatewayPhoto],['Vat 1 cap',rec.vat1CapPhoto],['Vat 1 condition',rec.vat1CondPhoto],
               ['Vat 2 cap',rec.vat2CapPhoto],['Vat 2 condition',rec.vat2CondPhoto],
               ['Agitator 1',rec.agitator1Photo],['Agitator 2',rec.agitator2Photo],
               ['Door seal',rec.doorSealPhoto],['RJT',rec.rjtPhoto]].filter(x=>!!x[1]);
-
   return `
   <div class="farm-card" data-dairy="${rec.dairyNumber}">
     <div class="farm-top">
@@ -452,7 +497,7 @@ function cardHTML(rec){
         <div class="muted">Gateway</div><div>${rec['gateway-location']||'—'} ${rec['gateway-comments']?('• '+rec['gateway-comments']):''}</div>
         <div class="muted">Other telemetry</div><div>${rec['telemetry-brand']||'—'} • ${rec['telemetry-type']||'—'} • ${rec['telemetry-comments']||''}</div>
       </div>
-      ${pics.length?`<hr><div class="grid-3">${pics.map(([lab,src])=>`<div><img src="${src}" class="w-100" style="border-radius:8px;border:1px solid #e7edf6"><div class="mt-1 small text-muted">${lab}</div></div>`).join('')}</div>`:''}
+      ${pics.length?`<hr class="hr-sm"><div class="grid-3">${pics.map(([lab,src])=>`<div><img src="${src}" class="w-100" style="border-radius:8px;border:1px solid #e7edf6"><div class="mt-1 small text-muted">${lab}</div></div>`).join('')}</div>`:''}
     </div>
   </div>`;
 }
@@ -472,93 +517,120 @@ function bindCardButtons(container){
   });
 }
 
-async function renderSummary(){
-  if(ALL.length===0) await loadAllFromCloud(); // always load fresh from cloud
-  // Overview
+function renderSummary(){
+  if(!ALL.length){
+    setStatus('No data loaded. Click Admin → Fetch ALL from Cloud, or Load a JSON file.', true);
+    $('overview').innerHTML=''; $('list').innerHTML=''; show('filterNote',false); return;
+  }
+  setStatus('');
   const stats = countsFrom(ALL);
   $('overview').innerHTML = overviewHTML(stats);
-  // Clicking overview cards filters the list
   [...$('overview').querySelectorAll('.sumcard')].forEach(el=>{
     el.onclick = ()=>{
       const k=el.dataset.k;
       let rows = ALL;
       if(k==='f_dts') rows = ALL.filter(f=>ai([f['vat1-comments'],f['vat2-comments'],f['telemetry-comments']].join(' ')).dts || /dts|vent/i.test(f['telemetry-brand']||''));
       if(k==='f_pwr') rows = ALL.filter(f=>ai([f['gateway-comments'],f['telemetry-comments']].join(' ')).needsPower);
-      if(k==='f_sp') rows = ALL.filter(f=>{const A=ai(''); const sb=+(f['spark-bars']||0), ob=+(f['one-bars']||0); const p=f['signal-preferred']||''; return p==='spark'||(!p&&sb>ob);});
+      if(k==='f_sp') rows = ALL.filter(f=>{const sb=+(f['spark-bars']||0), ob=+(f['one-bars']||0); const p=f['signal-preferred']||''; return p==='spark'||(!p&&sb>ob);});
       if(k==='f_one') rows = ALL.filter(f=>{const sb=+(f['spark-bars']||0), ob=+(f['one-bars']||0); const p=f['signal-preferred']||''; return p==='one'||(!p&&ob>sb);});
       if(k==='f_rub') rows = ALL.filter(f=>f['vat-door-seal']==='delivered');
-      if(k==='f_sz') rows = ALL; // show all; sizes are broken down below via search/export if needed
+      if(k==='f_sz') rows = ALL;
       $('filterNote').innerHTML = `<span class="badge-soft">Showing ${rows.length} farms</span>`;
       show('filterNote',true);
-      const box = $('list'); box.innerHTML = rows.map(cardHTML).join('');
-      bindCardButtons(box);
+      const box = $('list'); box.innerHTML = rows.map(cardHTML).join(''); bindCardButtons(box);
       window.scrollTo({top:0,behavior:'smooth'});
     };
   });
-
-  // Default list (first 20 newest)
-  const box = $('list');
-  box.innerHTML = ALL.slice(0,20).map(cardHTML).join('');
-  bindCardButtons(box);
+  const box=$('list'); box.innerHTML = ALL.slice(0,20).map(cardHTML).join(''); bindCardButtons(box);
 }
 
-/* Search apply */
+/* Search */
 $('btnApply').onclick = ()=>{
+  if(!ALL.length){ setStatus('Load data first in Admin.', true); return; }
   const s = $('q').value.trim().toLowerCase();
   let rows = ALL;
-  if(s){
-    rows = ALL.filter(f=>{
-      const hay = JSON.stringify(f).toLowerCase();
-      return hay.includes(s);
-    });
-  }
+  if(s){ rows = ALL.filter(f=>JSON.stringify(f).toLowerCase().includes(s)); }
   $('filterNote').innerHTML = `<span class="badge-soft">Showing ${rows.length} farms</span>`;
   show('filterNote',true);
   const box=$('list'); box.innerHTML = rows.map(cardHTML).join(''); bindCardButtons(box);
 };
 
-/* ------------ Print brochure (with all labelled photos) ------------ */
+/* ------------ Print brochure (clean layout) ------------ */
 async function makePDF(rec){
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
   const W = pdf.internal.pageSize.getWidth();
 
-  try{ const u=$('agoraLogo').src; if(u) pdf.addImage(u,'JPEG',40,28,110,48);}catch(e){}
-  pdf.setFont('helvetica','bold'); pdf.setFontSize(18); pdf.text('Vat Pre-Check',160,50);
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(11); pdf.text(`#${rec.dairyNumber}`,W-150,42); pdf.text(new Date(rec.timestamp||Date.now()).toISOString().slice(0,10),W-150,60);
+  // Header
+  try{ const u=$('agoraLogo').src; if(u) pdf.addImage(u,'JPEG',40,26,110,46);}catch(e){}
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(20); pdf.text('Vat Pre-Check',160,48);
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(11);
+  pdf.text(`#${rec.dairyNumber}`,W-150,40); pdf.text(new Date(rec.timestamp||Date.now()).toISOString().slice(0,10),W-150,58);
 
-  pdf.setFont('helvetica','bold'); pdf.text('Key Facts',40,100);
+  // Key Facts box
+  pdf.setDrawColor(230); pdf.setFillColor(248,250,253); pdf.roundedRect(40,84,W-80,120,6,6,'FD');
+  pdf.setFont('helvetica','bold'); pdf.text('Key Facts',54,106);
   pdf.setFont('helvetica','normal');
-  const lines=[
-    `Vat 1: ${rec['vat1-capacity']||'—'} L • Cap ${rec['vat1-cap']||'—'} • Cond ${rec['vat1-condition']||'—'} • SN ${rec['vat1-serial']||'—'}`,
-    rec['vat2-capacity']&&rec['vat2-cap']!=='na'?`Vat 2: ${rec['vat2-capacity']||'—'} L • Cap ${rec['vat2-cap']||'—'} • Cond ${rec['vat2-condition']||'—'} • SN ${rec['vat2-serial']||'—'}`:'',
-    `Gateway: ${rec['gateway-location']||'—'} ${rec['gateway-comments']?('• '+rec['gateway-comments']):''}`,
-    `Signal: Spark ${rec['spark-bars']||0} bars • One NZ ${rec['one-bars']||0} bars • Pref ${rec['signal-preferred']||'—'}`,
-    `Telemetry: ${rec['telemetry-brand']||'—'} • ${rec['telemetry-type']||'—'} ${rec['telemetry-comments']?('• '+rec['telemetry-comments']):''}`,
-    `Rubberware: Door Seal ${rec['vat-door-seal']||'—'} • Size ${rec['door-seal-size']||'unspecified'} • Count x${rec['door-seal-count']||'1'}  |  RJT: ${rec['rjt-seal']||'—'} ${rec['rjt-size']? '('+rec['rjt-size']+')':''}`
-  ].filter(Boolean);
-  let y=120; lines.forEach(l=>{ pdf.text(l,40,y); y+=18; });
 
+  const left = [
+    ['Vat 1', `${rec['vat1-capacity']||'—'} L • Cap ${rec['vat1-cap']||'—'} • Cond ${rec['vat1-condition']||'—'} • SN ${rec['vat1-serial']||'—'}`],
+    ['Gateway', `${rec['gateway-location']||'—'} ${rec['gateway-comments']?('• '+rec['gateway-comments']):''}`],
+    ['Telemetry', `${rec['telemetry-brand']||'—'} • ${rec['telemetry-type']||'—'} ${rec['telemetry-comments']?('• '+rec['telemetry-comments']):''}`]
+  ];
+  const right = [
+    ['Vat 2', (rec['vat2-capacity']&&rec['vat2-cap']!=='na')?`${rec['vat2-capacity']} L • Cap ${rec['vat2-cap']||'—'} • Cond ${rec['vat2-condition']||'—'} • SN ${rec['vat2-serial']||'—'}`:'—'],
+    ['Signal', `Spark ${rec['spark-bars']||0} bars • One NZ ${rec['one-bars']||0} bars • Pref ${rec['signal-preferred']||'—'}`],
+    ['Rubberware', `Door ${rec['vat-door-seal']||'—'} • Size ${rec['door-seal-size']||'unspecified'} • Count x${rec['door-seal-count']||'1'} | RJT ${rec['rjt-seal']||'—'} ${rec['rjt-size']? '('+rec['rjt-size']+')':''}`]
+  ];
+  let yL=126, yR=126;
+  left.forEach(([k,v])=>{ pdf.setFont('helvetica','bold'); pdf.text(k+':',54,yL); pdf.setFont('helvetica','normal'); pdf.text(String(v),120,yL); yL+=20; });
+  right.forEach(([k,v])=>{ pdf.setFont('helvetica','bold'); pdf.text(k+':',W/2+10,yR); pdf.setFont('helvetica','normal'); pdf.text(String(v),W/2+70,yR); yR+=20; });
+
+  // Photos grid (3 per row)
   const pics=[['Gateway',rec.gatewayPhoto],['Vat 1 cap',rec.vat1CapPhoto],['Vat 1 condition',rec.vat1CondPhoto],
               ['Vat 2 cap',rec.vat2CapPhoto],['Vat 2 condition',rec.vat2CondPhoto],
               ['Agitator 1',rec.agitator1Photo],['Agitator 2',rec.agitator2Photo],
               ['Door seal',rec.doorSealPhoto],['RJT',rec.rjtPhoto]].filter(x=>!!x[1]);
   if(pics.length){
-    const cw=(W-80-20)/3, ch=cw*0.62; let px=40, py=y+12, c=0;
+    let y = 230, x = 40, c = 0;
+    const cw=(W-80-20)/3, ch=cw*0.62;
     for(const [lab,src] of pics){
-      if(py+ch>780){ pdf.addPage(); px=40; py=60; }
-      try{ pdf.addImage(src,'JPEG',px,py,cw,ch); }catch(e){}
-      pdf.text(lab,px,py+ch+14);
-      c++; px+=cw+10; if(c%3===0){ px=40; py+=ch+40; }
+      if(y+ch>770){ pdf.addPage(); y=60; }
+      try{ pdf.addImage(src,'JPEG',x,y,cw,ch); }catch(e){}
+      pdf.text(lab,x,y+ch+14);
+      c++; x+=cw+10; if(c%3===0){ x=40; y+=ch+40; }
     }
   }
   pdf.save(`PreCheck_${rec.dairyNumber}.pdf`);
 }
 
+/* ------------ Auto load data for Summary on first open ------------ */
+let triedAutoLoad = false;
+async function ensureSummaryData(){
+  if(ALL.length || triedAutoLoad) return;
+  triedAutoLoad = true;
+  try{
+    const folder = storage.ref('Pre Check');
+    const listing = await folder.listAll();
+    $('cloudCount').innerText = listing.items.length;
+    const files = listing.items.slice(0,200); // safety
+    const out = [];
+    for(let i=0;i<files.length;i++){
+      const url = await files[i].getDownloadURL();
+      const rec = await fetch(url).then(r=>r.json());
+      rec.dairyNumber = rec.dairyNumber || files[i].name.replace('.json','');
+      out.push(rec);
+    }
+    out.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+    ALL = out;
+    setStatus(`Loaded ${ALL.length} farms from cloud.`);
+  }catch(e){
+    setStatus('Could not auto-load from cloud. Go to Admin → Load JSON or Fetch ALL.', true);
+  }
+}
+
 /* ------------ Start ------------ */
-document.addEventListener('DOMContentLoaded', async ()=>{
-  go('form'); // default
-});
+document.addEventListener('DOMContentLoaded', ()=>{ go('form'); });
 </script>
 </body>
 </html>
