@@ -1,53 +1,63 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Download PreCheck Raw</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-</head>
-<body>
-  <button onclick="downloadData()">Download Raw Data</button>
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pre Check – raw downloader</title>
 
-  <script>
-    // ---------- Firebase Config ----------
-    const cfg = {
-      apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
-      authDomain: "dairy-farm-record-system.firebaseapp.com",
-      projectId: "dairy-farm-record-system",
-      storageBucket: "dairy-farm-record-system.appspot.com",
-      messagingSenderId: "422124188212",
-      appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
-    };
-    firebase.initializeApp(cfg);
-    const db = firebase.firestore();
+<button id="go">Download ALL as precheck_raw.json</button>
+<span id="stat"></span>
 
-    // ---------- Download Function ----------
-    async function downloadData() {
-      try {
-        let snapshot = await db.collection("Pre Check").get();
-        let data = [];
-        snapshot.forEach(doc => {
-          data.push({ id: doc.id, ...doc.data() });
-        });
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+<script>
+/* 1) Firebase config (from your app) */
+firebase.initializeApp({
+  apiKey:"AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
+  authDomain:"dairy-farm-record-system.firebaseapp.com",
+  projectId:"dairy-farm-record-system",
+  storageBucket:"dairy-farm-record-system.appspot.com",
+  messagingSenderId:"422124188212",
+  appId:"1:422124188212:web:1bd31bee8d6e91e301d061"
+});
+const storage = firebase.storage();
 
-        if (data.length === 0) {
-          alert("No records found in Pre Check collection.");
-          return;
-        }
+/* 2) Helper: trigger a file download in browser */
+function saveFile(filename, text){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text], {type:'application/json'}));
+  a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+}
 
-        let blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-        let url = URL.createObjectURL(blob);
+/* 3) List & fetch everything under "Pre Check/" and save as one JSON */
+async function downloadAll() {
+  const stat = document.getElementById('stat');
+  stat.textContent = 'Listing…';
+  const folderRef = storage.ref().child('Pre Check');
 
-        let a = document.createElement("a");
-        a.href = url;
-        a.download = "PreCheck_Raw.json";
-        a.click();
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        console.error("Error downloading data:", err);
-        alert("Failed to download raw data, check console log.");
-      }
-    }
-  </script>
-</body>
+  // listAll handles up to 1000 objects; if you ever exceed, switch to paginated list().
+  const list = await folderRef.listAll();
+  const items = list.items.filter(it => it.name.toLowerCase().endsWith('.json'));
+
+  stat.textContent = `Found ${items.length} files. Fetching… 0%`;
+  // Fetch in small batches for reliability on mobile
+  const batchSize = 10;
+  const out = [];
+  let done = 0;
+
+  for (let i=0; i<items.length; i+=batchSize){
+    const chunk = items.slice(i, i+batchSize);
+    const urls = await Promise.all(chunk.map(it => it.getDownloadURL()));
+    const jsons = await Promise.all(urls.map(u => fetch(u).then(r => r.json()).catch(()=>null)));
+    jsons.forEach(j => { if(j) out.push(j); });
+    done += chunk.length;
+    stat.textContent = `Fetching… ${Math.round(done/items.length*100)}%`;
+  }
+
+  stat.textContent = `Saving ${out.length} records…`;
+  saveFile('precheck_raw.json', JSON.stringify(out, null, 2));
+  stat.textContent = 'Done.';
+}
+
+document.getElementById('go').addEventListener('click', downloadAll);
+</script>
 </html>
