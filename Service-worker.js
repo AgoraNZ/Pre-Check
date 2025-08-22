@@ -1,5 +1,5 @@
 // Update when you ship
-const CACHE_NAME = 'agora-precheck-v46';
+const CACHE_NAME = 'agora-precheck-v139';
 
 const urlsToCache = [
   './',
