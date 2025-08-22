@@ -1,45 +1,53 @@
-<button id="downloadBtn">Download Pre Check</button>
-<pre id="output"></pre>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Download PreCheck Raw</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <button onclick="downloadData()">Download Raw Data</button>
 
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-<script>
-  const cfg = {
-    apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
-    authDomain: "dairy-farm-record-system.firebaseapp.com",
-    projectId: "dairy-farm-record-system",
-    storageBucket: "dairy-farm-record-system.appspot.com",
-    messagingSenderId: "422124188212",
-    appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
-  };
-  firebase.initializeApp(cfg);
-  const db = firebase.firestore();
+  <script>
+    // ---------- Firebase Config ----------
+    const cfg = {
+      apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
+      authDomain: "dairy-farm-record-system.firebaseapp.com",
+      projectId: "dairy-farm-record-system",
+      storageBucket: "dairy-farm-record-system.appspot.com",
+      messagingSenderId: "422124188212",
+      appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
+    };
+    firebase.initializeApp(cfg);
+    const db = firebase.firestore();
 
-  document.getElementById("downloadBtn").addEventListener("click", async () => {
-    try {
-      const snapshot = await db.collection("Pre Check").get();
-      let data = [];
-      snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+    // ---------- Download Function ----------
+    async function downloadData() {
+      try {
+        let snapshot = await db.collection("Pre Check").get();
+        let data = [];
+        snapshot.forEach(doc => {
+          data.push({ id: doc.id, ...doc.data() });
+        });
 
-      // ✅ Force Safari to allow download
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = window.URL.createObjectURL(blob);
+        if (data.length === 0) {
+          alert("No records found in Pre Check collection.");
+          return;
+        }
 
-      const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = url;
-      a.download = "PreCheck_Raw.json";
+        let blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        let url = URL.createObjectURL(blob);
 
-      document.body.appendChild(a);
-      a.click();
-
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      alert("Download started (" + data.length + " records)");
-    } catch (err) {
-      console.error(err);
-      alert("Error: " + err.message);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = "PreCheck_Raw.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("Error downloading data:", err);
+        alert("Failed to download raw data, check console log.");
+      }
     }
-  });
-</script>
+  </script>
+</body>
+</html>
