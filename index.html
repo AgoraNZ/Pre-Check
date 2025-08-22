@@ -43,6 +43,7 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
 .btn-outline-brand:hover{background:var(--accent);color:#fff}
 .small-note{color:#6b7280}
 .footer{color:#6b7280;text-align:center;margin:22px 0 10px}
+.hidden{display:none!important}
 
 /* BROCHURE (1 page) */
 .print-sheet{max-width:900px;margin:0 auto;color:#0f172a}
@@ -55,7 +56,11 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
 .print-label{font-weight:700;margin-bottom:6px}
 .print-photos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .print-photos img{width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb}
-.hidden{display:none!important}
+
+/* DETAILS MODAL */
+#details-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:9999}
+#details-modal .panel{max-width:980px;margin:40px auto;background:#fff;border-radius:12px;padding:16px}
+#details-close{float:right}
 </style>
 </head>
 <body>
@@ -107,7 +112,7 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
     </div>
   </div>
 
-  <!-- FORM (auto-fill on dairy #, offline-safe) -->
+  <!-- FORM -->
   <div id="view-form" class="hidden">
     <div class="bar">
       <div class="section-title">Capture / Edit</div>
@@ -187,6 +192,11 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
       </div>
     </div>
 
+    <div id="form-photos" class="bar hidden">
+      <div class="section-title">Existing Photos (read-only)</div>
+      <div id="form-photo-grid" class="print-photos"></div>
+    </div>
+
     <div class="d-flex gap-2">
       <button id="btn-save" class="btn btn-brand">Save / Update</button>
       <button id="btn-print-current" class="btn btn-outline-brand">Print Brochure</button>
@@ -204,14 +214,22 @@ html,body{background:var(--bg);color:#0f172a;font-family:Inter,system-ui,Segoe U
         <button id="btn-zip-all" class="btn btn-outline-brand">Download All Brochures (ZIP)</button>
         <button id="btn-owner-report" class="btn btn-outline-brand">Owner Report (Print)</button>
       </div>
-      <div class="small-note mt-2">“Reload Cloud List” refreshes the dairy number list immediately (no full JSON fetch). Details are pulled on demand.</div>
+      <div class="small-note mt-2">“Reload Cloud List” shows dairy numbers instantly (no heavy JSON). Details/Photos pull only when you open a farm.</div>
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v4.2</div>
+  <div class="footer">Agora • Vat Pre-Check • v4.6</div>
 </div>
 
-<!-- Hidden brochure root -->
+<!-- DETAILS MODAL -->
+<div id="details-modal">
+  <div class="panel">
+    <button id="details-close" class="btn btn-sm btn-outline-secondary">Close</button>
+    <div id="details-body"></div>
+  </div>
+</div>
+
+<!-- Hidden brochure root for single render -->
 <div id="print-root" class="hidden"></div>
 
 <!-- Firebase & libs -->
@@ -268,23 +286,28 @@ for (const t in VIEWS){
 }
 
 /* ================== Cloud list (fast) ================== */
-let CLOUD_KEYS = [];        // filenames only
-let STREAMED = 0;           // fetched JSON count
-let SIZE_COUNTS = {};       // vat size map
+let CLOUD_KEYS = [];
+let STREAMED = 0;
+let SIZE_COUNTS = {};
 let KPI = { dts:0, power:0, rubber:0 };
-let INDEX = new Map();      // dn -> minimal info once streamed
+let INDEX = new Map();
+let STREAM_RUNNING = false;
 
 async function listCloud(){
   const folder = storage.ref(FOLDER);
   const res = await folder.listAll();
   CLOUD_KEYS = res.items
     .filter(it=>/\.json$/i.test(it.name))
-    .map(it=>it.name);
+    .map(it=>it.name)
+    .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
   $('cloud-count').textContent = CLOUD_KEYS.length;
-  // draw immediate list of dairy numbers (no details)
   renderSimpleList(CLOUD_KEYS.map(k => k.replace('.json','')));
 }
-$('btn-reload').onclick = listCloud;
+$('btn-reload').onclick = async ()=>{
+  await listCloud();
+  // restart stream
+  streamForKpisAndSizes(true);
+};
 
 /* ================== Detail fetch (on demand) ================== */
 async function fetchRec(dn){
@@ -296,12 +319,10 @@ async function fetchRec(dn){
 }
 
 /* ================== Normalization & Mapping ================== */
-/* Helpers to read fields that sometimes vary in name/case */
 function pick(rec, ...keys){
   for (const k of keys){
     if (rec==null) continue;
     if (rec[k]!=null && rec[k]!=='' ) return rec[k];
-    // tolerate case and separators
     const key = Object.keys(rec).find(x => x.toLowerCase()===k.toLowerCase());
     if (key && rec[key]!=null && rec[key]!=='') return rec[key];
   }
@@ -309,6 +330,7 @@ function pick(rec, ...keys){
 }
 function nstr(x){ return (x==null?'':String(x)).trim() }
 
+/* Signal extraction — now handles “2-3 bars either carrier”, “full bars both carriers”, etc */
 function splitSignalFromGateway(rec){
   const raw = [pick(rec,'gateway-comments','GatewayComments'), pick(rec,'gateway-location','GatewayLocation')].filter(Boolean).join(' ');
   const txt = raw.toLowerCase()
@@ -316,15 +338,20 @@ function splitSignalFromGateway(rec){
     .replace(/\bone\s*n\.?\s*z\b/g,'one nz')
     .replace(/\bone\b(?!\s*nz)/g,'one nz');
 
+  // ranges like "2-3 bars"
+  const rng = txt.match(/(\d)\s*[-–]\s*(\d)\s*bars?/);
+  let rngVal = '';
+  if (rng){ rngVal = String(Math.max(+rng[1], +rng[2])); }
+
   const grab = (re)=>{ const m = txt.match(re); return m? m[1] : '' };
-  let spark = grab(/spark[^0-9]{0,12}(\d)\s*bar/) || grab(/(\d)\s*bar[^a-z]{0,6}spark/) ||
+  let spark = grab(/spark[^0-9]{0,12}(\d)\s*bar/) || grab(/(\d)\s*bar[^a-z]{0,6}spark/) || rngVal ||
               (/(spark[^a-z]*full|max)/.test(txt)? '5':'');
-  let one   = grab(/one nz[^0-9]{0,12}(\d)\s*bar/) || grab(/(\d)\s*bar[^a-z]{0,6}one nz/) ||
+  let one   = grab(/one nz[^0-9]{0,12}(\d)\s*bar/) || grab(/(\d)\s*bar[^a-z]{0,6}one nz/) || rngVal ||
               (/(one nz[^a-z]*full|max)/.test(txt)? '5':'');
 
+  if (/both\s*carriers.*(full|max)/.test(txt)){ spark='5'; one='5'; }
+  if (/either\s*carrier/.test(txt) && rngVal){ spark=rngVal; one=rngVal; }
   if (/no\s*signal/.test(txt)){ spark = spark||'0'; one=one||'0'; }
-  if (/poor\s*signal/.test(txt)){ spark = spark||'1'; one=one||'1'; }
-  if (/ok\s*signal/.test(txt)){ spark = spark||'2'; one=one||'2'; }
 
   // Explicit numeric fields override
   spark = nstr(pick(rec,'spark-bars','SparkBars')) || spark;
@@ -332,12 +359,13 @@ function splitSignalFromGateway(rec){
 
   const cleaned = raw
     .replace(/(spark|one\s*nz|vodafone)[^,;]*\d\s*bar[s]?/ig,'')
-    .replace(/(no|poor|ok)\s*signal/ig,'')
+    .replace(/(both|either)\s*carriers[^,;]*/ig,'')
+    .replace(/(no|poor|ok|full|max)\s*signal/ig,'')
     .replace(/\s{2,}/g,' ').trim();
   return { spark, one, gatewayOther: cleaned };
 }
 
-// "Power point needed" detector – tuned to your notes
+// Power-point detector (broadened)
 function detectPowerPoint(rec){
   const blob = [
     pick(rec,'gateway-location','GatewayLocation'),
@@ -348,23 +376,21 @@ function detectPowerPoint(rec){
   ].join(' ').toLowerCase();
 
   const POS = [
-    'need power point','needs power point','new powerpoint recommended',
-    'use desk power point','no plugs available','no plug','no powerpoint',
-    'no power point','power point to be installed','pp to be installed',
-    'install power point','splitter plug required','no spare plug','no spare outlet',
-    'extension lead needed','desk power point','needs new plug','use desk power',
-    'dairy office multiple points' // not negative—it implies location, keep POS minimal…
+    'new powerpoint recommended','need power point','needs power point',
+    'use desk power point','desk power point','no plugs available','no plug','no power point','no powerpoint',
+    'power point to be installed','pp to be installed','install power point',
+    'splitter plug required','no spare plug','no spare outlet','extension lead needed',
+    'single plug','needs new plug','switchboard (no socket)','needs power'
   ];
-
   const NEG = [
     'power point available','has power point','spare power point','spare outlet',
-    'power point ok','pp ok','good power point'
+    'power point ok','pp ok','good power point','multiple points' // treat as OK
   ];
   if (NEG.some(p=>blob.includes(p))) return false;
   return POS.some(p=>blob.includes(p));
 }
 
-// DTS vent cap detector – only when cap comments indicate the real thing
+// DTS vent cap — strict variants only (per your rules)
 function detectDtsCap(rec){
   const src = [
     pick(rec,'vat1-cap-comments','CapComments'),
@@ -375,11 +401,41 @@ function detectDtsCap(rec){
 
   const ok = [
     /(halo\s*(grey|gray)\s*cap)/,
-    /\bgrey\s*sensor\b|\bgray\s*sensor\b/,
+    /\b(grey|gray)\s*sensor\b/,
     /\bdts\s*reduc(er|ing)\b/,
     /reducing\s*grey\s*sensor\s*cap/
   ];
   return ok.some(re=>re.test(src));
+}
+
+/* Photo extract — looks for base64 keys or path-like keys; resolves paths to URLs */
+async function resolvePhotoMaybe(path){
+  if(!path) return '';
+  if (/^data:image\//i.test(path)) return path;
+  if (/^https?:\/\//i.test(path)) return path;
+  try{
+    const url = await storage.ref(path).getDownloadURL();
+    return url;
+  }catch(e){ return '' }
+}
+async function extractPhotos(rec){
+  // prefer explicit base64 if present; otherwise try string paths
+  const base64 = (k)=> nstr(pick(rec,k, k.replace(/-/g,''), k.replace(/-/g,'_')));
+  const candidates = {
+    gateway:  base64('gateway-photo-base64')  || base64('gateway-photo'),
+    vat1cap:  base64('vat1-cap-photo-base64') || base64('vat1-cap-photo'),
+    agit1:    base64('agitator1-photo-base64')|| base64('agitator-photo-base64')|| base64('agitator1-photo'),
+    vat2cap:  base64('vat2-cap-photo-base64') || base64('vat2-cap-photo'),
+    door:     base64('vat-door-seal-photo-base64') || base64('door-photo-base64') || base64('door-photo'),
+    rjt:      base64('rjt-seal-photo-base64') || base64('rjt-photo-base64') || base64('rjt-photo')
+  };
+  // If not base64, they may be storage paths
+  for (const k of Object.keys(candidates)){
+    if (candidates[k] && !/^data:image\//i.test(candidates[k]) && !/^https?:\/\//i.test(candidates[k])){
+      candidates[k] = await resolvePhotoMaybe(candidates[k]);
+    }
+  }
+  return candidates;
 }
 
 function normalize(rec, forcedDn=''){
@@ -388,7 +444,7 @@ function normalize(rec, forcedDn=''){
   // Vat 1
   const v1Size = nstr(pick(rec,'vat1-capacity','Size','Vat1Size'));
   const v1Serial = nstr(pick(rec,'vat1-serial','Serial','Vat1Serial'));
-  const v1Cap = (nstr(pick(rec,'vat1-cap','Cap','Vat1Cap'))||'').toUpperCase();
+  const v1Cap = (nstr(pick(rec,'vat1-cap','Cap','Vat1Cap'))||'').toUpperCase() || 'AVAILABLE';
   const v1Cond = nstr(pick(rec,'vat1-condition','Condition','Vat1Condition')).toLowerCase()||'ok';
   const v1Notes = nstr(pick(rec,'vat1-comments','Notes','Vat1Notes'));
   const v1CapComments = nstr(pick(rec,'vat1-cap-comments','CapComments','Vat1CapComments'));
@@ -401,23 +457,20 @@ function normalize(rec, forcedDn=''){
   const v2Notes = nstr(pick(rec,'vat2-comments','Vat2Notes'));
   const v2CapComments = nstr(pick(rec,'vat2-cap-comments','Vat2CapComments'));
 
-  // Signal, Gateway, Other
-  const {spark, one, gatewayOther} = splitSignalFromGateway(rec);
+  const {spark, one} = splitSignalFromGateway(rec);
   const manu = nstr(pick(rec,'other-brand','Manufacturer','OtherBrand'));
   const otype = nstr(pick(rec,'other-type','OtherType'));
   const onotes = nstr(pick(rec,'other-notes','OtherNotes'));
 
-  // Rubberware
   const doorDelivered = (nstr(pick(rec,'door-delivered','DoorDelivered')).toLowerCase()==='yes');
   const rjtDelivered  = (nstr(pick(rec,'rjt-delivered','RJTDelivered')).toLowerCase()==='yes');
   const doorSize = nstr(pick(rec,'door-size','DoorSize'));
   const rjtSize  = nstr(pick(rec,'rjt-size','RJTSize'));
-
   const doorCount = doorDelivered ? (v2Size ? 2 : 1) : 0;
 
   return {
     dairyNumber: dn,
-    'vat1-capacity': v1Size, 'vat1-serial': v1Serial, 'vat1-cap': v1Cap||'AVAILABLE', 'vat1-condition': v1Cond, 'vat1-comments': v1Notes, 'vat1-cap-comments': v1CapComments,
+    'vat1-capacity': v1Size, 'vat1-serial': v1Serial, 'vat1-cap': v1Cap, 'vat1-condition': v1Cond, 'vat1-comments': v1Notes, 'vat1-cap-comments': v1CapComments,
     'vat2-capacity': v2Size, 'vat2-serial': v2Serial, 'vat2-cap': v2Cap, 'vat2-condition': v2Cond, 'vat2-comments': v2Notes, 'vat2-cap-comments': v2CapComments,
     'gateway-location': nstr(pick(rec,'gateway-location','GatewayLocation')),
     'gateway-comments': nstr(pick(rec,'gateway-comments','GatewayComments')),
@@ -433,42 +486,41 @@ function normalize(rec, forcedDn=''){
   };
 }
 
-/* ================== Progressive stream for KPI + sizes ================== */
-async function streamForKpisAndSizes(){
-  STREAMED = 0; SIZE_COUNTS = {}; KPI = {dts:0, power:0, rubber:0}; INDEX.clear();
-  $('loaded-count').textContent = 0;
-  setProgress(0, CLOUD_KEYS.length||1);
+/* ================== Progressive KPIs & sizes ================== */
+async function streamForKpisAndSizes(restart=false){
+  if (STREAM_RUNNING && !restart) return;
+  STREAM_RUNNING = true;
+  if (restart){ SIZE_COUNTS={}; KPI={dts:0,power:0,rubber:0}; INDEX.clear(); STREAMED=0; $('loaded-count').textContent=0; setProgress(0, CLOUD_KEYS.length||1); }
 
   for (const key of CLOUD_KEYS){
     const dn = key.replace('.json','');
+    if (INDEX.has(dn) && !restart){ STREAMED++; setProgress(STREAMED, CLOUD_KEYS.length||1); continue; }
     try{
       const url = await storage.ref(`${FOLDER}/${key}`).getDownloadURL();
       const raw = await fetch(url).then(r=>r.json());
       const rec = normalize(raw, dn);
 
-      // Maintain compact index
       INDEX.set(dn, { dn,
         v1: rec['vat1-capacity'], v2: rec['vat2-capacity'],
         door: rec['door-delivered']==='yes', rjt: rec['rjt-delivered']==='yes',
         dts: !!rec.__flags.dtsCap, power: !!rec.__flags.power
       });
 
-      // Sizes (count both vats)
       const s1 = rec['vat1-capacity']; if (s1) SIZE_COUNTS[s1]=(SIZE_COUNTS[s1]||0)+1;
       const s2 = rec['vat2-capacity']; if (s2) SIZE_COUNTS[s2]=(SIZE_COUNTS[s2]||0)+1;
 
-      // KPIs
       if (rec.__flags.dtsCap) KPI.dts++;
       if (rec.__flags.power) KPI.power++;
       if (rec['door-delivered']==='yes' || rec['rjt-delivered']==='yes') KPI.rubber++;
 
       STREAMED++; $('loaded-count').textContent = STREAMED; setProgress(STREAMED, CLOUD_KEYS.length||1);
-      if (STREAMED%10===0) { drawKpis(); drawSizesTable(); } // refresh in batches
+      if (STREAMED%12===0) { drawKpis(); drawSizesTable(); }
     }catch(e){
       STREAMED++; setProgress(STREAMED, CLOUD_KEYS.length||1);
     }
   }
   drawKpis(); drawSizesTable();
+  STREAM_RUNNING = false;
 }
 
 /* ================== UI: list, kpis, sizes ================== */
@@ -495,7 +547,6 @@ function drawKpis(){
   $('kpi-power').querySelector('.num').textContent = KPI.power;
   $('kpi-rubber').querySelector('.num').textContent = KPI.rubber;
 
-  // clicking shows list of matching dairies
   $('kpi-dts').onclick = ()=> {
     const rows = [...INDEX.values()].filter(r=>r.dts).map(r=>r.dn);
     renderSimpleList(rows);
@@ -523,25 +574,16 @@ $('btn-export-sizes').onclick = ()=>{
 };
 
 /* ================== Details & Print ================== */
-window.openDetails = async (dn)=>{
-  const rec = await fetchRec(dn);
-  if(!rec){ alert('Unable to load record'); return; }
-  // Bring just this card to the top by resetting list to itself
-  renderSimpleList([dn]);
-};
-window.openPrint = async (dn)=>{
-  const rec = await fetchRec(dn);
-  if(!rec){ alert('Unable to load record'); return; }
-  showBrochure(rec, true);
-};
+function photoDiv(label,src){ return src? `<div><img src="${src}" alt="${label}"></div>`:''; }
 
-function photo(label,src){ return src? `<div><img src="${src}" alt="${label}"></div>`:''; }
-
-// Build single-page brochure (up to 4 photos, logo included)
-async function showBrochure(rec, doPrint){
+async function brochureHTML(rec){
   const logoUrl = await storage.ref('Agora Logo/2F6-1YdaEP.jpeg').getDownloadURL().catch(()=>'');
 
-  const html = `
+  const pics = await extractPhotos(rec);
+  // pick up to 4 photos prioritised
+  const chosen = [pics.gateway, pics.vat1cap, pics.agit1, pics.vat2cap, pics.door, pics.rjt].filter(Boolean).slice(0,4);
+
+  return `
   <div class="print-sheet">
     <div class="print-head">
       ${logoUrl? `<img src="${logoUrl}" alt="logo">`:''}
@@ -597,37 +639,45 @@ async function showBrochure(rec, doPrint){
     <div class="print-card" style="margin-top:10px">
       <div class="print-label">Photos</div>
       <div class="print-photos">
-        ${photo('Gateway', rec['gateway-photo-base64'])}
-        ${photo('Vat 1 Cap', rec['vat1-cap-photo-base64'])}
-        ${photo('Agitator 1', rec['agitator1-photo-base64']||rec['agitator-photo-base64'])}
-        ${photo('Vat 2 Cap', rec['vat2-cap-photo-base64'])}
+        ${chosen.map((src,i)=>photoDiv('Photo'+(i+1), src)).join('')}
       </div>
     </div>
   </div>`;
-
-  $('print-root').innerHTML = html;
-
-  if (doPrint){
-    const w = window.open('', '_blank');
-    w.document.write(`<html><head><title>Print</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"><style>${document.querySelector('style').innerHTML}</style></head><body>${$('print-root').innerHTML}</body></html>`);
-    w.document.close(); setTimeout(()=>w.print(), 250);
-  }
 }
+
+window.openDetails = async (dn)=>{
+  const rec = await fetchRec(dn);
+  if(!rec){ alert('Unable to load record'); return; }
+  const html = await brochureHTML(rec);
+  $('details-body').innerHTML = html;
+  document.getElementById('details-modal').style.display='block';
+
+  // also show existing photos in the form area when you switch to Form and enter same DN
+  lastPhotosShown = await extractPhotos(rec);
+};
+document.getElementById('details-close').onclick = ()=>{ document.getElementById('details-modal').style.display='none'; };
+
+window.openPrint = async (dn)=>{
+  const rec = await fetchRec(dn);
+  if(!rec){ alert('Unable to load record'); return; }
+  const html = await brochureHTML(rec);
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>Print</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"><style>${document.querySelector('style').innerHTML}</style></head><body>${html}</body></html>`);
+  w.document.close(); setTimeout(()=>w.print(), 250);
+};
 
 /* ================== Admin: Print all / Zip all / Owner Report ================== */
 $('btn-print-all').onclick = async ()=>{
   if (!CLOUD_KEYS.length){ alert('Load the cloud list first.'); return; }
-  const list = CLOUD_KEYS.slice(0); // all
+  const list = CLOUD_KEYS.slice(0);
   const w = window.open('', '_blank');
   const css = document.querySelector('style').innerHTML;
   w.document.write(`<html><head><title>All Brochures</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"><style>${css}</style></head><body>`);
-
   for (const key of list){
     const dn = key.replace('.json','');
     const rec = await fetchRec(dn); if(!rec) continue;
-    const one = document.createElement('div');
-    one.innerHTML = (await (async()=>{ const node = document.createElement('div'); await showBrochure(rec,false); return $('print-root').innerHTML; })());
-    w.document.body.insertAdjacentHTML('beforeend', $('print-root').innerHTML + '<hr style="page-break-after:always;border:none;margin:20px 0;">');
+    const html = await brochureHTML(rec);
+    w.document.body.insertAdjacentHTML('beforeend', html + '<hr style="page-break-after:always;border:none;margin:20px 0;">');
   }
   w.document.close(); setTimeout(()=>w.print(), 600);
 };
@@ -638,7 +688,7 @@ $('btn-zip-all').onclick = async ()=>{
   for (const key of CLOUD_KEYS){
     const dn = key.replace('.json','');
     const rec = await fetchRec(dn); if(!rec) continue;
-    const html = (await (async()=>{ await showBrochure(rec,false); return $('print-root').innerHTML; })());
+    const html = await brochureHTML(rec);
     zip.file(`brochure_${dn}.html`, `<!doctype html><meta charset="utf-8"><title>Vat #${dn}</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"><style>${document.querySelector('style').innerHTML}</style>${html}`);
   }
   const blob = await zip.generateAsync({type:"blob"});
@@ -671,14 +721,26 @@ $('btn-owner-report').onclick = async ()=>{
   w.document.close(); setTimeout(()=>w.print(), 300);
 };
 
-/* ================== Form: auto-fill + save ================== */
+/* ================== Form: auto-fill + save; show photos in form (read-only) ================== */
+let lastPhotosShown = null;
+
 $('dairyNumber').addEventListener('blur', async ()=>{
   const dn = nstr($('dairyNumber').value);
   if(!dn) return;
   const rec = await fetchRec(dn);
-  if(!rec) { alert('Not found in cloud.'); return; }
+  if(!rec){ alert('Not found in cloud.'); return; }
   fillForm(rec);
+  lastPhotosShown = await extractPhotos(rec);
+  const imgs = Object.values(lastPhotosShown).filter(Boolean);
+  if (imgs.length){
+    $('form-photo-grid').innerHTML = imgs.slice(0,4).map((src,i)=>`<div><img src="${src}" style="width:100%;border-radius:10px;border:1px solid #e5e7eb;max-height:180px;object-fit:cover"></div>`).join('');
+    show('form-photos');
+  } else {
+    $('form-photo-grid').innerHTML = '';
+    hide('form-photos');
+  }
 });
+
 function fillForm(rec){
   const set=(id,v)=>{$(id).value = v||''}
   set('gateway-location',rec['gateway-location']);
@@ -705,6 +767,7 @@ function fillForm(rec){
   set('rjt-delivered',rec['rjt-delivered']==='yes'?'yes':'no');
   set('rjt-size',rec['rjt-size']);
 }
+
 $('btn-save').onclick = async ()=>{
   const dn = nstr($('dairyNumber').value); if(!dn){ alert('Enter a dairy number'); return; }
   const data = {
@@ -746,13 +809,16 @@ $('btn-print-current').onclick = async ()=>{
   if(!dn){ alert('Enter a dairy number'); return; }
   const rec = await fetchRec(dn);
   if(!rec){ alert('Save or ensure the farm exists.'); return; }
-  showBrochure(rec, true);
+  const html = await brochureHTML(rec);
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>Print</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"><style>${document.querySelector('style').innerHTML}</style></head><body>${html}</body></html>`);
+  w.document.close(); setTimeout(()=>w.print(), 250);
 };
 
 /* ================== Boot ================== */
 window.addEventListener('DOMContentLoaded', async ()=>{
-  await listCloud();      // list numbers instantly
-  streamForKpisAndSizes();// background stream for KPIs & sizes
+  await listCloud();
+  streamForKpisAndSizes(true);
 });
 </script>
 </body>
