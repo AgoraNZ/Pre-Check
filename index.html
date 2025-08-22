@@ -1,58 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Download Raw Firebase Data (CSV)</title>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <meta charset="UTF-8">
+  <title>Download Pre Check Raw Data</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 </head>
 <body>
-  <button onclick="downloadCSV()">Download Raw Data (CSV)</button>
+  <button id="downloadBtn">Download Pre Check Data</button>
+  <pre id="output"></pre>
 
   <script>
-    // 🔹 Your Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyD-yb8LkhqSKvNKL6c0P14f5fhvSZoEgXI",
-      authDomain: "agora-vat-checks.firebaseapp.com",
-      projectId: "agora-vat-checks",
-      storageBucket: "agora-vat-checks.appspot.com",
-      messagingSenderId: "1080509010890",
-      appId: "1:1080509010890:web:7f8b54ce92a5cd6311d6b8"
+    // ---------- Firebase ----------
+    const cfg = {
+      apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
+      authDomain: "dairy-farm-record-system.firebaseapp.com",
+      projectId: "dairy-farm-record-system",
+      storageBucket: "dairy-farm-record-system.appspot.com",
+      messagingSenderId: "422124188212",
+      appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
     };
+    firebase.initializeApp(cfg);
+    const storage = firebase.storage();
+    const folder = "Pre Check";
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    document.getElementById("downloadBtn").addEventListener("click", async () => {
+      const listRef = storage.ref(folder);
+      const res = await listRef.listAll();
 
-    async function downloadCSV() {
-      try {
-        const snapshot = await db.collection("farms").get(); // 🔹 change if collection name is different
-        if (snapshot.empty) {
-          alert("⚠️ No documents found in collection!");
-          return;
-        }
-
-        // Build CSV header from first doc
-        let csv = "id," + Object.keys(snapshot.docs[0].data()).join(",") + "\n";
-
-        snapshot.forEach(doc => {
-          const row = [doc.id, ...Object.values(doc.data())];
-          csv += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
-        });
-
-        // Trigger file download
-        const blob = new Blob([csv], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "farms_raw.csv";
-        a.click();
-        URL.revokeObjectURL(url);
-
-        console.log("✅ Data downloaded successfully");
-      } catch (err) {
-        console.error("❌ Error fetching data:", err);
-        alert("Error fetching data, check console.");
+      let output = [];
+      for (const item of res.items) {
+        const url = await item.getDownloadURL();
+        const resp = await fetch(url);
+        const text = await resp.text(); // works for CSV/JSON/plain
+        output.push({ name: item.name, data: text });
       }
-    }
+
+      // Show in browser
+      document.getElementById("output").textContent = JSON.stringify(output, null, 2);
+
+      // Force download as raw.json
+      const blob = new Blob([JSON.stringify(output)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "PreCheck_Raw.json";
+      a.click();
+    });
   </script>
 </body>
 </html>
