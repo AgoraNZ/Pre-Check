@@ -2,15 +2,33 @@
 <html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Pre Check – raw downloader</title>
+<title>Pre Check – Safe Downloader</title>
 
-<button id="go">Download ALL as precheck_raw.json</button>
-<span id="stat"></span>
+<style>
+  body{font-family:system-ui,Arial,sans-serif;margin:16px}
+  button{padding:10px 14px;border-radius:10px;border:1px solid #ddd;margin-right:8px}
+  #log{white-space:pre-wrap;font:12px/1.4 monospace;margin-top:12px;background:#f7f7f8;border:1px solid #eee;border-radius:8px;padding:10px;max-height:50vh;overflow:auto}
+  progress{width:260px;height:12px;vertical-align:middle}
+</style>
 
+<h3>Pre Check – Safe Downloader</h3>
+<p>
+  <button id="btnCsv">Download filenames.csv</button>
+  <button id="btnNdjson">Download all (NDJSON)</button>
+  <button id="btnZip">Download all (ZIP)</button>
+  <span id="status"></span>
+</p>
+<p><progress id="bar" value="0" max="100"></progress></p>
+<div id="log"></div>
+
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+<!-- JSZip for the optional ZIP route -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
 <script>
-/* 1) Firebase config (from your app) */
+/* Firebase config (yours) */
 firebase.initializeApp({
   apiKey:"AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
   authDomain:"dairy-farm-record-system.firebaseapp.com",
@@ -20,44 +38,119 @@ firebase.initializeApp({
   appId:"1:422124188212:web:1bd31bee8d6e91e301d061"
 });
 const storage = firebase.storage();
+const FOLDER = 'Pre Check';
 
-/* 2) Helper: trigger a file download in browser */
-function saveFile(filename, text){
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([text], {type:'application/json'}));
-  a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+const $ = id => document.getElementById(id);
+function log(msg){ const el=$('log'); el.textContent += msg + '\n'; el.scrollTop = el.scrollHeight; }
+function setStatus(s){ $('status').textContent = s; }
+function setPct(p){ $('bar').value = p; }
+
+/* 1) List all .json files safely */
+async function listAllJson() {
+  const ref = storage.ref().child(FOLDER);
+  const res = await ref.listAll();                        // fine for < 1000 files
+  return res.items.filter(it => it.name.toLowerCase().endsWith('.json'))
+                  .sort((a,b)=> a.name.localeCompare(b.name));
 }
 
-/* 3) List & fetch everything under "Pre Check/" and save as one JSON */
-async function downloadAll() {
-  const stat = document.getElementById('stat');
-  stat.textContent = 'Listing…';
-  const folderRef = storage.ref().child('Pre Check');
-
-  // listAll handles up to 1000 objects; if you ever exceed, switch to paginated list().
-  const list = await folderRef.listAll();
-  const items = list.items.filter(it => it.name.toLowerCase().endsWith('.json'));
-
-  stat.textContent = `Found ${items.length} files. Fetching… 0%`;
-  // Fetch in small batches for reliability on mobile
-  const batchSize = 10;
-  const out = [];
-  let done = 0;
-
-  for (let i=0; i<items.length; i+=batchSize){
-    const chunk = items.slice(i, i+batchSize);
-    const urls = await Promise.all(chunk.map(it => it.getDownloadURL()));
-    const jsons = await Promise.all(urls.map(u => fetch(u).then(r => r.json()).catch(()=>null)));
-    jsons.forEach(j => { if(j) out.push(j); });
-    done += chunk.length;
-    stat.textContent = `Fetching… ${Math.round(done/items.length*100)}%`;
-  }
-
-  stat.textContent = `Saving ${out.length} records…`;
-  saveFile('precheck_raw.json', JSON.stringify(out, null, 2));
-  stat.textContent = 'Done.';
+/* Small helper to save a text Blob */
+function saveText(name, text){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
 }
 
-document.getElementById('go').addEventListener('click', downloadAll);
+/* 2) Filenames CSV */
+$('btnCsv').onclick = async () => {
+  try{
+    setStatus('Listing…'); setPct(0); $('log').textContent='';
+    const items = await listAllJson();
+    setStatus(`Found ${items.length} files`);
+    const rows = ['name,path'];
+    items.forEach(it => rows.push(`${it.name.replace(/,/g,'')},${FOLDER}/${it.name}`));
+    saveText('precheck_filenames.csv', rows.join('\n'));
+    setPct(100);
+  }catch(e){ alert('Error: '+e.message); }
+};
+
+/* 3) NDJSON (streamy & light: no JSON.parse) */
+$('btnNdjson').onclick = async () => {
+  try{
+    setStatus('Listing…'); setPct(0); $('log').textContent='';
+    const items = await listAllJson();
+    const total = items.length;
+    setStatus(`Fetching ${total} files as NDJSON…`);
+    log(`Files: ${total}`);
+
+    // fetch sequentially (or low concurrency) to keep memory small on iOS
+    const parts = []; // array of strings; far lighter than one giant object
+    let done = 0;
+
+    for(const it of items){
+      let url, txt='';
+      try{
+        url = await it.getDownloadURL();
+        txt = await fetch(url, {cache:'no-store'}).then(r=>r.text());
+        // One line per record (already JSON text) — ensure no stray newlines
+        parts.push(txt.replace(/\n/g,' ') + '\n');
+      }catch(err){
+        log(`✖ ${it.name}: ${err.message}`);
+        continue;
+      }
+      done++;
+      if (done % 5 === 0) {
+        const pct = Math.round(done/total*100);
+        setPct(pct); setStatus(`${pct}%`);
+      }
+    }
+
+    saveText('precheck_raw.ndjson', parts.join('')); // each line is a JSON object
+    setPct(100); setStatus('Done');
+  }catch(e){ alert('Error: '+e.message); }
+};
+
+/* 4) ZIP all (low concurrency, progress) */
+$('btnZip').onclick = async () => {
+  try{
+    setStatus('Listing…'); setPct(0); $('log').textContent='';
+    const items = await listAllJson();
+    const total = items.length;
+    setStatus(`Downloading ${total} files to ZIP…`);
+
+    const zip = new JSZip();
+    let done = 0;
+
+    // Low concurrency to avoid Safari memory spikes
+    const concurrency = 3;
+    async function worker(queue){
+      while(queue.length){
+        const it = queue.shift();
+        try{
+          const url = await it.getDownloadURL();
+          const txt = await fetch(url, {cache:'no-store'}).then(r=>r.text());
+          zip.file(it.name, txt);
+          done++;
+          const pct = Math.round(done/total*100);
+          setPct(pct); setStatus(`${pct}%`);
+        }catch(err){
+          log(`✖ ${it.name}: ${err.message}`);
+        }
+      }
+    }
+
+    const queue = items.slice();
+    await Promise.all(new Array(concurrency).fill(0).map(()=>worker(queue)));
+
+    const blob = await zip.generateAsync({type:'blob',compression:'DEFLATE'}, meta=>{
+      // meta.percent is already a rough progress of zipping
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'precheck_json.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setPct(100); setStatus('Done');
+  }catch(e){ alert('Error: '+e.message); }
+};
 </script>
 </html>
