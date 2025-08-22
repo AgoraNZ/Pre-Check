@@ -9,31 +9,36 @@
   <button onclick="downloadCSV()">Download Raw Data (CSV)</button>
 
   <script>
-    // 🔹 Replace with your Firebase config
+    // 🔹 Your Firebase config
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
+      apiKey: "AIzaSyD-yb8LkhqSKvNKL6c0P14f5fhvSZoEgXI",
+      authDomain: "agora-vat-checks.firebaseapp.com",
+      projectId: "agora-vat-checks",
+      storageBucket: "agora-vat-checks.appspot.com",
+      messagingSenderId: "1080509010890",
+      appId: "1:1080509010890:web:7f8b54ce92a5cd6311d6b8"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     async function downloadCSV() {
       try {
-        const snapshot = await db.collection("farms").get(); // ⚡ change 'farms' if different
+        const snapshot = await db.collection("farms").get(); // 🔹 change if collection name is different
         if (snapshot.empty) {
-          alert("No documents found in collection!");
+          alert("⚠️ No documents found in collection!");
           return;
         }
 
-        // Convert to CSV
+        // Build CSV header from first doc
         let csv = "id," + Object.keys(snapshot.docs[0].data()).join(",") + "\n";
+
         snapshot.forEach(doc => {
           const row = [doc.id, ...Object.values(doc.data())];
           csv += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
         });
 
-        // Download
+        // Trigger file download
         const blob = new Blob([csv], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -42,9 +47,9 @@
         a.click();
         URL.revokeObjectURL(url);
 
-        console.log("✅ Data downloaded");
+        console.log("✅ Data downloaded successfully");
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("❌ Error fetching data:", err);
         alert("Error fetching data, check console.");
       }
     }
