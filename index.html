@@ -1,51 +1,45 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Download Pre Check Raw Data</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-</head>
-<body>
-  <button id="downloadBtn">Download Pre Check Data</button>
-  <pre id="output"></pre>
+<button id="downloadBtn">Download Pre Check</button>
+<pre id="output"></pre>
 
-  <script>
-    // ---------- Firebase ----------
-    const cfg = {
-      apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
-      authDomain: "dairy-farm-record-system.firebaseapp.com",
-      projectId: "dairy-farm-record-system",
-      storageBucket: "dairy-farm-record-system.appspot.com",
-      messagingSenderId: "422124188212",
-      appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
-    };
-    firebase.initializeApp(cfg);
-    const storage = firebase.storage();
-    const folder = "Pre Check";
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script>
+  const cfg = {
+    apiKey: "AIzaSyDr9nA44Kkej*****GUzbMDECI8cTFI",
+    authDomain: "dairy-farm-record-system.firebaseapp.com",
+    projectId: "dairy-farm-record-system",
+    storageBucket: "dairy-farm-record-system.appspot.com",
+    messagingSenderId: "422124188212",
+    appId: "1:422124188212:web:1bd31bee8d6e91e301d061"
+  };
+  firebase.initializeApp(cfg);
+  const db = firebase.firestore();
 
-    document.getElementById("downloadBtn").addEventListener("click", async () => {
-      const listRef = storage.ref(folder);
-      const res = await listRef.listAll();
+  document.getElementById("downloadBtn").addEventListener("click", async () => {
+    try {
+      const snapshot = await db.collection("Pre Check").get();
+      let data = [];
+      snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
 
-      let output = [];
-      for (const item of res.items) {
-        const url = await item.getDownloadURL();
-        const resp = await fetch(url);
-        const text = await resp.text(); // works for CSV/JSON/plain
-        output.push({ name: item.name, data: text });
-      }
+      // ✅ Force Safari to allow download
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = window.URL.createObjectURL(blob);
 
-      // Show in browser
-      document.getElementById("output").textContent = JSON.stringify(output, null, 2);
-
-      // Force download as raw.json
-      const blob = new Blob([JSON.stringify(output)], { type: "application/json" });
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
+      a.style.display = "none";
+      a.href = url;
       a.download = "PreCheck_Raw.json";
+
+      document.body.appendChild(a);
       a.click();
-    });
-  </script>
-</body>
-</html>
+
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      alert("Download started (" + data.length + " records)");
+    } catch (err) {
+      console.error(err);
+      alert("Error: " + err.message);
+    }
+  });
+</script>
