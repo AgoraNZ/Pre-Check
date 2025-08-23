@@ -308,13 +308,14 @@ label.form-label{font-weight:600}
       <div class="section-title">Admin</div>
       <div class="d-flex gap-2 flex-wrap">
         <button id="btn-reload" class="btn btn-brand">Reload Dairy List</button>
-        <button id="btn-clear-sw" class="btn btn-outline-brand">Reset SW Cache</button>
+        <button id="btn-owner-report" class="btn btn-outline-brand">Download Owner Report (HTML)</button>
+        <button id="btn-clear-sw" class="btn btn-outline-secondary">Reset SW Cache</button>
       </div>
       <div class="small mt-2">Offline: the app shell is cached. Form saves are queued locally and uploaded automatically when online.</div>
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v4.5</div>
+  <div class="footer">Agora • Vat Pre-Check • v4.6</div>
 </div>
 
 <!-- Libs -->
@@ -398,9 +399,32 @@ $('btn-reload').onclick = ()=>loadDairyList();
 
 /* -------------------------------- Field mapping helpers -------------------------------- */
 function pick(obj, ...keys){ for(const k of keys){ if(obj && obj[k]!=null && obj[k]!=='' ) return obj[k] } return '' }
-function normCap(v){ const t=low(v); if(/unavailable|no|✗/.test(t)) return 'unavailable'; if(/available|yes|✓/.test(t)) return 'available'; if(/na|n\/a/.test(t)) return 'na'; return v||'' }
-function doorDelivered(rec){ return /yes|delivered/i.test(N(pick(rec,'door-delivered','vat-door-seal'))) }
-function rjtDelivered(rec){  return /yes|delivered/i.test(N(pick(rec,'rjt-delivered','rjt-seal'))) }
+function normCap(v){ const t=low(v); if(/unavailable|no|✗/.test(t)) return 'unavailable'; if(/(^|\b)(available|yes|✓)(\b|$)/.test(t)) return 'available'; if(/(^|\b)(na|n\/a)(\b|$)/.test(t)) return 'na'; return v||'' }
+
+/* EXACT delivery mapping (fixes “notdelivered” bug) */
+function isDeliveredValue(v){
+  const t = (v||'').toString().trim().toLowerCase();
+  return t === 'delivered' || t === 'yes';
+}
+function isNotDeliveredValue(v){
+  const t = (v||'').toString().trim().toLowerCase();
+  return t === 'notdelivered' || t === 'not delivered' || t === 'no';
+}
+function doorDelivered(rec){ return isDeliveredValue(pick(rec,'door-delivered','vat-door-seal')); }
+function rjtDelivered(rec){  return isDeliveredValue(pick(rec,'rjt-delivered','rjt-seal')); }
+function doorLabel(rec){
+  const raw = (pick(rec,'door-delivered','vat-door-seal')||'').toString().trim();
+  if(isDeliveredValue(raw)) return 'Delivered';
+  if(isNotDeliveredValue(raw)) return 'Not delivered';
+  return raw || '—';
+}
+function rjtLabel(rec){
+  const raw = (pick(rec,'rjt-delivered','rjt-seal')||'').toString().trim();
+  if(isDeliveredValue(raw)) return 'Delivered';
+  if(isNotDeliveredValue(raw)) return 'Not delivered';
+  return raw || '—';
+}
+
 function doorSize(rec){ return pick(rec,'door-size','vat-door-seal-size') }
 function rjtSize(rec){  return pick(rec,'rjt-size','rjt-seal-size') }
 function photoOf(rec, which){
@@ -480,8 +504,8 @@ function brochureHTML(rec){
 
       <div class="print-card">
         <div class="print-label">Rubberware</div>
-        <div>Door Seal: <b>${doorDelivered(rec)?'Delivered':'No'}</b> ${doorSize(rec)? '• '+doorSize(rec):''} ${doorCount? '(x'+doorCount+')':''}</div>
-        <div>RJT: <b>${rjtDelivered(rec)?'Delivered':'No'}</b> ${rjtSize(rec)? '• '+rjtSize(rec):''}</div>
+        <div>Door Seal: <b>${doorLabel(rec)}</b> ${doorSize(rec)? '• '+doorSize(rec):''} ${doorCount? '(x'+doorCount+')':''}</div>
+        <div>RJT: <b>${rjtLabel(rec)}</b> ${rjtSize(rec)? '• '+rjtSize(rec):''}</div>
       </div>
     </div>
 
@@ -762,6 +786,67 @@ $('btn-print-one').onclick = async ()=>{
   openPrint(dn);
 };
 $('btn-back-summary').onclick = ()=> $('tab-summary').click();
+
+/* -------------------------- Admin: Owner Report (HTML) -------------------------- */
+$('btn-owner-report').onclick = async ()=>{
+  if(!DAIRY_KEYS.length){ alert('Load the dairy list first.'); return; }
+  const nums = LISTED_NUMBERS.slice();
+  const css = `
+    body{font-family:Inter,Arial,sans-serif;padding:16px;background:#fff;color:#0f172a}
+    .owner-wrap{max-width:1100px;margin:0 auto}
+    .owner-card{border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:8px 0}
+    .head{display:flex;justify-content:space-between;gap:8px}
+    .muted{color:#6b7280}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .row div{border:1px solid #f0f2f5;border-radius:8px;padding:8px}
+    @media(max-width:900px){.row{grid-template-columns:1fr}}
+  `;
+  let html = `<!doctype html><meta charset="utf-8"><title>Owner Report</title><style>${css}</style><div class="owner-wrap"><h2>Vat Owner Report</h2>`;
+
+  let i=0; const BATCH=12;
+  while(i<nums.length){
+    const slice = nums.slice(i, i+BATCH);
+    const recs = await Promise.all(slice.map(fetchRecordByDn));
+    for(const r of recs){
+      const doorText = doorLabel(r) + (doorSize(r)?(' • '+doorSize(r)):'');
+      const rjtText  = rjtLabel(r)  + (rjtSize(r)?(' • '+rjtSize(r)):'');
+      html += `
+        <div class="owner-card">
+          <div class="head"><strong>#${r.dairyNumber||''}</strong><span class="muted">${manufacturerGuess(r)||''}</span></div>
+          <div class="row">
+            <div>
+              <b>Vat 1</b><br>
+              Size: ${pick(r,'vat1-capacity')||'-'}<br>
+              Serial: ${pick(r,'vat1-serial')||'-'}<br>
+              Cap: ${(normCap(pick(r,'vat1-cap'))||'-').toUpperCase()}<br>
+              Condition: ${pick(r,'vat1-condition')||'-'}
+            </div>
+            <div>
+              <b>Vat 2</b><br>
+              Size: ${pick(r,'vat2-capacity')||'-'}<br>
+              Serial: ${pick(r,'vat2-serial')||'-'}<br>
+              Cap: ${(normCap(pick(r,'vat2-cap'))||'-').toUpperCase()}<br>
+              Condition: ${pick(r,'vat2-condition')||'-'}
+            </div>
+            <div>
+              <b>Rubberware</b><br>
+              Door Seal: ${doorText}<br>
+              RJT: ${rjtText}
+            </div>
+            <div>
+              <b>Signal / Telemetry</b><br>
+              Spark: ${pick(r,'spark-bars')||'-'} • One NZ: ${pick(r,'one-bars')||'-'}<br>
+              Brand: ${pick(r,'other-brand')||'-'} • Type: ${pick(r,'other-type')||'-'}
+            </div>
+          </div>
+        </div>`;
+    }
+    i += BATCH;
+  }
+  html += `</div>`;
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  saveAs(blob, 'owner_report.html');
+};
 
 /* admin */
 $('btn-clear-sw').onclick = async ()=>{
