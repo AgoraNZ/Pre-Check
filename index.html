@@ -59,9 +59,20 @@ label.form-label{font-weight:600}
 .print-title{font-weight:800;font-size:1.2rem}
 .print-sub{color:#6b7280}
 .print-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.print-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px}
+.print-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px; page-break-inside: avoid;}
 .print-label{font-weight:700;margin-bottom:6px}
-.print-photos img{width:100%;max-height:120;object-fit:contain;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:8px}
+.print-photos img{
+  width:100%;
+  max-height:none;          /* << fix: show full images */
+  object-fit:contain;       /* keep full photo visible */
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  margin-bottom:8px;
+}
+@media print {
+  .print-card{break-inside:avoid}
+  .print-grid{grid-template-columns:1fr 1fr;gap:10px}
+}
 
 .footer{color:#6b7280;text-align:center;margin:22px 0 10px}
 .hidden{display:none!important}
@@ -315,7 +326,7 @@ label.form-label{font-weight:600}
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v4.6</div>
+  <div class="footer">Agora • Vat Pre-Check • v4.7</div>
 </div>
 
 <!-- Libs -->
@@ -522,34 +533,44 @@ function brochureHTML(rec){
 }
 
 /* -------------------------------- Fetch single record on demand -------------------------------- */
+/* robust fetch with retry; returns null if completely failed */
 async function fetchRecordByDn(dn){
-  const url = await storage.ref(`${FOLDER}/${dn}.json`).getDownloadURL();
-  const rec = await fetch(url).then(r=>r.json());
-  rec.dairyNumber = rec.dairyNumber || dn;
-  return rec;
+  const pathRef = storage.ref(`${FOLDER}/${dn}.json`);
+  let lastErr=null;
+  for(let attempt=0; attempt<2; attempt++){
+    try{
+      const url = await pathRef.getDownloadURL();
+      const rec = await fetch(url, {cache:'no-store'}).then(r=>r.json());
+      rec.dairyNumber = rec.dairyNumber || dn;
+      return rec;
+    }catch(e){ lastErr=e; }
+  }
+  console.warn('Failed to fetch', dn, lastErr);
+  return null;
 }
+
 window.openDetails = async (dn)=>{
   const host = $('row-'+dn);
   const id='details-'+dn; const prior=document.getElementById(id); if(prior){ prior.remove(); return; }
   host.insertAdjacentHTML('beforeend', `<div id="${id}" class="mt-2 small text-secondary">Loading…</div>`);
-  try{
-    const rec = await fetchRecordByDn(dn);
+  const rec = await fetchRecordByDn(dn);
+  if(rec){
     document.getElementById(id).outerHTML = brochureHTML(rec);
-  }catch(e){
+  }else{
     document.getElementById(id).outerHTML = `<div class="small text-danger">Failed to load.</div>`;
   }
 };
+
 window.openPrint = async (dn)=>{
-  try{
-    const rec = await fetchRecordByDn(dn);
-    const w = window.open('', '_blank');
-    const css = document.querySelector('style').innerHTML;
-    w.document.write(`<html><head><title>#${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body>${brochureHTML(rec)}</body></html>`);
-    w.document.close(); w.focus(); setTimeout(()=>w.print(), 250);
-  }catch(e){ alert('Failed to load #'+dn) }
+  const rec = await fetchRecordByDn(dn);
+  if(!rec){ alert('Failed to load #'+dn); return; }
+  const w = window.open('', '_blank');
+  const css = document.querySelector('style').innerHTML;
+  w.document.write(`<html><head><title>#${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body>${brochureHTML(rec)}</body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(), 250);
 };
 
-/* -------------------------------- Print/ZIP ALL (fetch on demand, batched) -------------------------------- */
+/* -------------------------------- Print/ZIP ALL (fetch on demand, batched & resilient) -------------------------------- */
 function ensureList(){ if(!DAIRY_KEYS.length){ alert('Load the dairy list first.'); return false } return true }
 
 $('btn-print-all').onclick = async ()=>{
@@ -559,46 +580,64 @@ $('btn-print-all').onclick = async ()=>{
   w.document.write(`<html><head><title>All Brochures</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body></body></html>`);
   w.document.close();
 
-  const nums = LISTED_NUMBERS.slice(); // respect search filter
-  let i=0; const BATCH=8;
+  const nums = LISTED_NUMBERS.slice(); // respects current filter
+  let i=0; const BATCH=5;
   async function step(){
+    const slice = nums.slice(i, i+BATCH);
     try{
-      const slice = nums.slice(i, i+BATCH);
       const recs = await Promise.all(slice.map(fetchRecordByDn));
       for(const rec of recs){
+        if(!rec) continue;
         const div = w.document.createElement('div');
         div.innerHTML = brochureHTML(rec) + '<div style="page-break-after:always"></div>';
         w.document.body.appendChild(div);
       }
       i += BATCH;
-      if(i<nums.length) setTimeout(step, 80);
+      $('load-pct').textContent = Math.min(100, Math.floor(i/nums.length*100))+'%';
+      if(i<nums.length) setTimeout(step, 60);
       else setTimeout(()=>w.print(), 300);
-    }catch(e){ alert('Stopped while printing. Rendered '+i+' farms.'); }
+    }catch(e){
+      // continue anyway
+      i += BATCH;
+      if(i<nums.length) setTimeout(step, 60);
+      else setTimeout(()=>w.print(), 300);
+    }
   }
   step();
 };
 
 $('btn-zip-all').onclick = async ()=>{
   if(!ensureList()) return;
-  const nums = LISTED_NUMBERS.slice(); // respect search filter
+  const nums = LISTED_NUMBERS.slice(); // respects current filter
   const css = document.querySelector('style').innerHTML;
   const zip = new JSZip();
-  let i=0; const BATCH=10;
 
+  let i=0; const BATCH=6;
   async function step(){
+    const slice = nums.slice(i, i+BATCH);
     try{
-      const slice = nums.slice(i, i+BATCH);
       const recs = await Promise.all(slice.map(fetchRecordByDn));
       for(const rec of recs){
+        if(!rec) continue; // skip failed
         const dn = rec.dairyNumber;
         const html = `<!doctype html><meta charset="utf-8"><title>${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${brochureHTML(rec)}`;
         zip.file(`brochure_${dn}.html`, html);
       }
-      i += BATCH;
-      $('load-pct').textContent = Math.min(100, Math.floor(i/nums.length*100))+'%';
-      if(i<nums.length) setTimeout(step, 0);
-      else zip.generateAsync({type:'blob'}).then(b=>saveAs(b,'agora_precheck_brochures.zip'));
-    }catch(e){ alert('Stopped while building ZIP at '+i+' farms.'); }
+    }catch(e){
+      // ignore batch failure and continue
+    }
+    i += BATCH;
+    $('load-pct').textContent = Math.min(100, Math.floor(i/nums.length*100))+'%';
+    if(i<nums.length){
+      setTimeout(step, 0);
+    }else{
+      try{
+        const blob = await zip.generateAsync({type:'blob'});
+        saveAs(blob,'agora_precheck_brochures.zip');
+      }catch(e){
+        alert('Could not build ZIP. Try fewer farms or reload.');
+      }
+    }
   }
   step();
 };
@@ -618,51 +657,50 @@ attachPreview('rjt-photo','rjt-preview');
 
 /* -------------------------------- FORM: auto-fill from cloud -------------------------------- */
 async function autofill(dn){
-  try{
-    const rec = await fetchRecordByDn(dn);
-    const set = (id,v)=>{ const el=$(id); if(el) el.value = v ?? '' };
+  const rec = await fetchRecordByDn(dn);
+  if(!rec){ alert('Could not load #'+dn); return; }
+  const set = (id,v)=>{ const el=$(id); if(el) el.value = v ?? '' };
 
-    set('dairyNumber', rec.dairyNumber);
-    set('gateway-location', pick(rec,'gateway-location'));
-    set('vat1-capacity', pick(rec,'vat1-capacity'));
-    set('vat1-cap', normCap(pick(rec,'vat1-cap'))||'available');
-    set('vat1-serial', pick(rec,'vat1-serial'));
-    set('vat1-condition', pick(rec,'vat1-condition')||'ok');
-    set('vat1-condition-comments', pick(rec,'vat1-condition-comments'));
-    set('vat1-comments', pick(rec,'vat1-comments'));
-    set('agitator1-location', pick(rec,'agitator1-location','agitator-location'));
-    setPrev('gateway-preview', photoOf(rec,'gateway'));
-    setPrev('vat1-cap-preview', photoOf(rec,'v1cap'));
-    setPrev('agitator1-preview', photoOf(rec,'v1agit'));
+  set('dairyNumber', rec.dairyNumber);
+  set('gateway-location', pick(rec,'gateway-location'));
+  set('vat1-capacity', pick(rec,'vat1-capacity'));
+  set('vat1-cap', normCap(pick(rec,'vat1-cap'))||'available');
+  set('vat1-serial', pick(rec,'vat1-serial'));
+  set('vat1-condition', pick(rec,'vat1-condition')||'ok');
+  set('vat1-condition-comments', pick(rec,'vat1-condition-comments'));
+  set('vat1-comments', pick(rec,'vat1-comments'));
+  set('agitator1-location', pick(rec,'agitator1-location','agitator-location'));
+  setPrev('gateway-preview', photoOf(rec,'gateway'));
+  setPrev('vat1-cap-preview', photoOf(rec,'v1cap'));
+  setPrev('agitator1-preview', photoOf(rec,'v1agit'));
 
-    set('vat2-capacity', pick(rec,'vat2-capacity')); toggleVat2Extra();
-    set('vat2-cap', normCap(pick(rec,'vat2-cap')) || (pick(rec,'vat2-capacity')?'available':'na'));
-    set('vat2-serial', pick(rec,'vat2-serial'));
-    set('vat2-condition', pick(rec,'vat2-condition')||'ok');
-    set('vat2-condition-comments', pick(rec,'vat2-condition-comments'));
-    set('vat2-comments', pick(rec,'vat2-comments'));
-    set('agitator2-location', pick(rec,'agitator2-location'));
-    setPrev('vat2-cap-preview', photoOf(rec,'v2cap'));
-    setPrev('agitator2-preview', photoOf(rec,'v2agit'));
+  set('vat2-capacity', pick(rec,'vat2-capacity')); toggleVat2Extra();
+  set('vat2-cap', normCap(pick(rec,'vat2-cap')) || (pick(rec,'vat2-capacity')?'available':'na'));
+  set('vat2-serial', pick(rec,'vat2-serial'));
+  set('vat2-condition', pick(rec,'vat2-condition')||'ok');
+  set('vat2-condition-comments', pick(rec,'vat2-condition-comments'));
+  set('vat2-comments', pick(rec,'vat2-comments'));
+  set('agitator2-location', pick(rec,'agitator2-location'));
+  setPrev('vat2-cap-preview', photoOf(rec,'v2cap'));
+  setPrev('agitator2-preview', photoOf(rec,'v2agit'));
 
-    set('spark-bars', pick(rec,'spark-bars'));
-    set('spark-note', pick(rec,'spark-note'));
-    set('one-bars', pick(rec,'one-bars'));
-    set('one-note', pick(rec,'one-note'));
+  set('spark-bars', pick(rec,'spark-bars'));
+  set('spark-note', pick(rec,'spark-note'));
+  set('one-bars', pick(rec,'one-bars'));
+  set('one-note', pick(rec,'one-note'));
 
-    set('other-brand', pick(rec,'other-brand'));
-    set('other-type', pick(rec,'other-type'));
-    set('other-notes', pick(rec,'other-notes'));
-    set('current-telemetry', pick(rec,'current-telemetry'));
-    set('telemetry-comments', pick(rec,'telemetry-comments'));
+  set('other-brand', pick(rec,'other-brand'));
+  set('other-type', pick(rec,'other-type'));
+  set('other-notes', pick(rec,'other-notes'));
+  set('current-telemetry', pick(rec,'current-telemetry'));
+  set('telemetry-comments', pick(rec,'telemetry-comments'));
 
-    set('door-delivered', pick(rec,'door-delivered','vat-door-seal')||'no');
-    set('door-size', doorSize(rec));
-    set('rjt-delivered', pick(rec,'rjt-delivered','rjt-seal')||'no');
-    set('rjt-size', rjtSize(rec));
-    setPrev('door-preview', photoOf(rec,'door'));
-    setPrev('rjt-preview', photoOf(rec,'rjt'));
-  }catch(e){ alert('Could not load #'+dn); }
+  set('door-delivered', pick(rec,'door-delivered','vat-door-seal')||'no');
+  set('door-size', doorSize(rec));
+  set('rjt-delivered', pick(rec,'rjt-delivered','rjt-seal')||'no');
+  set('rjt-size', rjtSize(rec));
+  setPrev('door-preview', photoOf(rec,'door'));
+  setPrev('rjt-preview', photoOf(rec,'rjt'));
 }
 $('dairyNumber').addEventListener('blur', ()=>{ const dn=N($('dairyNumber').value).trim(); if(dn) autofill(dn) });
 
@@ -794,7 +832,7 @@ $('btn-owner-report').onclick = async ()=>{
   const css = `
     body{font-family:Inter,Arial,sans-serif;padding:16px;background:#fff;color:#0f172a}
     .owner-wrap{max-width:1100px;margin:0 auto}
-    .owner-card{border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:8px 0}
+    .owner-card{border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:8px 0; page-break-inside:avoid;}
     .head{display:flex;justify-content:space-between;gap:8px}
     .muted{color:#6b7280}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -803,11 +841,13 @@ $('btn-owner-report').onclick = async ()=>{
   `;
   let html = `<!doctype html><meta charset="utf-8"><title>Owner Report</title><style>${css}</style><div class="owner-wrap"><h2>Vat Owner Report</h2>`;
 
-  let i=0; const BATCH=12;
+  let i=0; const BATCH=10;
   while(i<nums.length){
     const slice = nums.slice(i, i+BATCH);
-    const recs = await Promise.all(slice.map(fetchRecordByDn));
+    let recs=[];
+    try{ recs = await Promise.all(slice.map(fetchRecordByDn)); }catch(e){ /* ignore */ }
     for(const r of recs){
+      if(!r) continue;
       const doorText = doorLabel(r) + (doorSize(r)?(' • '+doorSize(r)):'');
       const rjtText  = rjtLabel(r)  + (rjtSize(r)?(' • '+rjtSize(r)):'');
       html += `
