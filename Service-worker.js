@@ -1,43 +1,40 @@
-// Update when you ship
-const CACHE_NAME = 'agora-precheck-v139';
-
+// Offline shell + assets (no data caching). Bump version to invalidate.
+const CACHE_NAME = 'agora-precheck-shell-v9';
 const urlsToCache = [
   './',
   './index.html',
-  'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css',
   'https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js',
+  // logo used by brochure
+  'https://firebasestorage.googleapis.com/v0/b/dairy-farm-record-system.appspot.com/o/Agora%20Logo%2F2F6-1YdaEP.jpeg?alt=media'
 ];
 
 self.addEventListener('install', e=>{
-  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(urlsToCache)));
+  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(urlsToCache)).catch(()=>{}));
   self.skipWaiting();
 });
-
 self.addEventListener('activate', e=>{
-  e.waitUntil((async()=>{
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k=> k===CACHE_NAME?null:caches.delete(k)));
-    await self.clients.claim();
-  })());
+  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(k=>k===CACHE_NAME?null:caches.delete(k)))));
+  self.clients.claim();
 });
 
+// JSON is network-first (we always want live data). Shell is cache-first.
 self.addEventListener('fetch', e=>{
-  const {request} = e;
-  e.respondWith((async()=>{
-    const hit = await caches.match(request);
-    if (hit) return hit;
-    try{
-      const rsp = await fetch(request);
-      if (rsp && rsp.status===200 && request.method==='GET' && (request.url.startsWith(self.location.origin) || request.url.includes('cdnjs') || request.url.includes('firebase')))
-        caches.open(CACHE_NAME).then(c=>c.put(request, rsp.clone()));
-      return rsp;
-    }catch(err){
-      const fallback = await caches.match('./index.html');
-      return fallback || new Response('offline',{status:503});
-    }
-  })());
+  const url = new URL(e.request.url);
+  const isJSON = url.pathname.endsWith('.json') || url.search.includes('alt=media');
+  if(isJSON){
+    e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
+    return;
+  }
+  e.respondWith(
+    caches.match(e.request).then(resp=>{
+      return resp || fetch(e.request).then(r=>{
+        const copy=r.clone(); caches.open(CACHE_NAME).then(c=>c.put(e.request, copy));
+        return r;
+      });
+    }).catch(()=>caches.match('./index.html'))
+  );
 });
