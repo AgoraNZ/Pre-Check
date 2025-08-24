@@ -61,6 +61,7 @@ label.form-label{font-weight:600}
 .print-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .print-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px}
 .print-label{font-weight:700;margin-bottom:6px}
+/* show full image, no crop */
 .print-photos img{width:100%;max-height:140px;object-fit:contain;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:8px}
 
 /* Owner report styling */
@@ -318,14 +319,24 @@ label.form-label{font-weight:600}
       <div class="section-title">Admin</div>
       <div class="d-flex gap-2 flex-wrap">
         <button id="btn-reload" class="btn btn-brand">Reload Dairy List</button>
-        <button id="btn-owner-report" class="btn btn-outline-brand">Download Owner Report (HTML)</button>
+        <button id="btn-gen-missing" class="btn btn-outline-brand">Generate Missing Brochures</button>
+        <button id="btn-save-all-dated" class="btn btn-outline-brand">Save ALL Brochures (dated)</button>
+        <button id="btn-brochure-print-all" class="btn btn-brand">Print All (from brochures)</button>
+        <button id="btn-brochure-download-all" class="btn btn-outline-brand">Download All (ONE FILE)</button>
+        <button id="btn-owner-report" class="btn btn-outline-secondary">Download Owner Report (HTML)</button>
         <button id="btn-clear-sw" class="btn btn-outline-secondary">Reset SW Cache</button>
       </div>
       <div class="small mt-2">Offline: the app shell is cached. Form saves are queued locally and uploaded automatically when online.</div>
+      <div class="mt-2">
+        <div class="progress" style="height:12px">
+          <div id="admin-progress" class="progress-bar" style="width:0%"></div>
+        </div>
+        <div class="small mt-1"><span id="admin-status">Idle</span></div>
+      </div>
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v4.9</div>
+  <div class="footer">Agora • Vat Pre-Check • v5.2</div>
 </div>
 
 <!-- Libs -->
@@ -345,6 +356,7 @@ firebase.initializeApp({
 });
 const storage = firebase.storage();
 const FOLDER = 'Pre Check';
+const BROCHURE_FOLDER = "Pre Check Brochure’s"; // note curly apostrophe per your path
 
 /* -------------------------------- DOM helpers -------------------------------- */
 const $ = id => document.getElementById(id);
@@ -372,6 +384,11 @@ $('tab-admin').onclick   = ()=> activate($('tab-admin'),'view-admin');
 
 /* -------------------------------- Summary: list dairy numbers only -------------------------------- */
 function setPct(done,total){ const p = total? Math.floor(done/total*100):0; $('load-bar').style.width=p+'%'; $('load-pct').textContent=p+'%'; }
+function setAdminPct(done,total,msg){
+  const p = total? Math.floor(done/total*100):0;
+  $('admin-progress').style.width = p+'%';
+  $('admin-status').textContent = msg || (p+'%');
+}
 
 async function loadDairyList(){
   try{
@@ -448,7 +465,7 @@ function manufacturerGuess(rec){
   return pick(rec,'other-brand') || '';
 }
 
-/* -------------------------------- Brochure -------------------------------- */
+/* -------------------------------- Brochure builder -------------------------------- */
 function photoBlock(label, src){ return src?`<div class="print-card"><div class="print-label">${label}</div><div class="print-photos"><img src="${src}" alt=""></div></div>`:'' }
 function brochureHTML(rec){
   const doorCount = doorDelivered(rec) ? (hasVat2(rec)?2:1) : 0;
@@ -527,6 +544,29 @@ async function fetchRecordByDn(dn){
   rec.dairyNumber = rec.dairyNumber || dn;
   return rec;
 }
+
+/* -------------- Brochure storage helpers (Firebase Storage HTMLs) -------------- */
+async function listBrochureKeys(){
+  const res = await storage.ref(BROCHURE_FOLDER).listAll();
+  return res.items.map(i=>i.name); // e.g., ['7031.html', '7100.html', ...]
+}
+async function getBrochureUrl(name){ return storage.ref(`${BROCHURE_FOLDER}/${name}`).getDownloadURL(); }
+async function saveBrochureHtml(name, html){
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  await storage.ref(`${BROCHURE_FOLDER}/${name}`).put(blob);
+}
+function todayFolder(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+async function saveBrochureHtmlToDated(folderDate, name, html){
+  const path = `${BROCHURE_FOLDER}/${folderDate}/${name}`;
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  await storage.ref(path).put(blob);
+}
+
+/* ------------------- Details & per-farm print (unchanged) ------------------- */
 window.openDetails = async (dn)=>{
   const host = $('row-'+dn);
   const id='details-'+dn; const prior=document.getElementById(id); if(prior){ prior.remove(); return; }
@@ -548,81 +588,163 @@ window.openPrint = async (dn)=>{
   }catch(e){ alert('Failed to load #'+dn) }
 };
 
-/* ---------------------- PRINT ALL (batched, with interim prints) ---------------------- */
+/* ---------------------- Old Summary Print/Download (still available) ---------------------- */
 function ensureList(){ if(!DAIRY_KEYS.length){ alert('Load the dairy list first.'); return false } return true }
-
 $('btn-print-all').onclick = async ()=>{
   if(!ensureList()) return;
-
+  // Fallback: build live (kept as-is)
   const nums = LISTED_NUMBERS.slice();
   const css  = document.querySelector('style').innerHTML;
-
   const w = window.open('', '_blank');
-  if(!w){ alert('Popup blocked. Allow popups and try again.'); return; }
+  if(!w){ alert('Popup blocked.'); return; }
   w.document.write(`<html><head><title>All Brochures</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body></body></html>`);
   w.document.close();
-
-  let i = 0;
-  const BATCH = 6;
-  const REST  = 400;
-
-  async function renderBatch(start, end){
-    const slice = nums.slice(start, end);
+  let i=0; const BATCH=8;
+  async function step(){
+    const slice = nums.slice(i,i+BATCH);
     const recs  = await Promise.all(slice.map(fetchRecordByDn));
     for(const rec of recs){
       const div = w.document.createElement('div');
       div.innerHTML = brochureHTML(rec) + '<div style="page-break-after:always"></div>';
       w.document.body.appendChild(div);
     }
+    i+=BATCH;
+    $('load-pct').textContent = Math.min(100, Math.floor(i/nums.length*100))+'%';
+    if(i<nums.length) setTimeout(step, 60); else setTimeout(()=>w.print(), 250);
   }
-
-  async function loop(){
-    if(i >= nums.length){ try{ w.focus(); w.print(); }catch(_){ } return; }
-    const next = Math.min(i + BATCH, nums.length);
-    try{
-      await renderBatch(i, next);
-      $('load-pct').textContent = Math.min(100, Math.floor(next/nums.length*100))+'%';
-      setTimeout(()=>{
-        try{ w.focus(); w.print(); }catch(_){}
-        setTimeout(()=>{
-          try{ w.document.body.innerHTML = ''; }catch(_){}
-          i = next;
-          setTimeout(loop, REST);
-        }, 200);
-      }, 200);
-    }catch(_){
-      i = next;
-      setTimeout(loop, REST);
-    }
-  }
-  loop();
+  step();
 };
-
-/* ---------------------- DOWNLOAD ALL (ONE BIG HTML FILE) ---------------------- */
 $('btn-zip-all').onclick = async ()=>{
   if(!ensureList()) return;
   const nums = LISTED_NUMBERS.slice();
   const css  = document.querySelector('style').innerHTML;
-
-  let i=0;
   let bodyHtml = '';
-  const BATCH = 12;
-
+  let i=0; const BATCH=12;
   while(i<nums.length){
-    const slice = nums.slice(i, i+BATCH);
+    const slice = nums.slice(i,i+BATCH);
     const recs  = await Promise.all(slice.map(fetchRecordByDn));
-    for(const rec of recs){
-      bodyHtml += brochureHTML(rec) + '<div style="page-break-after:always"></div>';
-    }
-    i += BATCH;
+    for(const rec of recs){ bodyHtml += brochureHTML(rec) + '<div style="page-break-after:always"></div>'; }
+    i+=BATCH;
     $('load-pct').textContent = Math.min(100, Math.floor(i/nums.length*100))+'%';
-    // yield to UI
-    await new Promise(r=>setTimeout(r, 20));
+    await new Promise(r=>setTimeout(r,15));
   }
-
   const allHtml = `<!doctype html><meta charset="utf-8"><title>All Brochures</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${bodyHtml}`;
   const blob = new Blob([allHtml], {type:'text/html;charset=utf-8'});
   saveAs(blob, 'all_brochures.html');
+};
+
+/* ------------------------------ ADMIN: brochure pipeline ------------------------------ */
+// 1) Generate Missing Brochures (compare JSON vs existing HTML)
+$('btn-gen-missing').onclick = async ()=>{
+  if(!DAIRY_KEYS.length){ await loadDairyList(); }
+  const jsonNums = LISTED_NUMBERS.slice();
+  $('admin-status').textContent = 'Scanning brochure folder…';
+  const existing = await listBrochureKeys();                  // ['7031.html', ...]
+  const have = new Set(existing.map(n=>n.replace(/\.html$/i,'')));
+  const missing = jsonNums.filter(n => !have.has(n));
+  if(!missing.length){ setAdminPct(100,100,'No missing brochures.'); return; }
+
+  const css = document.querySelector('style').innerHTML;
+  let done = 0;
+  for(const dn of missing){
+    try{
+      const rec = await fetchRecordByDn(dn);
+      const html = `<!doctype html><meta charset="utf-8"><title>${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${brochureHTML(rec)}`;
+      await saveBrochureHtml(`${dn}.html`, html);
+    }catch(e){ /* skip this farm */ }
+    done++;
+    setAdminPct(done, missing.length, `Generated ${done} / ${missing.length}`);
+    await new Promise(r=>setTimeout(r,10)); // yield
+  }
+  $('admin-status').textContent = `Done. Created ${done} brochures.`;
+};
+
+// 2) Save ALL Brochures to dated folder
+$('btn-save-all-dated').onclick = async ()=>{
+  if(!DAIRY_KEYS.length){ await loadDairyList(); }
+  const nums = LISTED_NUMBERS.slice();
+  const css = document.querySelector('style').innerHTML;
+  const folderDate = todayFolder();
+  let done = 0;
+  for(const dn of nums){
+    try{
+      const rec = await fetchRecordByDn(dn);
+      const html = `<!doctype html><meta charset="utf-8"><title>${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${brochureHTML(rec)}`;
+      await saveBrochureHtmlToDated(folderDate, `${dn}.html`, html);
+    }catch(e){ /* skip */ }
+    done++;
+    setAdminPct(done, nums.length, `Saved ${done} / ${nums.length} to ${folderDate}`);
+    await new Promise(r=>setTimeout(r,8));
+  }
+  $('admin-status').textContent = `All brochures saved to ${folderDate}`;
+};
+
+// 3) PRINT ALL (from brochures folder)
+$('btn-brochure-print-all').onclick = async ()=>{
+  $('admin-status').textContent = 'Loading brochure list…';
+  const keys = await listBrochureKeys(); // html files
+  if(!keys.length){ alert('No brochures found in folder. Generate first.'); return; }
+
+  const css = document.querySelector('style').innerHTML;
+  const w = window.open('', '_blank');
+  if(!w){ alert('Popup blocked.'); return; }
+  w.document.write(`<html><head><title>All Brochures</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body></body></html>`);
+  w.document.close();
+
+  let done = 0;
+  const BATCH = 10;
+  while(done < keys.length){
+    const slice = keys.slice(done, done+BATCH);
+    const htmls = await Promise.all(slice.map(async (name)=>{
+      try{
+        const url = await getBrochureUrl(name);
+        return await fetch(url).then(r=>r.text());
+      }catch(e){ return ''; }
+    }));
+    for(const h of htmls){
+      const div = w.document.createElement('div');
+      // strip outer <html> wrappers if any
+      const inner = h.replace(/^[\s\S]*?<body.*?>/i,'').replace(/<\/body>[\s\S]*$/i,'');
+      div.innerHTML = inner + '<div style="page-break-after:always"></div>';
+      w.document.body.appendChild(div);
+    }
+    done += slice.length;
+    setAdminPct(done, keys.length, `Prepared ${done} / ${keys.length} for print`);
+    await new Promise(r=>setTimeout(r,20));
+  }
+  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){ } }, 250);
+};
+
+// 4) DOWNLOAD ALL (ONE FILE from brochures folder)
+$('btn-brochure-download-all').onclick = async ()=>{
+  $('admin-status').textContent = 'Loading brochure list…';
+  const keys = await listBrochureKeys();
+  if(!keys.length){ alert('No brochures found in folder. Generate first.'); return; }
+  const css = document.querySelector('style').innerHTML;
+  let body = '';
+  let done = 0;
+  const BATCH = 12;
+
+  while(done < keys.length){
+    const slice = keys.slice(done, done+BATCH);
+    const htmls = await Promise.all(slice.map(async (name)=>{
+      try{
+        const url = await getBrochureUrl(name);
+        return await fetch(url).then(r=>r.text());
+      }catch(e){ return ''; }
+    }));
+    for(const h of htmls){
+      const inner = h.replace(/^[\s\S]*?<body.*?>/i,'').replace(/<\/body>[\s\S]*$/i,'');
+      body += inner + '<div style="page-break-after:always"></div>';
+    }
+    done += slice.length;
+    setAdminPct(done, keys.length, `Bundled ${done} / ${keys.length}`);
+    await new Promise(r=>setTimeout(r,15));
+  }
+
+  const allHtml = `<!doctype html><meta charset="utf-8"><title>All Brochures</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${body}`;
+  const blob = new Blob([allHtml], {type:'text/html;charset=utf-8'});
+  saveAs(blob, 'all_brochures_from_folder.html');
 };
 
 /* -------------------------------- FORM: reveal vat2; previews -------------------------------- */
@@ -809,12 +931,10 @@ $('btn-print-one').onclick = async ()=>{
 };
 $('btn-back-summary').onclick = ()=> $('tab-summary').click();
 
-/* ---------------- Owner Report: brochure-style summary + breakdown ---------------- */
+/* ---------------- Owner Report (brochure-style, revised) ---------------- */
 $('btn-owner-report').onclick = async ()=>{
   if(!DAIRY_KEYS.length){ alert('Load the dairy list first.'); return; }
   const nums = LISTED_NUMBERS.slice();
-
-  // Pull all records in manageable chunks to compute KPIs
   const BATCH = 20;
   let i = 0;
   const records = [];
@@ -825,28 +945,35 @@ $('btn-owner-report').onclick = async ()=>{
     i += BATCH;
   }
 
-  // KPIs
   const totalFarms = records.length;
-
-  // Door seals: delivered → count 2 if vat2 exists, else 1
   let totalDoorSealsDelivered = 0;
   for(const r of records){ if(doorDelivered(r)) totalDoorSealsDelivered += hasVat2(r) ? 2 : 1; }
-
-  // RJT delivered (simple farm count)
   const rjtDeliveredCnt  = records.filter(rjtDelivered).length;
 
-  // Caps OK/✗ excluding NA
+  // Cap status counts (OK/unavailable only, no NA in these tallies)
   const cap1OK  = records.filter(r => normCap(pick(r,'vat1-cap'))==='available').length;
   const cap1Bad = records.filter(r => normCap(pick(r,'vat1-cap'))==='unavailable').length;
   const cap2OK  = records.filter(r => normCap(pick(r,'vat2-cap'))==='available').length;
   const cap2Bad = records.filter(r => normCap(pick(r,'vat2-cap'))==='unavailable').length;
 
-  // Size histogram (for both vats)
+  // Vat sizes: normalize NA forms & collect farm lists
   const sizeCounts = {};
-  function bump(size){ const s=N(size).trim(); if(!s) return; sizeCounts[s]=(sizeCounts[s]||0)+1; }
-  records.forEach(r => { bump(pick(r,'vat1-capacity')); bump(pick(r,'vat2-capacity')); });
+  const naFarms = [];
+  function addSize(size, dn){
+    let s = N(size).trim();
+    if(!s) return;
+    const sLow = s.toLowerCase();
+    if(sLow==='na' || sLow==='n/a' || sLow.startsWith('na ')) { // covers "NA with comment"
+      if(!naFarms.includes(dn)) naFarms.push(dn);
+      s = 'NA';
+    }
+    sizeCounts[s] = (sizeCounts[s]||0)+1;
+  }
+  records.forEach(r => {
+    addSize(pick(r,'vat1-capacity'), r.dairyNumber);
+    addSize(pick(r,'vat2-capacity'), r.dairyNumber);
+  });
 
-  // HTML
   const css = `
     body{font-family:Inter,Arial,sans-serif;padding:16px;background:#f7f8fb;color:#0f172a}
     .owner-wrap{max-width:1100px;margin:0 auto}
@@ -869,21 +996,58 @@ $('btn-owner-report').onclick = async ()=>{
   let html = `<!doctype html><meta charset="utf-8"><title>Owner Report</title><style>${css}</style><div class="owner-wrap">`;
   html += `<div class="title">Owner Summary</div>
   <div class="card-row">
-    <div class="kpi"><div class="big">${totalFarms}</div><div class="muted">Farms visited</div></div>
-    <div class="kpi"><div class="big">${totalDoorSealsDelivered}</div><div class="muted">Door seals delivered (total)</div></div>
-    <div class="kpi"><div class="big">${rjtDeliveredCnt}</div><div class="muted">RJT delivered (farms)</div></div>
-    <div class="kpi"><div class="big">${cap1OK}/${cap1Bad} • ${cap2OK}/${cap2Bad}</div><div class="muted">Caps OK/✗ (V1 • V2)</div></div>
-  </div>`;
+  <div class="kpi">
+    <div class="big">${totalFarms}</div>
+    <div class="muted">Farms visited</div>
+  </div>
 
-  const sizeList = Object.keys(sizeCounts).sort((a,b)=>parseInt(a||0)-parseInt(b||0))
-                     .map(s=>`<div>${s}: <b>${sizeCounts[s]}</b></div>`).join('') || '<div class="muted">No size data</div>';
+  <div class="kpi">
+    <div class="big">${totalDoorSealsDelivered}</div>
+    <div class="muted">Door seals delivered (total)</div>
+  </div>
+
+  <div class="kpi">
+    <div class="big">${rjtDeliveredCnt}</div>
+    <div class="muted">RJT delivered (farms)</div>
+  </div>
+
+  <div class="kpi">
+    <div class="big">${cap1OK}/${cap1Bad} • ${cap2OK}/${cap2Bad}</div>
+    <div class="muted">Caps OK/✗ (V1 • V2)</div>
+  </div>
+
+  <!-- Routific cards (from screenshot) -->
+  <div class="kpi">
+    <div class="big">1,143 km</div>
+    <div class="muted">Estimated distance</div>
+  </div>
+
+  <div class="kpi">
+    <div class="big">195h 42m</div>
+    <div class="muted">Working time</div>
+  </div>
+</div>
+
+  // Size list (sorted numerically when possible, 'NA' last)
+  const keys = Object.keys(sizeCounts).sort((a,b)=>{
+    if(a==='NA') return 1; if(b==='NA') return -1;
+    const na=Number(a), nb=Number(b);
+    if(!isNaN(na) && !isNaN(nb)) return na-nb;
+    return a.localeCompare(b);
+  });
+  const sizeList = keys.map(s=>{
+    if(s==='NA'){
+      return `<div>NA: <b>${sizeCounts[s]}</b> <span class="muted">(${naFarms.join(', ')||'—'})</span></div>`;
+    }
+    return `<div>${s}: <b>${sizeCounts[s]}</b></div>`;
+  }).join('') || '<div class="muted">No size data</div>';
 
   html += `<div class="breakdown grid-2">
     <div class="box"><b>Vat Sizes</b><div class="mt-2">${sizeList}</div></div>
-    <div class="box"><b>—</b><div class="mt-2 muted"> </div></div>
+    <div class="box"><b>Rubberware Note</b><div class="mt-2 muted">Counts reflect 2 seals per farm when a Vat 2 capacity exists and “Delivered” is recorded.</div></div>
   </div>`;
 
-  // Per-farm brochure-lite
+  // Per-farm overview (NO signal/telemetry block now)
   html += `<div class="title" style="margin-top:18px">Per-Farm Breakdown</div>`;
   for(const r of records){
     const doorText = doorLabel(r) + (doorSize(r)?(' • '+doorSize(r)):'');
@@ -911,17 +1075,10 @@ $('btn-owner-report').onclick = async ()=>{
             Door Seal: ${doorText}${doorDelivered(r)?(hasVat2(r)?' (x2)':' (x1)'):''}<br>
             RJT: ${rjtText}
           </div>
-          <div>
-            <b>Signal / Telemetry</b><br>
-            Spark: ${pick(r,'spark-bars')||'-'} • One NZ: ${pick(r,'one-bars')||'-'}<br>
-            Brand: ${pick(r,'other-brand')||'-'} • Type: ${pick(r,'other-type')||'-'}
-          </div>
         </div>
       </div>`;
   }
-
-  html += `</div>`; // owner-wrap
-
+  html += `</div>`;
   const blob = new Blob([html], {type:'text/html;charset=utf-8'});
   saveAs(blob, 'owner_report.html');
 };
