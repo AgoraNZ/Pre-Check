@@ -66,13 +66,17 @@ label.form-label{font-weight:600}
 
 /* Owner report styling */
 .owner-wrap{max-width:1100px;margin:0 auto}
-.card-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.card-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .kpi{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
 .kpi .big{font-size:1.6rem;font-weight:800}
 .kpi .muted{color:#6b7280}
 .breakdown{margin-top:14px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:900px){.card-row,.grid-2{grid-template-columns:1fr}}
+/* Rubberware rows in Owner report */
+.rb-list{display:grid;grid-template-columns:1fr;gap:6px}
+.rb-row{display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:10px;align-items:center;border:1px solid #eef1f6;border-radius:8px;padding:8px}
+@media(max-width:900px){.rb-row{grid-template-columns:1fr}}
 
 .footer{color:#6b7280;text-align:center;margin:22px 0 10px}
 .hidden{display:none!important}
@@ -317,15 +321,42 @@ label.form-label{font-weight:600}
   <div id="view-admin" class="hidden">
     <div class="bar">
       <div class="section-title">Admin</div>
-      <div class="d-flex gap-2 flex-wrap">
+
+      <!-- Folder selector -->
+      <div class="d-flex flex-wrap align-items-end gap-2 mb-2">
+        <div>
+          <label class="form-label small mb-1">Brochure date folder</label>
+          <select id="brochure-date-select" class="form-select" style="min-width:180px"></select>
+        </div>
+        <button id="btn-refresh-dates" class="btn btn-outline-secondary">Refresh</button>
+        <button id="btn-use-today" class="btn btn-outline-brand">Use Today</button>
+        <span class="small text-muted">All brochure actions read/write this folder.</span>
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-2 flex-wrap mb-2">
         <button id="btn-reload" class="btn btn-brand">Reload Dairy List</button>
-        <button id="btn-gen-missing" class="btn btn-outline-brand">Generate Missing Brochures</button>
-        <button id="btn-save-all-dated" class="btn btn-outline-brand">Save ALL Brochures (dated)</button>
-        <button id="btn-brochure-print-all" class="btn btn-brand">Print All (from brochures)</button>
-        <button id="btn-brochure-download-all" class="btn btn-outline-brand">Download All (ONE FILE)</button>
+        <button id="btn-gen-missing" class="btn btn-outline-brand">Generate Missing Brochures (to folder)</button>
+        <button id="btn-save-all-dated" class="btn btn-outline-brand">Save ALL Brochures (to folder)</button>
+        <button id="btn-brochure-print-all" class="btn btn-brand">Print All (from folder)</button>
+        <button id="btn-brochure-download-all" class="btn btn-outline-brand">Download All (ONE FILE from folder)</button>
         <button id="btn-owner-report" class="btn btn-outline-secondary">Download Owner Report (HTML)</button>
         <button id="btn-clear-sw" class="btn btn-outline-secondary">Reset SW Cache</button>
       </div>
+
+      <!-- Single-brochure updater -->
+      <div class="bar">
+        <div class="section-title">Update One Brochure</div>
+        <div class="d-flex gap-2 flex-wrap align-items-end">
+          <div>
+            <label class="form-label small mb-1">Dairy Number</label>
+            <input id="single-dn" class="form-control" placeholder="e.g. 7031" style="min-width:140px">
+          </div>
+          <button id="btn-update-one" class="btn btn-brand">Update Brochure in Folder</button>
+          <span class="small text-muted">Rebuilds and overwrites <code>dn.html</code> in the selected date folder.</span>
+        </div>
+      </div>
+
       <div class="small mt-2">Offline: the app shell is cached. Form saves are queued locally and uploaded automatically when online.</div>
       <div class="mt-2">
         <div class="progress" style="height:12px">
@@ -336,7 +367,7 @@ label.form-label{font-weight:600}
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v5.2</div>
+  <div class="footer">Agora • Vat Pre-Check • v6.0</div>
 </div>
 
 <!-- Libs -->
@@ -356,7 +387,7 @@ firebase.initializeApp({
 });
 const storage = firebase.storage();
 const FOLDER = 'Pre Check';
-const BROCHURE_FOLDER = "Pre Check Brochure’s"; // ensure this matches your exact Storage folder name
+const BROCHURE_FOLDER = "Pre Check Brochure’s"; // exact path (curly apostrophe)
 
 /* -------------------------------- DOM helpers -------------------------------- */
 const $ = id => document.getElementById(id);
@@ -365,6 +396,7 @@ const low = s => N(s).toLowerCase();
 let LOGO_URL = '';
 let DAIRY_KEYS = [];     // ['7001.json', ...]
 let LISTED_NUMBERS = []; // ['7001', ...] for search
+let SELECTED_DATE = '';  // brochure subfolder in use
 
 /* -------------------------------- Logo -------------------------------- */
 (async()=>{ try{ LOGO_URL = await storage.ref('Agora Logo/2F6-1YdaEP.jpeg').getDownloadURL(); $('logo').src=LOGO_URL; $('logo').style.display='block'; }catch(e){} })();
@@ -382,14 +414,11 @@ $('tab-summary').onclick = ()=> activate($('tab-summary'),'view-summary');
 $('tab-form').onclick    = ()=> activate($('tab-form'),'view-form');
 $('tab-admin').onclick   = ()=> activate($('tab-admin'),'view-admin');
 
-/* -------------------------------- Summary: list dairy numbers only -------------------------------- */
+/* -------------------------------- Progress -------------------------------- */
 function setPct(done,total){ const p = total? Math.floor(done/total*100):0; $('load-bar').style.width=p+'%'; $('load-pct').textContent=p+'%'; }
-function setAdminPct(done,total,msg){
-  const p = total? Math.floor(done/total*100):0;
-  $('admin-progress').style.width = p+'%';
-  $('admin-status').textContent = msg || (p+'%');
-}
+function setAdminPct(done,total,msg){ const p = total? Math.floor(done/total*100):0; $('admin-progress').style.width=p+'%'; $('admin-status').textContent = msg || (p+'%'); }
 
+/* -------------------------------- Summary: list dairy numbers only -------------------------------- */
 async function loadDairyList(){
   try{
     const res = await storage.ref(FOLDER).listAll();
@@ -432,7 +461,6 @@ function normCap(v){
   if(/(^|\b)(na|n\/a)(\b|$)/.test(t)) return 'na';
   return v||'';
 }
-
 /* Delivery mapping (exact terms) */
 function isDeliveredValue(v){ const t=(v||'').toString().trim().toLowerCase(); return t==='delivered'||t==='yes'; }
 function isNotDeliveredValue(v){ const t=(v||'').toString().trim().toLowerCase(); return t==='notdelivered'||t==='not delivered'||t==='no'; }
@@ -545,26 +573,57 @@ async function fetchRecordByDn(dn){
   return rec;
 }
 
-/* -------------- Brochure storage helpers (Firebase Storage HTMLs) -------------- */
-async function listBrochureKeys(){
-  const res = await storage.ref(BROCHURE_FOLDER).listAll();
-  return res.items.map(i=>i.name); // e.g., ['7031.html', '7100.html', ...]
-}
-async function getBrochureUrl(name){ return storage.ref(`${BROCHURE_FOLDER}/${name}`).getDownloadURL(); }
-async function saveBrochureHtml(name, html){
-  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-  await storage.ref(`${BROCHURE_FOLDER}/${name}`).put(blob);
-}
+/* -------------------------------- Brochure storage helpers (dated folders only) -------------------------------- */
 function todayFolder(){
   const d=new Date();
   const pad=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
-async function saveBrochureHtmlToDated(folderDate, name, html){
-  const path = `${BROCHURE_FOLDER}/${folderDate}/${name}`;
+async function listDateFolders(){
+  const res = await storage.ref(BROCHURE_FOLDER).listAll();
+  // Keep only yyyy-mm-dd directories
+  return res.prefixes.map(p=>p.name).filter(n=>/^\d{4}-\d{2}-\d{2}$/.test(n)).sort();
+}
+async function listBrochureKeys(dateFolder){
+  const res = await storage.ref(`${BROCHURE_FOLDER}/${dateFolder}`).listAll();
+  return res.items.map(i=>i.name); // e.g., ['7031.html', ...]
+}
+async function getBrochureUrl(dateFolder, name){
+  return storage.ref(`${BROCHURE_FOLDER}/${dateFolder}/${name}`).getDownloadURL();
+}
+async function saveBrochureHtmlToDate(dateFolder, name, html){
+  const path = `${BROCHURE_FOLDER}/${dateFolder}/${name}`;
   const blob = new Blob([html], {type:'text/html;charset=utf-8'});
   await storage.ref(path).put(blob);
 }
+
+/* -------------------------------- Admin: date folder selector -------------------------------- */
+async function refreshDateSelect(autoSelectLatest=true){
+  const sel = $('brochure-date-select');
+  sel.innerHTML = '';
+  try{
+    const dates = await listDateFolders();
+    if(autoSelectLatest && dates.length){ SELECTED_DATE = dates[dates.length-1]; }
+    // If none, seed with today for convenience
+    if(!dates.length){ SELECTED_DATE = todayFolder(); }
+    const all = new Set(dates.concat([SELECTED_DATE]));
+    [...all].sort().forEach(d=>{
+      const opt=document.createElement('option'); opt.value=d; opt.textContent=d; sel.appendChild(opt);
+    });
+    sel.value = SELECTED_DATE;
+  }catch(e){
+    const d=todayFolder();
+    const opt=document.createElement('option'); opt.value=d; opt.textContent=d; sel.appendChild(opt);
+    sel.value=d; SELECTED_DATE=d;
+  }
+}
+$('brochure-date-select').addEventListener('change', e=>{ SELECTED_DATE = e.target.value; });
+$('btn-refresh-dates').onclick = ()=>refreshDateSelect(false);
+$('btn-use-today').onclick = ()=>{
+  SELECTED_DATE = todayFolder();
+  refreshDateSelect(false);
+  $('admin-status').textContent = `Using ${SELECTED_DATE}`;
+};
 
 /* ------------------- Details & per-farm print (unchanged) ------------------- */
 window.openDetails = async (dn)=>{
@@ -588,7 +647,7 @@ window.openPrint = async (dn)=>{
   }catch(e){ alert('Failed to load #'+dn) }
 };
 
-/* ---------------------- Old Summary Print/Download (still available) ---------------------- */
+/* ---------------------- Old Summary Print/Download (still available; builds live) ---------------------- */
 function ensureList(){ if(!DAIRY_KEYS.length){ alert('Load the dairy list first.'); return false } return true }
 $('btn-print-all').onclick = async ()=>{
   if(!ensureList()) return;
@@ -632,16 +691,17 @@ $('btn-zip-all').onclick = async ()=>{
   saveAs(blob, 'all_brochures.html');
 };
 
-/* ------------------------------ ADMIN: brochure pipeline ------------------------------ */
-// 1) Generate Missing Brochures (compare JSON vs existing HTML)
+/* ------------------------------ ADMIN: brochure pipeline (date-folder based) ------------------------------ */
+// Generate Missing (compares JSON list to files in SELECTED_DATE)
 $('btn-gen-missing').onclick = async ()=>{
   if(!DAIRY_KEYS.length){ await loadDairyList(); }
+  if(!SELECTED_DATE){ await refreshDateSelect(); }
   const jsonNums = LISTED_NUMBERS.slice();
-  $('admin-status').textContent = 'Scanning brochure folder…';
-  const existing = await listBrochureKeys();                  // ['7031.html', ...]
+  $('admin-status').textContent = `Scanning ${SELECTED_DATE}…`;
+  const existing = await listBrochureKeys(SELECTED_DATE); // ['7031.html', ...]
   const have = new Set(existing.map(n=>n.replace(/\.html$/i,'')));
   const missing = jsonNums.filter(n => !have.has(n));
-  if(!missing.length){ setAdminPct(100,100,'No missing brochures.'); return; }
+  if(!missing.length){ setAdminPct(100,100,`No missing brochures in ${SELECTED_DATE}.`); return; }
 
   const css = document.querySelector('style').innerHTML;
   let done = 0;
@@ -649,45 +709,63 @@ $('btn-gen-missing').onclick = async ()=>{
     try{
       const rec = await fetchRecordByDn(dn);
       const html = `<!doctype html><meta charset="utf-8"><title>${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${brochureHTML(rec)}`;
-      await saveBrochureHtml(`${dn}.html`, html);
-    }catch(e){ /* skip this farm */ }
+      await saveBrochureHtmlToDate(SELECTED_DATE, `${dn}.html`, html);
+    }catch(e){ /* skip */ }
     done++;
-    setAdminPct(done, missing.length, `Generated ${done} / ${missing.length}`);
-    await new Promise(r=>setTimeout(r,10)); // yield
+    setAdminPct(done, missing.length, `Generated ${done} / ${missing.length} into ${SELECTED_DATE}`);
+    await new Promise(r=>setTimeout(r,10));
   }
-  $('admin-status').textContent = `Done. Created ${done} brochures.`;
+  $('admin-status').textContent = `Done. Created ${done} brochures in ${SELECTED_DATE}.`;
 };
 
-// 2) Save ALL Brochures to dated folder
+// Save ALL to SELECTED_DATE
 $('btn-save-all-dated').onclick = async ()=>{
   if(!DAIRY_KEYS.length){ await loadDairyList(); }
+  if(!SELECTED_DATE){ await refreshDateSelect(); }
   const nums = LISTED_NUMBERS.slice();
   const css = document.querySelector('style').innerHTML;
-  const folderDate = todayFolder();
   let done = 0;
   for(const dn of nums){
     try{
       const rec = await fetchRecordByDn(dn);
       const html = `<!doctype html><meta charset="utf-8"><title>${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${brochureHTML(rec)}`;
-      await saveBrochureHtmlToDated(folderDate, `${dn}.html`, html);
+      await saveBrochureHtmlToDate(SELECTED_DATE, `${dn}.html`, html);
     }catch(e){ /* skip */ }
     done++;
-    setAdminPct(done, nums.length, `Saved ${done} / ${nums.length} to ${folderDate}`);
+    setAdminPct(done, nums.length, `Saved ${done} / ${nums.length} to ${SELECTED_DATE}`);
     await new Promise(r=>setTimeout(r,8));
   }
-  $('admin-status').textContent = `All brochures saved to ${folderDate}`;
+  $('admin-status').textContent = `All brochures saved to ${SELECTED_DATE}`;
 };
 
-// 3) PRINT ALL (from brochures folder)
+// Update one brochure in SELECTED_DATE
+$('btn-update-one').onclick = async ()=>{
+  const dn = N($('single-dn').value).trim();
+  if(!dn){ alert('Enter dairy number'); return; }
+  if(!SELECTED_DATE){ await refreshDateSelect(); }
+  $('admin-status').textContent = `Updating ${dn} in ${SELECTED_DATE}…`;
+  const css = document.querySelector('style').innerHTML;
+  try{
+    const rec = await fetchRecordByDn(dn);
+    const html = `<!doctype html><meta charset="utf-8"><title>${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${brochureHTML(rec)}`;
+    await saveBrochureHtmlToDate(SELECTED_DATE, `${dn}.html`, html);
+    setAdminPct(1,1,`Updated #${dn} in ${SELECTED_DATE}`);
+  }catch(e){
+    alert('Failed to update brochure for #'+dn);
+  }
+};
+
+// PRINT ALL (from SELECTED_DATE folder)
 $('btn-brochure-print-all').onclick = async ()=>{
-  $('admin-status').textContent = 'Loading brochure list…';
-  const keys = await listBrochureKeys(); // html files
-  if(!keys.length){ alert('No brochures found in folder. Generate first.'); return; }
+  if(!SELECTED_DATE){ await refreshDateSelect(); }
+  $('admin-status').textContent = `Loading ${SELECTED_DATE}…`;
+  const keys = await listBrochureKeys(SELECTED_DATE);
+  if(!keys.length){ alert(`No brochures found in ${SELECTED_DATE}. Generate first.`); return; }
 
   const css = document.querySelector('style').innerHTML;
   const w = window.open('', '_blank');
   if(!w){ alert('Popup blocked.'); return; }
-  w.document.write(`<html><head><title>All Brochures</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body></body></html>`);
+  w.document.write(`<html><head><title>All Brochures ${SELECTED_DATE}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body></body></html>`);
   w.document.close();
 
   let done = 0;
@@ -696,7 +774,7 @@ $('btn-brochure-print-all').onclick = async ()=>{
     const slice = keys.slice(done, done+BATCH);
     const htmls = await Promise.all(slice.map(async (name)=>{
       try{
-        const url = await getBrochureUrl(name);
+        const url = await getBrochureUrl(SELECTED_DATE, name);
         return await fetch(url).then(r=>r.text());
       }catch(e){ return ''; }
     }));
@@ -707,17 +785,18 @@ $('btn-brochure-print-all').onclick = async ()=>{
       w.document.body.appendChild(div);
     }
     done += slice.length;
-    setAdminPct(done, keys.length, `Prepared ${done} / ${keys.length} for print`);
+    setAdminPct(done, keys.length, `Prepared ${done} / ${keys.length} for print from ${SELECTED_DATE}`);
     await new Promise(r=>setTimeout(r,20));
   }
   setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){ } }, 250);
 };
 
-// 4) DOWNLOAD ALL (ONE FILE from brochures folder)
+// DOWNLOAD ALL (ONE FILE from SELECTED_DATE)
 $('btn-brochure-download-all').onclick = async ()=>{
-  $('admin-status').textContent = 'Loading brochure list…';
-  const keys = await listBrochureKeys();
-  if(!keys.length){ alert('No brochures found in folder. Generate first.'); return; }
+  if(!SELECTED_DATE){ await refreshDateSelect(); }
+  $('admin-status').textContent = `Bundling ${SELECTED_DATE}…`;
+  const keys = await listBrochureKeys(SELECTED_DATE);
+  if(!keys.length){ alert(`No brochures found in ${SELECTED_DATE}. Generate first.`); return; }
   const css = document.querySelector('style').innerHTML;
   let body = '';
   let done = 0;
@@ -727,7 +806,7 @@ $('btn-brochure-download-all').onclick = async ()=>{
     const slice = keys.slice(done, done+BATCH);
     const htmls = await Promise.all(slice.map(async (name)=>{
       try{
-        const url = await getBrochureUrl(name);
+        const url = await getBrochureUrl(SELECTED_DATE, name);
         return await fetch(url).then(r=>r.text());
       }catch(e){ return ''; }
     }));
@@ -736,13 +815,13 @@ $('btn-brochure-download-all').onclick = async ()=>{
       body += inner + '<div style="page-break-after:always"></div>';
     }
     done += slice.length;
-    setAdminPct(done, keys.length, `Bundled ${done} / ${keys.length}`);
+    setAdminPct(done, keys.length, `Bundled ${done} / ${keys.length} from ${SELECTED_DATE}`);
     await new Promise(r=>setTimeout(r,15));
   }
 
-  const allHtml = `<!doctype html><meta charset="utf-8"><title>All Brochures</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${body}`;
+  const allHtml = `<!doctype html><meta charset="utf-8"><title>All Brochures ${SELECTED_DATE}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${body}`;
   const blob = new Blob([allHtml], {type:'text/html;charset=utf-8'});
-  saveAs(blob, 'all_brochures_from_folder.html');
+  saveAs(blob, `brochures_${SELECTED_DATE}.html`);
 };
 
 /* -------------------------------- FORM: reveal vat2; previews -------------------------------- */
@@ -976,7 +1055,7 @@ $('btn-owner-report').onclick = async ()=>{
     body{font-family:Inter,Arial,sans-serif;padding:16px;background:#f7f8fb;color:#0f172a}
     .owner-wrap{max-width:1100px;margin:0 auto}
     .title{font-weight:800;font-size:1.6rem;margin:6px 0 14px}
-    .card-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+    .card-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     .kpi{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
     .kpi .big{font-size:1.6rem;font-weight:800}
     .kpi .muted{color:#6b7280}
@@ -988,45 +1067,25 @@ $('btn-owner-report').onclick = async ()=>{
     .muted{color:#6b7280}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .row > div{border:1px solid #f1f3f7;border-radius:8px;padding:8px}
+    .rb-list{display:grid;grid-template-columns:1fr;gap:6px}
+    .rb-row{display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:10px;align-items:center;border:1px solid #eef1f6;border-radius:8px;padding:8px}
     @media(max-width:900px){.card-row,.grid-2,.row{grid-template-columns:1fr}}
+    @media(max-width:900px){.rb-row{grid-template-columns:1fr}}
   `;
 
+  // Build KPIs + Routific cards
   let html = `<!doctype html><meta charset="utf-8"><title>Owner Report</title><style>${css}</style><div class="owner-wrap">`;
   html += `<div class="title">Owner Summary</div>
   <div class="card-row">
-    <div class="kpi">
-      <div class="big">${totalFarms}</div>
-      <div class="muted">Farms visited</div>
-    </div>
-
-    <div class="kpi">
-      <div class="big">${totalDoorSealsDelivered}</div>
-      <div class="muted">Door seals delivered (total)</div>
-    </div>
-
-    <div class="kpi">
-      <div class="big">${rjtDeliveredCnt}</div>
-      <div class="muted">RJT delivered (farms)</div>
-    </div>
-
-    <div class="kpi">
-      <div class="big">${cap1OK}/${cap1Bad} • ${cap2OK}/${cap2Bad}</div>
-      <div class="muted">Caps OK/✗ (V1 • V2)</div>
-    </div>
-
-    <!-- Routific cards (from screenshot) -->
-    <div class="kpi">
-      <div class="big">1,143 km</div>
-      <div class="muted">Estimated distance</div>
-    </div>
-
-    <div class="kpi">
-      <div class="big">195h 42m</div>
-      <div class="muted">Working time</div>
-    </div>
+    <div class="kpi"><div class="big">${totalFarms}</div><div class="muted">Farms visited</div></div>
+    <div class="kpi"><div class="big">${totalDoorSealsDelivered}</div><div class="muted">Door seals delivered (total)</div></div>
+    <div class="kpi"><div class="big">${rjtDeliveredCnt}</div><div class="muted">RJT delivered (farms)</div></div>
+    <div class="kpi"><div class="big">${cap1OK}/${cap1Bad} • ${cap2OK}/${cap2Bad}</div><div class="muted">Caps OK/✗ (V1 • V2)</div></div>
+    <div class="kpi"><div class="big">1,143 km</div><div class="muted">Estimated distance</div></div>
+    <div class="kpi"><div class="big">195h 42m</div><div class="muted">Working time</div></div>
   </div>`;
 
-  // Size list (sorted numerically when possible, 'NA' last)
+  // Size list (numeric sort; NA last)
   const keys = Object.keys(sizeCounts).sort((a,b)=>{
     if(a==='NA') return 1; if(b==='NA') return -1;
     const na=Number(a), nb=Number(b);
@@ -1040,12 +1099,60 @@ $('btn-owner-report').onclick = async ()=>{
     return `<div>${s}: <b>${sizeCounts[s]}</b></div>`;
   }).join('') || '<div class="muted">No size data</div>';
 
+  // Rubberware breakdown: per-farm + totals by door-seal size
+  const doorTotalsBySize = {};   // e.g. { small: 14, large: 22, '—': 3 }
+  const rubberRows = [];
+  function normSizeLabel(v){ const s=N(v).trim(); return s || '—'; }
+
+  for(const r of records){
+    const dn = r.dairyNumber || '';
+    const v1 = N(pick(r,'vat1-capacity')).trim();
+    const v2 = N(pick(r,'vat2-capacity')).trim();
+    const v1Disp = (v1.toLowerCase()==='na'||v1.toLowerCase()==='n/a'||v1.toLowerCase().startsWith('na ')) ? 'NA' : (v1||'—');
+    const v2Disp = (v2.toLowerCase()==='na'||v2.toLowerCase()==='n/a'||v2.toLowerCase().startsWith('na ')) ? 'NA' : (v2||'—');
+
+    const doorQty = doorDelivered(r) ? (hasVat2(r) ? 2 : 1) : 0;
+    const doorSz  = normSizeLabel(doorSize(r));
+    if(doorQty){ doorTotalsBySize[doorSz] = (doorTotalsBySize[doorSz]||0) + doorQty; }
+
+    const rjtTxt = rjtDelivered(r) ? ('Delivered' + (rjtSize(r) ? ` (${rjtSize(r)})` : '')) : '—';
+
+    if(doorQty || rjtDelivered(r)){
+      rubberRows.push(
+        `<div class="rb-row">
+          <div><b>#${dn}</b></div>
+          <div>Vat sizes: V1 <b>${v1Disp}</b>${v2Disp?` • V2 <b>${v2Disp}</b>`:''}</div>
+          <div>Door seals: <b>${doorQty}</b>${doorSz!=='—' ? ` (${doorSz})` : ''}</div>
+          <div>RJT: ${rjtTxt}</div>
+        </div>`
+      );
+    }
+  }
+  const doorTotalsHtml = Object.keys(doorTotalsBySize).sort().map(sz=>{
+    return `<div>${sz}: <b>${doorTotalsBySize[sz]}</b></div>`;
+  }).join('') || '<div class="muted">No door seal deliveries recorded</div>';
+  const rubberRowsHtml = rubberRows.join('') || '<div class="muted">No farms with rubberware deliveries</div>';
+
+  // Breakdown section
   html += `<div class="breakdown grid-2">
     <div class="box"><b>Vat Sizes</b><div class="mt-2">${sizeList}</div></div>
-    <div class="box"><b>Rubberware Note</b><div class="mt-2 muted">Counts reflect 2 seals per farm when a Vat 2 capacity exists and “Delivered” is recorded.</div></div>
+    <div class="box">
+      <b>Rubberware</b>
+      <div class="mt-2">
+        <div class="muted">Door seal totals by size</div>
+        <div class="mt-1">${doorTotalsHtml}</div>
+      </div>
+      <hr>
+      <div class="mt-2">
+        <div class="muted">Per-farm detail (sizes & delivered counts)</div>
+        <div class="mt-1 rb-list">
+          ${rubberRowsHtml}
+        </div>
+      </div>
+    </div>
   </div>`;
 
-  // Per-farm overview (NO signal/telemetry block now)
+  // Per-farm overview (NO signal/telemetry block)
   html += `<div class="title" style="margin-top:18px">Per-Farm Breakdown</div>`;
   for(const r of records){
     const doorText = doorLabel(r) + (doorSize(r)?(' • '+doorSize(r)):'');
@@ -1092,6 +1199,7 @@ $('btn-clear-sw').onclick = async ()=>{
 /* init */
 window.addEventListener('DOMContentLoaded', async ()=>{
   await loadDairyList();        // immediate numbers-only list
+  await refreshDateSelect();    // pick latest or today
   await updateQueuedCount();    // show queued saves (if any)
 });
 </script>
