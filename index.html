@@ -66,7 +66,7 @@ label.form-label{font-weight:600}
 
 /* Owner report styling */
 .owner-wrap{max-width:1100px;margin:0 auto}
-.card-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.card-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
 .kpi{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
 .kpi .big{font-size:1.6rem;font-weight:800}
 .kpi .muted{color:#6b7280}
@@ -356,7 +356,7 @@ firebase.initializeApp({
 });
 const storage = firebase.storage();
 const FOLDER = 'Pre Check';
-const BROCHURE_FOLDER = "Pre Check Brochure’s"; // note curly apostrophe per your path
+const BROCHURE_FOLDER = "Pre Check Brochure’s"; // ensure this matches your exact Storage folder name
 
 /* -------------------------------- DOM helpers -------------------------------- */
 const $ = id => document.getElementById(id);
@@ -592,7 +592,6 @@ window.openPrint = async (dn)=>{
 function ensureList(){ if(!DAIRY_KEYS.length){ alert('Load the dairy list first.'); return false } return true }
 $('btn-print-all').onclick = async ()=>{
   if(!ensureList()) return;
-  // Fallback: build live (kept as-is)
   const nums = LISTED_NUMBERS.slice();
   const css  = document.querySelector('style').innerHTML;
   const w = window.open('', '_blank');
@@ -703,7 +702,6 @@ $('btn-brochure-print-all').onclick = async ()=>{
     }));
     for(const h of htmls){
       const div = w.document.createElement('div');
-      // strip outer <html> wrappers if any
       const inner = h.replace(/^[\s\S]*?<body.*?>/i,'').replace(/<\/body>[\s\S]*$/i,'');
       div.innerHTML = inner + '<div style="page-break-after:always"></div>';
       w.document.body.appendChild(div);
@@ -978,7 +976,7 @@ $('btn-owner-report').onclick = async ()=>{
     body{font-family:Inter,Arial,sans-serif;padding:16px;background:#f7f8fb;color:#0f172a}
     .owner-wrap{max-width:1100px;margin:0 auto}
     .title{font-weight:800;font-size:1.6rem;margin:6px 0 14px}
-    .card-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .card-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
     .kpi{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
     .kpi .big{font-size:1.6rem;font-weight:800}
     .kpi .muted{color:#6b7280}
@@ -996,37 +994,37 @@ $('btn-owner-report').onclick = async ()=>{
   let html = `<!doctype html><meta charset="utf-8"><title>Owner Report</title><style>${css}</style><div class="owner-wrap">`;
   html += `<div class="title">Owner Summary</div>
   <div class="card-row">
-  <div class="kpi">
-    <div class="big">${totalFarms}</div>
-    <div class="muted">Farms visited</div>
-  </div>
+    <div class="kpi">
+      <div class="big">${totalFarms}</div>
+      <div class="muted">Farms visited</div>
+    </div>
 
-  <div class="kpi">
-    <div class="big">${totalDoorSealsDelivered}</div>
-    <div class="muted">Door seals delivered (total)</div>
-  </div>
+    <div class="kpi">
+      <div class="big">${totalDoorSealsDelivered}</div>
+      <div class="muted">Door seals delivered (total)</div>
+    </div>
 
-  <div class="kpi">
-    <div class="big">${rjtDeliveredCnt}</div>
-    <div class="muted">RJT delivered (farms)</div>
-  </div>
+    <div class="kpi">
+      <div class="big">${rjtDeliveredCnt}</div>
+      <div class="muted">RJT delivered (farms)</div>
+    </div>
 
-  <div class="kpi">
-    <div class="big">${cap1OK}/${cap1Bad} • ${cap2OK}/${cap2Bad}</div>
-    <div class="muted">Caps OK/✗ (V1 • V2)</div>
-  </div>
+    <div class="kpi">
+      <div class="big">${cap1OK}/${cap1Bad} • ${cap2OK}/${cap2Bad}</div>
+      <div class="muted">Caps OK/✗ (V1 • V2)</div>
+    </div>
 
-  <!-- Routific cards (from screenshot) -->
-  <div class="kpi">
-    <div class="big">1,143 km</div>
-    <div class="muted">Estimated distance</div>
-  </div>
+    <!-- Routific cards (from screenshot) -->
+    <div class="kpi">
+      <div class="big">1,143 km</div>
+      <div class="muted">Estimated distance</div>
+    </div>
 
-  <div class="kpi">
-    <div class="big">195h 42m</div>
-    <div class="muted">Working time</div>
-  </div>
-</div>
+    <div class="kpi">
+      <div class="big">195h 42m</div>
+      <div class="muted">Working time</div>
+    </div>
+  </div>`;
 
   // Size list (sorted numerically when possible, 'NA' last)
   const keys = Object.keys(sizeCounts).sort((a,b)=>{
