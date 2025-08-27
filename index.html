@@ -545,40 +545,63 @@ function parsePowerPoints(rec){
     pick(rec,'current-telemetry')
   ].join(' '));
 
-  if(!blob.trim()) return {any:false,count:0,level:'',reason:''};
+  if(!blob.trim()) return { any:false, count:0, level:'', reason:'' };
 
-  // severity
+  // --- determine requirement level (required vs recommended) ---
   const requiredRxs = [
-    /power[ -]?point (?:needed|required)/, /needs power/, /power required/, /no power(?: ?point)?/,
-    /no (?:socket|outlet|power)/, /install (?:power|outlet|socket)/, /add (?:power|outlet|socket)/,
-    /splitter (?:plug )?required/, /double adaptor required/, /no plug/
+    /power[ -]?point (?:needed|required)\b/,
+    /powerpoint (?:needed|required)\b/,
+    /\bpp (?:needed|required)\b/,
+    /\bneeds power\b/,
+    /\bpower required\b/,
+    /\bno power(?: ?point)?\b/,
+    /\bno (?:socket|outlet|plug)\b/,
+    /\binstall (?:power|outlet|socket)\b/,
+    /\badd (?:power|outlet|socket)\b/,
+    /\bsplitter(?: plug)? required\b/,
+    /\bdouble adaptor required\b/,
+    /\bdouble adapter required\b/,
+    /\bsocket required\b/,
+    /\boutlet required\b/
   ];
   const recommendedRxs = [
-    /power[ -]?point (?:recommended|recommend)/, /splitter (?:plug )?recommended/, /double adaptor (?:ok|recommended)/,
-    /might need (?:a )?power[ -]?point/
+    /power[ -]?point (?:recommended|recommend)\b/,
+    /powerpoint (?:recommended|recommend)\b/,
+    /\bpp (?:recommended|recommend)\b/,
+    /\bsplitter(?: plug)? recommended\b/,
+    /\bdouble adaptor (?:ok|recommended)\b/,
+    /\bdouble adapter (?:ok|recommended)\b/,
+    /\bmight need (?:a )?power[ -]?point\b/
   ];
+
   let level = '';
-  if(requiredRxs.some(rx=>rx.test(blob))) level = 'required';
-  else if(recommendedRxs.some(rx=>rx.test(blob))) level = 'recommended';
+  if (requiredRxs.some(rx => rx.test(blob))) level = 'required';
+  else if (recommendedRxs.some(rx => rx.test(blob))) level = 'recommended';
 
-  // count estimation
+  // --- estimate count ---
   let count = 0;
-  const numWord = w=>{
-    const map={one:1,two:2,three:3,four:4,1:1,2:2,3:3,4:4};
-    return map[w]||0;
-  };
-  const m1 = blob.match(/(\d+)\s*(?:x\s*)?(?:power ?points?|powerpoints?|pp|sockets?|outlets?)/);
-  if(m1){ count = Math.max(count, parseInt(m1[1],10)||0); }
-  const m2 = blob.match(/\b(one|two|three|four)\s+(?:power ?points?|powerpoints?|sockets?|outlets?)\b/);
-  if(m2){ count = Math.max(count, numWord(m2[1])); }
-  if(/double (?:power[ -]?point|pp)\b/.test(blob)) count = Math.max(count,2);
-  if(/\bsplitter\b|\bdouble adaptor\b|\bdouble adapter\b/.test(blob)) count = Math.max(count,1);
-  if(count===0 && /power ?point|powerpoint|socket|outlet/.test(blob)) count = 1;
 
-  if(level==='' && count>0) level='recommended'; // plain mention -> soft requirement
+  // numeric like "2 power points", "3x sockets", "2 pp"
+  const m1 = blob.match(/(\d+)\s*(?:x\s*)?(?:power ?points?|powerpoints?|pp|sockets?|outlets?|plugs?)/);
+  if (m1) count = Math.max(count, parseInt(m1[1], 10) || 0);
 
-  const reason = (level ? level.charAt(0).toUpperCase()+level.slice(1) : 'Mentioned') + (count?` (${count})`:'');
-  return {any: count>0, count, level, reason};
+  // word numbers like "two power points"
+  const wordMap = {one:1,two:2,three:3,four:4,five:5,six:6};
+  const m2 = blob.match(/\b(one|two|three|four|five|six)\s+(?:power ?points?|powerpoints?|sockets?|outlets?)\b/);
+  if (m2) count = Math.max(count, wordMap[m2[1]] || 0);
+
+  // phrases implying at least N
+  if (/\bdouble (?:power[ -]?point|pp|adaptor|adapter)\b/.test(blob)) count = Math.max(count, 2);
+  if (/\bsplitter\b|\bdouble adaptor\b|\bdouble adapter\b/.test(blob)) count = Math.max(count, 1);
+
+  // any generic mention => at least 1
+  if (count === 0 && /(power ?point|powerpoint|pp\b|socket|outlet|plug)/.test(blob)) count = 1;
+
+  // default level if not clear
+  if (level === '' && count > 0) level = 'recommended';
+
+  const reason = (level ? level.charAt(0).toUpperCase()+level.slice(1) : 'Mentioned') + (count ? ` (${count})` : '');
+  return { any: count > 0, count, level, reason };
 }
 
 /* -------------------------------- Brochure builder -------------------------------- */
@@ -1054,19 +1077,21 @@ $('btn-owner-report').onclick = async ()=>{
     }
 
     // power points (required or recommended)
-    const pp = parsePowerPoints(r);
-    if(pp.any){
-      powerPointsTotal += pp.count;
-      const srcNote = (pick(r,'gateway-location') ? ` • ${pick(r,'gateway-location')}` : '');
-      powerNeededRows.push(`<div>#${dn} – ${pp.count} power point${pp.count>1?'s':''} • ${pp.level||'mentioned'}${srcNote}</div>`);
-    }
-  }
-
-  const doorTotalsHtml = Object.keys(doorTotalsBySize).sort().map(sz=>`<div>${sz||'—'}: <b>${doorTotalsBySize[sz]}</b></div>`).join('') || '<div class="muted">No door seal deliveries recorded</div>';
-  const rubberRowsHtml = rubberRows.join('') || '<div class="muted">No farms with rubberware deliveries</div>';
-  const capsNeededHtml = capsNeededRows.join('') || '<div class="muted">No farms need new vat caps</div>';
-  const powerNeededHtml = powerNeededRows.join('') || '<div class="muted">No power points required/recommended</div>';
-
+const pp = parsePowerPoints(r);
+if (pp.any) {
+  powerPointsTotal += (pp.count || 0);
+  const where = pick(r,'gateway-location') || pick(r,'vat1-comments') || pick(r,'vat2-comments') || '';
+  const whereNote = where ? ` • ${where}` : '';
+  const lvl = pp.level ? pp.level : 'mentioned';
+  powerNeededRows.push(
+    `<div>#${dn} – ${pp.count} power point${pp.count>1?'s':''} • ${lvl}${whereNote}</div>`
+  );
+}
+}
+const doorTotalsHtml = Object.keys(doorTotalsBySize).sort().map(sz=>`<div>${sz||'—'}: <b>${doorTotalsBySize[sz]}</b></div>`).join('') || '<div class="muted">No door seal deliveries recorded</div>';
+const rubberRowsHtml = rubberRows.join('') || '<div class="muted">No farms with rubberware deliveries</div>';
+const capsNeededHtml = capsNeededRows.join('') || '<div class="muted">No farms need new vat caps</div>';
+const powerNeededHtml = powerNeededRows.join('') || '<div class="muted">No power points required/recommended</div>';
   // CSS (clean, consistent with app)
   const css = `
     body{font-family:Inter,Arial,sans-serif;padding:16px;background:#f7f8fb;color:#0f172a}
