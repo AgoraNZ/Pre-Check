@@ -23,7 +23,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Sego
 
 /* Tabs & counters */
 .top-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 18px}
-.tab-btn{border:1px solid #e5e7eb;background:#fff;color:#111827;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+.tab-btn{border:1px solid #e5e7eb;background:#fff;color:#111827;border-radius:10px;padding:10px 14px;font-weight:700}
 .tab-btn.active{border-color:var(--accent);box-shadow:0 0 0 3px #ff851b2b}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid #e5e7eb;border-radius:999px;background:#fff}
 .small{color:#6b7280}
@@ -64,22 +64,27 @@ label.form-label{font-weight:600}
 /* show full image, no crop */
 .print-photos img{width:100%;max-height:140px;object-fit:contain;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:8px}
 
-/* Report styling */
+/* Owner report styling */
 .owner-wrap{max-width:1100px;margin:0 auto}
 .card-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.kpi{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
+.kpi{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px;cursor:default}
+.kpi.clickable{cursor:pointer}
 .kpi .big{font-size:1.6rem;font-weight:800}
 .kpi .muted{color:#6b7280}
 .breakdown{margin-top:14px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:900px){.card-row,.grid-2{grid-template-columns:1fr}}
+/* Rubberware rows in report */
 .rb-list{display:grid;grid-template-columns:1fr;gap:6px}
 .rb-row{display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:10px;align-items:center;border:1px solid #eef1f6;border-radius:8px;padding:8px}
 @media(max-width:900px){.rb-row{grid-template-columns:1fr}}
 
+/* Simple table-ish list */
+.inline-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+@media(max-width:900px){.inline-grid{grid-template-columns:1fr}}
+
 .footer{color:#6b7280;text-align:center;margin:22px 0 10px}
 .hidden{display:none!important}
-.blur{filter:blur(4px);pointer-events:none;user-select:none}
 </style>
 </head>
 <body>
@@ -108,22 +113,24 @@ label.form-label{font-weight:600}
 
   <!-- SUMMARY -->
   <div id="view-summary">
-    <div class="bar">
-      <div class="section-title">Vat Sizes</div>
-      <div id="summary-vatsizes" class="small">Collecting…</div>
+    <!-- KPI row (includes Power Points & Caps, clickable) -->
+    <div id="summary-kpis" class="bar">
+      <div class="section-title">Summary</div>
+      <div id="summary-kpi-row" class="card-row"></div>
+      <div id="summary-extra" class="mt-2"></div>
     </div>
 
+    <!-- Results list -->
     <div class="bar">
       <div class="section-title">Results</div>
       <div class="d-flex gap-2 flex-wrap mb-2">
         <input id="search" class="form-control" placeholder="Search dairy #…" style="max-width:320px">
         <button id="btn-clear" class="btn btn-outline-secondary">Clear</button>
-        <button id="btn-refresh-sizes" class="btn btn-outline-brand">Rebuild Size List</button>
         <span class="small ms-auto">Tip: tap a dairy for details or print.</span>
       </div>
       <div class="d-flex gap-2 flex-wrap mb-2">
-        <button id="btn-print-all" class="btn btn-brand">Print All Brochures</button>
-        <button id="btn-zip-all" class="btn btn-outline-brand">Download All Brochures (ONE FILE)</button>
+        <button id="btn-print-all" class="btn btn-brand">Print All Brochures (live)</button>
+        <button id="btn-zip-all" class="btn btn-outline-brand">Download All Brochures (ONE FILE, live)</button>
       </div>
       <div id="result-list" class="list"></div>
     </div>
@@ -177,7 +184,7 @@ label.form-label{font-weight:600}
         </div>
         <div><label class="form-label">Condition Comments</label><input class="form-control" id="vat1-condition-comments"></div>
 
-        <div class="col-12"><label class="form-label">Comments</label><input class="form-control" id="vat1-comments" placeholder="e.g. needs power point by vat"></div>
+        <div class="col-12"><label class="form-label">Comments</label><input class="form-control" id="vat1-comments"></div>
         <div><label class="form-label">Agitator Location</label><input class="form-control" id="agitator1-location"></div>
         <div>
           <label class="form-label">Agitator Photo</label>
@@ -225,7 +232,7 @@ label.form-label{font-weight:600}
         </div>
         <div><label class="form-label">Condition Comments</label><input class="form-control" id="vat2-condition-comments"></div>
 
-        <div class="col-12"><label class="form-label">Comments</label><input class="form-control" id="vat2-comments" placeholder="note if power point needed"></div>
+        <div class="col-12"><label class="form-label">Comments</label><input class="form-control" id="vat2-comments"></div>
         <div><label class="form-label">Agitator Location</label><input class="form-control" id="agitator2-location"></div>
         <div>
           <label class="form-label">Agitator Photo</label>
@@ -259,7 +266,7 @@ label.form-label{font-weight:600}
             <option value="other">Other</option>
           </select>
         </div>
-        <div><label class="form-label">Notes</label><input class="form-control" id="other-notes" placeholder="e.g. outlet needed near vat"></div>
+        <div><label class="form-label">Notes</label><input class="form-control" id="other-notes"></div>
       </div>
       <div class="grid-3 mt-2">
         <div><label class="form-label">Current Telemetry (legacy)</label><input class="form-control" id="current-telemetry"></div>
@@ -323,7 +330,7 @@ label.form-label{font-weight:600}
     </div>
   </div>
 
-  <!-- ADMIN (locked) -->
+  <!-- ADMIN (password protected) -->
   <div id="view-admin" class="hidden">
     <div class="bar">
       <div class="section-title">Admin</div>
@@ -342,11 +349,11 @@ label.form-label{font-weight:600}
       <!-- Actions -->
       <div class="d-flex gap-2 flex-wrap mb-2">
         <button id="btn-reload" class="btn btn-brand">Reload Dairy List</button>
-        <button id="btn-gen-missing" class="btn btn-outline-brand">Generate Missing (to folder)</button>
-        <button id="btn-save-all-dated" class="btn btn-outline-brand">Save ALL (to folder)</button>
+        <button id="btn-gen-missing" class="btn btn-outline-brand">Generate Missing Brochures (to folder)</button>
+        <button id="btn-save-all-dated" class="btn btn-outline-brand">Save ALL Brochures (to folder)</button>
         <button id="btn-brochure-print-all" class="btn btn-brand">Print All (from folder)</button>
-        <button id="btn-brochure-download-all" class="btn btn-outline-brand">Download All (ONE FILE)</button>
-        <button id="btn-owner-report" class="btn btn-outline-secondary">Download Report (HTML)</button>
+        <button id="btn-brochure-download-all" class="btn btn-outline-brand">Download All (ONE FILE from folder)</button>
+        <button id="btn-owner-report" class="btn btn-outline-secondary">Download Agora Vat Pre-Check Report</button>
         <button id="btn-clear-sw" class="btn btn-outline-secondary">Reset SW Cache</button>
       </div>
 
@@ -358,21 +365,21 @@ label.form-label{font-weight:600}
             <label class="form-label small mb-1">Dairy Number</label>
             <input id="single-dn" class="form-control" placeholder="e.g. 7031" style="min-width:140px">
           </div>
-          <button id="btn-update-one" class="btn btn-brand">Update in Folder</button>
-          <span class="small text-muted">Overwrites <code>dn.html</code> in the selected folder.</span>
+          <button id="btn-update-one" class="btn btn-brand">Update Brochure in Folder</button>
+          <span class="small text-muted">Rebuilds and overwrites <code>dn.html</code> in the selected date folder.</span>
         </div>
       </div>
 
       <!-- Refresh recent brochures -->
       <div class="bar">
         <div class="section-title">Refresh Recent Brochures</div>
-        <div class="d-flex gap-2 align-items-end flex-wrap">
+        <div class="d-flex gap-2 flex-wrap align-items-end">
           <div>
-            <label class="form-label small mb-1">Window (days)</label>
-            <input id="recent-days" type="number" min="1" value="7" class="form-control" style="width:100px">
+            <label class="form-label small mb-1">Days back</label>
+            <input id="recent-days" type="number" class="form-control" value="7" min="1" style="max-width:120px">
           </div>
-          <button id="btn-refresh-recent" class="btn btn-brand">Refresh from Recent Forms</button>
-          <span class="small text-muted">Rebuilds brochures for forms updated within the window (by JSON timestamp).</span>
+          <button id="btn-refresh-recent" class="btn btn-outline-brand">Refresh From Forms</button>
+          <span class="small text-muted">Find JSON forms updated within N days and rebuild brochures into the selected folder.</span>
         </div>
       </div>
 
@@ -386,7 +393,7 @@ label.form-label{font-weight:600}
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v6.1</div>
+  <div class="footer">Agora • Vat Pre-Check • v6.6</div>
 </div>
 
 <!-- Libs -->
@@ -406,7 +413,7 @@ firebase.initializeApp({
 });
 const storage = firebase.storage();
 const FOLDER = 'Pre Check';
-const BROCHURE_FOLDER = "Pre Check Brochure’s"; // exact path (curly apostrophe)
+const BROCHURE_FOLDER = "Pre Check Brochure’s"; // exact path, curly apostrophe
 
 /* -------------------------------- DOM helpers -------------------------------- */
 const $ = id => document.getElementById(id);
@@ -418,13 +425,24 @@ let LISTED_NUMBERS = []; // ['7001', ...] for search
 let SELECTED_DATE = '';  // brochure subfolder in use
 let ADMIN_UNLOCKED = false;
 
+/* Caches for Summary interactions */
+let summaryRecords = [];
+let powerPointFarms = []; // [{dn, count, notes[]}]
+let capsFarms = [];       // [{dn, needs:['V1','V2']}]
+let sizeCounts = {};      // { '18000':3, 'NA': 2, ... }
+let sizeNAFarms = [];     // ['7001','7002',...]
+
+/* Routific cards (from screenshot) */
+const ROUTIFIC_DISTANCE = '1,143 km';
+const ROUTIFIC_WORKTIME = '195h 42m';
+
 /* -------------------------------- Logo -------------------------------- */
 (async()=>{ try{ LOGO_URL = await storage.ref('Agora Logo/2F6-1YdaEP.jpeg').getDownloadURL(); $('logo').src=LOGO_URL; $('logo').style.display='block'; }catch(e){} })();
 
 /* -------------------------------- Service worker -------------------------------- */
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }
 
-/* -------------------------------- Tabs + Admin lock -------------------------------- */
+/* -------------------------------- Tabs -------------------------------- */
 function activate(tab, viewId){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); tab.classList.add('active');
   ['view-summary','view-form','view-admin'].forEach(id=>$(id).classList.add('hidden'));
@@ -432,10 +450,10 @@ function activate(tab, viewId){
 }
 $('tab-summary').onclick = ()=> activate($('tab-summary'),'view-summary');
 $('tab-form').onclick    = ()=> activate($('tab-form'),'view-form');
-$('tab-admin').onclick   = ()=>{
+$('tab-admin').onclick   = async ()=>{
   if(!ADMIN_UNLOCKED){
-    const pass = prompt('Enter admin password:');
-    if(pass !== 'Moometrics24'){ alert('Incorrect password'); return; }
+    const pw = prompt('Enter admin password');
+    if(pw !== 'Moometrics24'){ alert('Access denied'); return; }
     ADMIN_UNLOCKED = true;
   }
   activate($('tab-admin'),'view-admin');
@@ -445,40 +463,7 @@ $('tab-admin').onclick   = ()=>{
 function setPct(done,total){ const p = total? Math.floor(done/total*100):0; $('load-bar').style.width=p+'%'; $('load-pct').textContent=p+'%'; }
 function setAdminPct(done,total,msg){ const p = total? Math.floor(done/total*100):0; $('admin-progress').style.width=p+'%'; $('admin-status').textContent = msg || (p+'%'); }
 
-/* -------------------------------- Summary: list dairy numbers only -------------------------------- */
-async function loadDairyList(){
-  try{
-    const res = await storage.ref(FOLDER).listAll();
-    DAIRY_KEYS = res.items.filter(i=>/\.json$/i.test(i.name)).map(i=>i.name).sort();
-    LISTED_NUMBERS = DAIRY_KEYS.map(k=>k.replace('.json',''));
-    $('cloud-count').textContent = DAIRY_KEYS.length;
-    setPct(DAIRY_KEYS.length, DAIRY_KEYS.length);
-    renderNumberCards(LISTED_NUMBERS);
-  }catch(e){
-    $('result-list').innerHTML = '<div class="small text-danger">Failed to load list (check connectivity).</div>';
-  }
-}
-function renderNumberCards(nums){
-  const html = nums.map(dn=>`
-    <div class="row-card" id="row-${dn}">
-      <div class="row-flex">
-        <div><strong>#${dn}</strong></div>
-        <div class="row-actions">
-          <button class="btn btn-sm btn-outline-brand" onclick="openDetails('${dn}')">Details</button>
-          <button class="btn btn-sm btn-brand" onclick="openPrint('${dn}')">Print</button>
-        </div>
-      </div>
-    </div>`).join('');
-  $('result-list').innerHTML = html || '<div class="small">No farms.</div>';
-}
-$('search').addEventListener('input',()=>{
-  const t = low($('search').value);
-  const nums = LISTED_NUMBERS.filter(n=>low(n).includes(t));
-  renderNumberCards(nums);
-});
-$('btn-clear').onclick = ()=>{ $('search').value=''; renderNumberCards(LISTED_NUMBERS) };
-
-/* -------------------------------- Field mapping & inferences -------------------------------- */
+/* -------------------------------- Helpers -------------------------------- */
 function pick(obj, ...keys){ for(const k of keys){ if(obj && obj[k]!=null && obj[k]!=='' ) return obj[k] } return '' }
 function normCap(v){
   const t=low(v);
@@ -487,7 +472,9 @@ function normCap(v){
   if(/(^|\b)(na|n\/a)(\b|$)/.test(t)) return 'na';
   return v||'';
 }
-/* Delivery mapping (exact terms) */
+function hasVat2(rec){ return !!N(pick(rec,'vat2-capacity')).trim() }
+
+/* Rubberware helpers */
 function isDeliveredValue(v){ const t=(v||'').toString().trim().toLowerCase(); return t==='delivered'||t==='yes'; }
 function isNotDeliveredValue(v){ const t=(v||'').toString().trim().toLowerCase(); return t==='notdelivered'||t==='not delivered'||t==='no'; }
 function doorDelivered(rec){ return isDeliveredValue(pick(rec,'door-delivered','vat-door-seal')); }
@@ -496,7 +483,18 @@ function doorLabel(rec){ const raw=(pick(rec,'door-delivered','vat-door-seal')||
 function rjtLabel(rec){  const raw=(pick(rec,'rjt-delivered','rjt-seal')||'').toString().trim(); if(isDeliveredValue(raw)) return 'Delivered'; if(isNotDeliveredValue(raw)) return 'Not delivered'; return raw||'—'; }
 function doorSize(rec){ return pick(rec,'door-size','vat-door-seal-size') }
 function rjtSize(rec){  return pick(rec,'rjt-size','rjt-seal-size') }
-function hasVat2(rec){ return !!N(pick(rec,'vat2-capacity')).trim() }
+
+/* Manufacturer guess (for display only) */
+function manufacturerGuess(rec){
+  const blob = low([rec['vat1-comments'],rec['vat2-comments'],rec['other-brand'],rec['current-telemetry']].join(' '));
+  if(/\bdts\b/.test(blob)) return 'DTS';
+  if(/\bnda\b/.test(blob)) return 'NDA';
+  if(/\bhalo\b/.test(blob)) return 'Halo';
+  if(/\blevno\b/.test(blob)) return 'Levno';
+  return pick(rec,'other-brand') || '';
+}
+
+/* Photos */
 function photoOf(rec, which){
   const map={
     gateway:['gateway-photo-base64'],
@@ -509,31 +507,6 @@ function photoOf(rec, which){
   };
   for(const k of (map[which]||[])){ if(rec[k]) return rec[k] }
   return '';
-}
-function manufacturerGuess(rec){
-  const blob = low([rec['vat1-comments'],rec['vat2-comments'],rec['other-brand'],rec['current-telemetry']].join(' '));
-  if(/\bdts\b/.test(blob)) return 'DTS';
-  if(/\bnda\b/.test(blob)) return 'NDA';
-  if(/\bhalo\b/.test(blob)) return 'Halo';
-  if(/\blevno\b/.test(blob)) return 'Levno';
-  return pick(rec,'other-brand') || '';
-}
-/* Power point requirement (keyword heuristic) */
-function requiresPowerPoint(rec){
-  const blob = low([
-    pick(rec,'vat1-comments'),
-    pick(rec,'vat2-comments'),
-    pick(rec,'gateway-location'),
-    pick(rec,'telemetry-comments'),
-    pick(rec,'other-notes'),
-    pick(rec,'current-telemetry')
-  ].join(' '));
-  const patterns = [
-    /power ?point/,/powerpoint/,/needs power/,/no power/,/no outlet/,/no socket/,
-    /needs outlet/,/needs socket/,/install power/,/power supply/,/no plug/,
-    /add outlet/,/add socket/
-  ];
-  return patterns.some(rx=>rx.test(blob));
 }
 
 /* -------------------------------- Brochure builder -------------------------------- */
@@ -608,25 +581,15 @@ function brochureHTML(rec){
   </div>`;
 }
 
-/* -------------------------------- Fetchers -------------------------------- */
+/* -------------------------------- Fetch single record on demand -------------------------------- */
 async function fetchRecordByDn(dn){
   const url = await storage.ref(`${FOLDER}/${dn}.json`).getDownloadURL();
   const rec = await fetch(url).then(r=>r.json());
   rec.dairyNumber = rec.dairyNumber || dn;
   return rec;
 }
-async function fetchAllRecords(batch=20){
-  const nums = LISTED_NUMBERS.slice();
-  const out = [];
-  for(let i=0;i<nums.length;i+=batch){
-    const slice = nums.slice(i,i+batch);
-    const recs = await Promise.all(slice.map(fetchRecordByDn));
-    out.push(...recs);
-  }
-  return out;
-}
 
-/* -------------------------------- Brochure storage helpers (dated folders only) -------------------------------- */
+/* -------------------------------- Brochure storage (dated folders) -------------------------------- */
 function todayFolder(){
   const d=new Date();
   const pad=n=>String(n).padStart(2,'0');
@@ -676,7 +639,252 @@ $('btn-use-today').onclick = ()=>{
   $('admin-status').textContent = `Using ${SELECTED_DATE}`;
 };
 
-/* ------------------- Details & per-farm print ------------------- */
+/* -------------------------------- Summary list UI -------------------------------- */
+function renderNumberCards(nums){
+  const html = nums.map(dn=>`
+    <div class="row-card" id="row-${dn}">
+      <div class="row-flex">
+        <div><strong>#${dn}</strong></div>
+        <div class="row-actions">
+          <button class="btn btn-sm btn-outline-brand" onclick="openDetails('${dn}')">Details</button>
+          <button class="btn btn-sm btn-brand" onclick="openPrint('${dn}')">Print</button>
+        </div>
+      </div>
+    </div>`).join('');
+  $('result-list').innerHTML = html || '<div class="small">No farms.</div>';
+}
+$('search').addEventListener('input',()=>{
+  const t = low($('search').value);
+  const nums = LISTED_NUMBERS.filter(n=>low(n).includes(t));
+  renderNumberCards(nums);
+});
+$('btn-clear').onclick = ()=>{ $('search').value=''; renderNumberCards(LISTED_NUMBERS) };
+
+/* -------------------------------- Load list (numbers only) -------------------------------- */
+async function loadDairyList(){
+  try{
+    const res = await storage.ref(FOLDER).listAll();
+    DAIRY_KEYS = res.items.filter(i=>/\.json$/i.test(i.name)).map(i=>i.name).sort();
+    LISTED_NUMBERS = DAIRY_KEYS.map(k=>k.replace('.json',''));
+    $('cloud-count').textContent = DAIRY_KEYS.length;
+    setPct(DAIRY_KEYS.length, DAIRY_KEYS.length);
+    renderNumberCards(LISTED_NUMBERS);
+  }catch(e){
+    $('result-list').innerHTML = '<div class="small text-danger">Failed to load list (check connectivity).</div>';
+  }
+}
+$('btn-reload').onclick = ()=>loadDairyList();
+
+/* -------------------------------- Power Point & Caps parsing -------------------------------- */
+function powerPointCount(rec){
+  const fields = [
+    rec['gateway-comments'], rec['telemetry-comments'], rec['other-notes'],
+    rec['vat1-comments'], rec['vat2-comments'], rec['current-telemetry']
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  let count = 0;
+  const notes = new Set();
+
+  // Numeric phrases (2 power points, 2
+<script>
+/* -------------------------------- Power Point & Caps parsing -------------------------------- */
+function wordToNum(w){
+  const map={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};
+  return map[w]||0;
+}
+function powerPointCount(rec){
+  const blob = [
+    pick(rec,'gateway-location'),
+    pick(rec,'gateway-comments'),
+    pick(rec,'telemetry-comments'),
+    pick(rec,'other-notes'),
+    pick(rec,'vat1-comments'),
+    pick(rec,'vat2-comments'),
+    pick(rec,'current-telemetry')
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  // Short-circuits indicating none
+  if(/\bno (power ?point|outlet|socket)s?\b/.test(blob)) return {count:0, notes: ['No power point']};
+
+  let count = 0;
+  const notes = new Set();
+
+  // Numeric phrases like "2 power points", "x2 outlets", "needs 3 sockets"
+  blob.replace(/(?:x\s*)?(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s*(?:\+?\s*\d+)?\s*(?:power ?points?|outlets?|sockets?)/g, (m,n)=>{
+    const v = /^\d+$/.test(n)? Number(n) : wordToNum(n);
+    count = Math.max(count, v||0);
+    return m;
+  });
+
+  // "splitter plug required/recommended" (assume 2 points if mentioned)
+  if(/splitter (plug|adaptor) (required|recommended|rec|needed)/.test(blob)){ count = Math.max(count,2); notes.add('Splitter plug'); }
+
+  // "power point required/recommended/needed"
+  if(/power ?point(s)? (required|recommended|rec|needed)/.test(blob)){ count = Math.max(count,1); notes.add('Power point'); }
+
+  // "two plugs for gateway + agitator" style hints
+  if(/\b(two|2)\s+(plugs|outlets|sockets)\b/.test(blob)){ count = Math.max(count,2); }
+
+  // Default heuristics: mention of "no power" with "recommend" => 1
+  if(/\bno power\b/.test(blob) && /\brecommend(ed)?\b/.test(blob)){ count = Math.max(count,1); notes.add('Recommended'); }
+
+  // If we saw zero but there is a clear hint like "needs power near vat" -> 1
+  if(count===0 && /\b(needs?|require[sd]?) power\b/.test(blob)) { count = 1; notes.add('Needs power'); }
+
+  return {count, notes:[...notes]};
+}
+
+function capsNeeded(rec){
+  // infer from structured fields first
+  const need = [];
+  const c1 = normCap(pick(rec,'vat1-cap'));
+  const c2 = normCap(pick(rec,'vat2-cap'));
+
+  if(c1==='unavailable') need.push('V1');
+  if(hasVat2(rec) && c2==='unavailable') need.push('V2');
+
+  // text hints (only add if not already captured)
+  const text = [
+    pick(rec,'vat1-comments'),
+    pick(rec,'vat2-comments'),
+    pick(rec,'gateway-comments'),
+    pick(rec,'telemetry-comments')
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  const v1Hint = /\b(v1|vat ?1).{0,12}(cap (needed|required|missing|broken)|no cap)\b/.test(text);
+  const v2Hint = /\b(v2|vat ?2).{0,12}(cap (needed|required|missing|broken)|no cap)\b/.test(text);
+  const genericMissing = /\b(cap (needed|required|missing|broken)|no cap)\b/.test(text);
+
+  if(v1Hint && !need.includes('V1')) need.push('V1');
+  if(v2Hint && !need.includes('V2') && hasVat2(rec)) need.push('V2');
+
+  // If generic and we can infer which vats present but none flagged, assume V1
+  if(genericMissing && need.length===0) need.push('V1');
+
+  return need;
+}
+
+/* -------------------------------- Summary metrics build -------------------------------- */
+async function loadSummaryRecords(){
+  const nums = LISTED_NUMBERS.slice();
+  const BATCH = 20;
+  let i=0;
+  summaryRecords = [];
+  while(i<nums.length){
+    const slice = nums.slice(i,i+BATCH);
+    const recs = await Promise.all(slice.map(fetchRecordByDn));
+    summaryRecords.push(...recs);
+    i+=BATCH;
+  }
+  buildSummaryAggregations();
+  renderSummaryKpis();
+}
+
+function buildSummaryAggregations(){
+  sizeCounts = {};
+  sizeNAFarms = [];
+  powerPointFarms = [];
+  capsFarms = [];
+
+  function normSize(s){ 
+    const v=N(s).trim();
+    if(!v) return '';
+    const t=v.toLowerCase();
+    if(t==='na'||t==='n/a'||t.startsWith('na ')) return 'NA';
+    return v;
+  }
+
+  for(const r of summaryRecords){
+    const dn = r.dairyNumber||'';
+
+    // Vat sizes
+    const s1 = normSize(pick(r,'vat1-capacity'));
+    const s2 = normSize(pick(r,'vat2-capacity'));
+    if(s1){ sizeCounts[s1]=(sizeCounts[s1]||0)+1; if(s1==='NA' && !sizeNAFarms.includes(dn)) sizeNAFarms.push(dn); }
+    if(s2){ sizeCounts[s2]=(sizeCounts[s2]||0)+1; if(s2==='NA' && !sizeNAFarms.includes(dn)) sizeNAFarms.push(dn); }
+
+    // Power points
+    const pp = powerPointCount(r);
+    if(pp.count>0) powerPointFarms.push({dn, count:pp.count, notes:pp.notes});
+
+    // Caps
+    const need = capsNeeded(r);
+    if(need.length>0) capsFarms.push({dn, needs:need});
+  }
+}
+
+/* -------------------------------- Summary KPI rendering + click handlers -------------------------------- */
+function sortedSizeKeys(){
+  const keys = Object.keys(sizeCounts);
+  return keys.sort((a,b)=>{
+    if(a==='NA') return 1; if(b==='NA') return -1;
+    const na=Number(a), nb=Number(b);
+    if(!isNaN(na) && !isNaN(nb)) return na-nb;
+    return a.localeCompare(b);
+  });
+}
+
+function renderVatSizesBox(containerId){
+  const box = document.getElementById(containerId);
+  if(!box) return;
+  const keys = sortedSizeKeys();
+  const list = keys.map(k=>{
+    if(k==='NA'){
+      return `<div>NA: <b>${sizeCounts[k]}</b> <span class="small text-muted">(${sizeNAFarms.join(', ')||'—'})</span></div>`;
+    }
+    return `<div>${k}: <b>${sizeCounts[k]}</b></div>`;
+  }).join('') || '<div class="small text-muted">No size data</div>';
+  box.innerHTML = `<div class="bar"><div class="section-title">Vat Sizes</div>${list}</div>`;
+}
+
+function renderSummaryKpis(){
+  const totalFarms = summaryRecords.length;
+  let totalDoorSeals = 0;
+  let rjtFarms = 0;
+  for(const r of summaryRecords){
+    if(doorDelivered(r)) totalDoorSeals += hasVat2(r)?2:1;
+    if(rjtDelivered(r)) rjtFarms += 1;
+  }
+  const totalPP = powerPointFarms.reduce((a,b)=>a+b.count,0);
+  const totalCaps = capsFarms.reduce((a,b)=>a + b.needs.length, 0);
+
+  const row = $('summary-kpi-row');
+  row.innerHTML = `
+    <div class="kpi"><div class="big">${totalFarms}</div><div class="muted">Farms visited</div></div>
+    <div class="kpi"><div class="big">${totalDoorSeals}</div><div class="muted">Door seals delivered</div></div>
+    <div class="kpi"><div class="big">${rjtFarms}</div><div class="muted">RJT delivered (farms)</div></div>
+    <div class="kpi"><div class="big">${ROUTIFIC_DISTANCE}</div><div class="muted">Estimated distance</div></div>
+    <div class="kpi"><div class="big">${ROUTIFIC_WORKTIME}</div><div class="muted">Working time</div></div>
+    <div id="kpi-pp" class="kpi clickable"><div class="big">${totalPP}</div><div class="muted">Power points required</div></div>
+    <div id="kpi-caps" class="kpi clickable"><div class="big">${totalCaps}</div><div class="muted">Caps required</div></div>
+  `;
+
+  // Click handlers
+  $('kpi-pp').onclick = ()=>{
+    const list = powerPointFarms
+      .sort((a,b)=>b.count-a.count || (a.dn>b.dn?1:-1))
+      .map(x=>`<div>#${x.dn} — <b>${x.count}</b>${x.notes.length?` <span class="small text-muted">(${x.notes.join(', ')})</span>`:''}</div>`)
+      .join('') || '<div class="small text-muted">No power points required</div>';
+    $('summary-extra').innerHTML = `<div class="bar"><div class="section-title">Farms: Power Points Required</div>${list}</div>`;
+  };
+  $('kpi-caps').onclick = ()=>{
+    const list = capsFarms
+      .sort((a,b)=>(b.needs.length-a.needs.length) || (a.dn>b.dn?1:-1))
+      .map(x=>`<div>#${x.dn} — <b>${x.needs.join(' & ')}</b></div>`)
+      .join('') || '<div class="small text-muted">No caps required</div>';
+    $('summary-extra').innerHTML = `<div class="bar"><div class="section-title">Farms: Caps Required</div>${list}</div>`;
+  };
+
+  // Always render Vat Sizes box at the very top of Summary
+  if(!document.getElementById('vat-sizes-summary')){
+    const wrap = document.createElement('div');
+    wrap.id='vat-sizes-summary';
+    $('view-summary').insertBefore(wrap, $('summary-kpis'));
+  }
+  renderVatSizesBox('vat-sizes-summary');
+}
+
+/* -------------------------------- Details & per-farm print (unchanged) -------------------------------- */
 window.openDetails = async (dn)=>{
   const host = $('row-'+dn);
   const id='details-'+dn; const prior=document.getElementById(id); if(prior){ prior.remove(); return; }
@@ -698,7 +906,7 @@ window.openPrint = async (dn)=>{
   }catch(e){ alert('Failed to load #'+dn) }
 };
 
-/* ---------------------- Summary Print/Download (build live) ---------------------- */
+/* ---------------------- Summary Print/Download (live build) ---------------------- */
 function ensureList(){ if(!DAIRY_KEYS.length){ alert('Load the dairy list first.'); return false } return true }
 $('btn-print-all').onclick = async ()=>{
   if(!ensureList()) return;
@@ -737,15 +945,12 @@ $('btn-zip-all').onclick = async ()=>{
     $('load-pct').textContent = Math.min(100, Math.floor(i/nums.length*100))+'%';
     await new Promise(r=>setTimeout(r,15));
   }
-  const allHtml = `<!doctype html><meta charset="utf-8"><title>All Brochures</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${bodyHtml}`;
+  const allHtml = `<!doctype html><meta charset="utf-8"><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${bodyHtml}`;
   const blob = new Blob([allHtml], {type:'text/html;charset=utf-8'});
   saveAs(blob, 'all_brochures.html');
 };
 
 /* ------------------------------ ADMIN: brochure pipeline (date-folder based) ------------------------------ */
-$('btn-reload').onclick = ()=>loadDairyList();
-
-// Generate Missing (compare JSON list to files in SELECTED_DATE)
 $('btn-gen-missing').onclick = async ()=>{
   if(!DAIRY_KEYS.length){ await loadDairyList(); }
   if(!SELECTED_DATE){ await refreshDateSelect(); }
@@ -771,7 +976,6 @@ $('btn-gen-missing').onclick = async ()=>{
   $('admin-status').textContent = `Done. Created ${done} brochures in ${SELECTED_DATE}.`;
 };
 
-// Save ALL to SELECTED_DATE
 $('btn-save-all-dated').onclick = async ()=>{
   if(!DAIRY_KEYS.length){ await loadDairyList(); }
   if(!SELECTED_DATE){ await refreshDateSelect(); }
@@ -791,7 +995,6 @@ $('btn-save-all-dated').onclick = async ()=>{
   $('admin-status').textContent = `All brochures saved to ${SELECTED_DATE}`;
 };
 
-// Update one brochure in SELECTED_DATE
 $('btn-update-one').onclick = async ()=>{
   const dn = N($('single-dn').value).trim();
   if(!dn){ alert('Enter dairy number'); return; }
@@ -808,45 +1011,6 @@ $('btn-update-one').onclick = async ()=>{
   }
 };
 
-// Refresh recent brochures (by JSON timestamp)
-$('btn-refresh-recent').onclick = async ()=>{
-  if(!DAIRY_KEYS.length){ await loadDairyList(); }
-  if(!SELECTED_DATE){ await refreshDateSelect(); }
-  const days = Math.max(1, parseInt($('recent-days').value||'7',10));
-  const cutoff = Date.now() - days*24*60*60*1000;
-
-  const css = document.querySelector('style').innerHTML;
-  let done=0, total=0;
-  $('admin-status').textContent = `Scanning forms updated in last ${days} days…`;
-
-  // Pull timestamps quickly, then rebuild those above cutoff
-  const nums = LISTED_NUMBERS.slice();
-  const recent = [];
-  for(let i=0;i<nums.length;i+=40){
-    const slice = nums.slice(i,i+40);
-    const recs = await Promise.all(slice.map(fetchRecordByDn));
-    for(const r of recs){
-      const ts = Number(r.timestamp||0);
-      if(ts && ts >= cutoff){ recent.push(r.dairyNumber); }
-    }
-  }
-  total = recent.length;
-  if(!total){ setAdminPct(100,100,`No recent forms found.`); return; }
-
-  for(const dn of recent){
-    try{
-      const rec = await fetchRecordByDn(dn);
-      const html = `<!doctype html><meta charset="utf-8"><title>${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${brochureHTML(rec)}`;
-      await saveBrochureHtmlToDate(SELECTED_DATE, `${dn}.html`, html);
-    }catch(e){ /* skip */ }
-    done++;
-    setAdminPct(done, total, `Refreshed ${done} / ${total} recent`);
-    await new Promise(r=>setTimeout(r,8));
-  }
-  $('admin-status').textContent = `Refreshed ${done} brochures from recent forms (${days}d).`;
-};
-
-// PRINT ALL (from SELECTED_DATE folder)
 $('btn-brochure-print-all').onclick = async ()=>{
   if(!SELECTED_DATE){ await refreshDateSelect(); }
   $('admin-status').textContent = `Loading ${SELECTED_DATE}…`;
@@ -856,7 +1020,7 @@ $('btn-brochure-print-all').onclick = async ()=>{
   const css = document.querySelector('style').innerHTML;
   const w = window.open('', '_blank');
   if(!w){ alert('Popup blocked.'); return; }
-  w.document.write(`<html><head><title>Brochures ${SELECTED_DATE}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body></body></html>`);
+  w.document.write(`<html><head><title>All Brochures ${SELECTED_DATE}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style></head><body></body></html>`);
   w.document.close();
 
   let done = 0;
@@ -882,7 +1046,6 @@ $('btn-brochure-print-all').onclick = async ()=>{
   setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){ } }, 250);
 };
 
-// DOWNLOAD ALL (ONE FILE from SELECTED_DATE)
 $('btn-brochure-download-all').onclick = async ()=>{
   if(!SELECTED_DATE){ await refreshDateSelect(); }
   $('admin-status').textContent = `Bundling ${SELECTED_DATE}…`;
@@ -913,172 +1076,6 @@ $('btn-brochure-download-all').onclick = async ()=>{
   const allHtml = `<!doctype html><meta charset="utf-8"><title>Brochures ${SELECTED_DATE}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${body}`;
   const blob = new Blob([allHtml], {type:'text/html;charset=utf-8'});
   saveAs(blob, `brochures_${SELECTED_DATE}.html`);
-};
-
-/* -------------------------------- SUMMARY: build Vat Sizes block -------------------------------- */
-function normalizeSizeTag(val){
-  const s = N(val).trim();
-  if(!s) return '';
-  const sl = s.toLowerCase();
-  if(sl==='na' || sl==='n/a' || sl.startsWith('na ')) return 'NA';
-  return s;
-}
-function vatSizesHtmlFromRecords(records){
-  const counts = {};
-  const naFarms = [];
-  records.forEach(r=>{
-    const v1 = normalizeSizeTag(pick(r,'vat1-capacity')); if(v1){ counts[v1]=(counts[v1]||0)+1; if(v1==='NA') naFarms.push(r.dairyNumber); }
-    const v2 = normalizeSizeTag(pick(r,'vat2-capacity')); if(v2){ counts[v2]=(counts[v2]||0)+1; if(v2==='NA' && !naFarms.includes(r.dairyNumber)) naFarms.push(r.dairyNumber); }
-  });
-  const keys = Object.keys(counts).sort((a,b)=>{
-    if(a==='NA') return 1; if(b==='NA') return -1;
-    const na=Number(a), nb=Number(b);
-    if(!isNaN(na) && !isNaN(nb)) return na-nb;
-    return a.localeCompare(b);
-  });
-  if(!keys.length) return '<div class="muted">No size data</div>';
-  return keys.map(k=>{
-    if(k==='NA') return `<div>NA: <b>${counts[k]}</b> <span class="muted">(${naFarms.join(', ')||'—'})</span></div>`;
-    return `<div>${k}: <b>${counts[k]}</b></div>`;
-  }).join('');
-}
-async function buildSummaryVatSizes(){
-  if(!DAIRY_KEYS.length){ await loadDairyList(); }
-  $('summary-vatsizes').textContent = 'Collecting…';
-  try{
-    const recs = await fetchAllRecords(25);
-    $('summary-vatsizes').innerHTML = vatSizesHtmlFromRecords(recs);
-  }catch(e){
-    $('summary-vatsizes').innerHTML = '<span class="text-danger">Failed to build size list.</span>';
-  }
-}
-$('btn-refresh-sizes').onclick = buildSummaryVatSizes;
-
-/* -------------------------------- Owner Report -------------------------------- */
-$('btn-owner-report').onclick = async ()=>{
-  if(!DAIRY_KEYS.length){ alert('Load the dairy list first.'); return; }
-  const records = await fetchAllRecords(20);
-
-  const totalFarms = records.length;
-  let totalDoorSealsDelivered = 0;
-  for(const r of records){ if(doorDelivered(r)) totalDoorSealsDelivered += hasVat2(r) ? 2 : 1; }
-  const rjtDeliveredCnt  = records.filter(rjtDelivered).length;
-
-  // Sizes
-  const sizeHtml = vatSizesHtmlFromRecords(records);
-
-  // Rubberware per-farm & totals by size
-  const doorTotalsBySize = {};
-  const rubberRows = [];
-  function normSizeLabel(v){ const s=N(v).trim(); return s || '—'; }
-
-  // Caps needed list (and power point note)
-  const capsNeededRows = [];
-
-  for(const r of records){
-    const dn = r.dairyNumber || '';
-    const v1 = normalizeSizeTag(pick(r,'vat1-capacity')) || '—';
-    const v2 = normalizeSizeTag(pick(r,'vat2-capacity')) || (hasVat2(r)?'—':'');
-    const doorQty = doorDelivered(r) ? (hasVat2(r) ? 2 : 1) : 0;
-    const doorSz  = normSizeLabel(doorSize(r));
-    if(doorQty){ doorTotalsBySize[doorSz] = (doorTotalsBySize[doorSz]||0) + doorQty; }
-    const rjtTxt = rjtDelivered(r) ? ('Delivered' + (rjtSize(r) ? ` (${rjtSize(r)})` : '')) : '—';
-
-    // rubber rows (only farms with any rubberware action)
-    if(doorQty || rjtDelivered(r)){
-      rubberRows.push(
-        `<div class="rb-row">
-          <div><b>#${dn}</b></div>
-          <div>Vat sizes: V1 <b>${v1}</b>${v2?` • V2 <b>${v2}</b>`:''}</div>
-          <div>Door seals: <b>${doorQty}</b>${doorSz!=='—' ? ` (${doorSz})` : ''}</div>
-          <div>RJT: ${rjtTxt}</div>
-        </div>`
-      );
-    }
-
-    // caps needed (unavailable -> needs replacement)
-    const need1 = normCap(pick(r,'vat1-cap'))==='unavailable';
-    const need2 = normCap(pick(r,'vat2-cap'))==='unavailable';
-    const needCount = (need1?1:0) + (need2?1:0);
-    if(needCount){
-      const pp = requiresPowerPoint(r) ? ' • <span class="text-danger">Power point required</span>' : '';
-      const which = needCount===2 ? 'Needs 2 caps' : 'Needs 1 cap';
-      capsNeededRows.push(`<div> #${dn} – ${which}${pp} </div>`);
-    }
-  }
-  const doorTotalsHtml = Object.keys(doorTotalsBySize).sort().map(sz=>`<div>${sz}: <b>${doorTotalsBySize[sz]}</b></div>`).join('') || '<div class="muted">No door seal deliveries recorded</div>';
-  const rubberRowsHtml = rubberRows.join('') || '<div class="muted">No farms with rubberware deliveries</div>';
-  const capsNeededHtml = capsNeededRows.join('') || '<div class="muted">No farms need new vat caps</div>';
-
-  // CSS
-  const css = `
-    body{font-family:Inter,Arial,sans-serif;padding:16px;background:#f7f8fb;color:#0f172a}
-    .owner-wrap{max-width:1100px;margin:0 auto}
-    .brand-header{display:flex;align-items:center;gap:16px;margin-bottom:10px}
-    .brand-logo{height:44px}
-    .title{font-weight:800;font-size:1.6rem;margin:6px 0 14px;color:#001F3F}
-    .card-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-    .kpi{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
-    .kpi .big{font-size:1.6rem;font-weight:800}
-    .kpi .muted{color:#6b7280}
-    .breakdown{margin-top:18px}
-    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .box{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
-    .rb-list{display:grid;grid-template-columns:1fr;gap:6px}
-    .rb-row{display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:10px;align-items:center;border:1px solid #eef1f6;border-radius:8px;padding:8px}
-    .muted{color:#6b7280}
-    @media(max-width:900px){.card-row,.grid-2{grid-template-columns:1fr}}
-    @media(max-width:900px){.rb-row{grid-template-columns:1fr}}
-  `;
-
-  // HTML (same header look + title change)
-  let html = `<!doctype html><meta charset="utf-8"><title>Agora Vat Pre-Check Report</title><style>${css}</style><div class="owner-wrap">`;
-  html += `
-    <div class="brand-header">
-      <img src="${LOGO_URL||''}" class="brand-logo" alt="Agora Logo">
-      <div>
-        <div class="title">Agora Vat Pre-Check Report</div>
-        <div class="muted">Fast field capture • Smart summary • Customer-ready output</div>
-      </div>
-    </div>
-
-    <div class="card-row">
-      <div class="kpi"><div class="big">${totalFarms}</div><div class="muted">Farms visited</div></div>
-      <div class="kpi"><div class="big">${totalDoorSealsDelivered}</div><div class="muted">Door seals delivered (total)</div></div>
-      <div class="kpi"><div class="big">${rjtDeliveredCnt}</div><div class="muted">RJT delivered (farms)</div></div>
-      <div class="kpi"><div class="big">1,143 km</div><div class="muted">Estimated distance</div></div>
-      <div class="kpi"><div class="big">195h 42m</div><div class="muted">Working time</div></div>
-    </div>
-  `;
-
-  html += `<div class="breakdown grid-2">
-    <div class="box"><b>Vat Sizes</b><div class="mt-2">${sizeHtml}</div></div>
-    <div class="box">
-      <b>Rubberware</b>
-      <div class="mt-2">
-        <div class="muted">Door seal totals by size</div>
-        <div class="mt-1">${doorTotalsHtml}</div>
-      </div>
-      <hr>
-      <div class="mt-2">
-        <div class="muted">Per-farm detail (sizes & delivered counts)</div>
-        <div class="mt-1 rb-list">${rubberRowsHtml}</div>
-      </div>
-    </div>
-  </div>`;
-
-  // Caps needed + power point box
-  html += `<div class="breakdown">
-    <div class="box">
-      <b>Vat caps required</b>
-      <div class="mt-2">${capsNeededHtml}</div>
-    </div>
-  </div>`;
-
-  // Per-farm simple overview
-  html += `</div>`;
-  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-  saveAs(blob, 'agora_vat_precheck_report.html');
 };
 
 /* -------------------------------- FORM: reveal vat2; previews -------------------------------- */
@@ -1265,7 +1262,169 @@ $('btn-print-one').onclick = async ()=>{
 };
 $('btn-back-summary').onclick = ()=> $('tab-summary').click();
 
-/* admin */
+/* ---------------- Agora Vat Pre-Check Report (owner report replacement) ---------------- */
+$('btn-owner-report').onclick = async ()=>{
+  if(!DAIRY_KEYS.length){ alert('Load the dairy list first.'); return; }
+  // Ensure summaryRecords exist
+  if(summaryRecords.length===0) await loadSummaryRecords();
+
+  const totalFarms = summaryRecords.length;
+  let totalDoorSeals = 0;
+  let rjtFarms = 0;
+  for(const r of summaryRecords){
+    if(doorDelivered(r)) totalDoorSeals += hasVat2(r)?2:1;
+    if(rjtDelivered(r)) rjtFarms += 1;
+  }
+  const totalPP = powerPointFarms.reduce((a,b)=>a+b.count,0);
+  const totalCaps = capsFarms.reduce((a,b)=>a + b.needs.length, 0);
+
+  // Build size list HTML
+  const sizeKeys = sortedSizeKeys();
+  const sizeList = sizeKeys.map(k=>{
+    if(k==='NA'){
+      return `<div>NA: <b>${sizeCounts[k]}</b> <span class="muted">(${sizeNAFarms.join(', ')||'—'})</span></div>`;
+    }
+    return `<div>${k}: <b>${sizeCounts[k]}</b></div>`;
+  }).join('') || '<div class="muted">No size data</div>';
+
+  // Caps-needed list
+  const capsList = capsFarms.length
+    ? capsFarms.map(x=>`<div>#${x.dn}: <b>${x.needs.join(' & ')}</b> (${x.needs.length} cap${x.needs.length>1?'s':''})</div>`).join('')
+    : '<div class="muted">No farms require new vat caps.</div>';
+
+  // Power point list
+  const ppList = powerPointFarms.length
+    ? powerPointFarms.sort((a,b)=>b.count-a.count || (a.dn>b.dn?1:-1))
+        .map(x=>`<div>#${x.dn}: <b>${x.count}</b>${x.notes.length?` <span class="muted">(${x.notes.join(', ')})</span>`:''}</div>`).join('')
+    : '<div class="muted">No power points required.</div>';
+
+  // Rubberware per-farm detail
+  const rubberRows = [];
+  for(const r of summaryRecords){
+    const dn = r.dairyNumber||'';
+    const v1 = N(pick(r,'vat1-capacity')).trim(); const v2 = N(pick(r,'vat2-capacity')).trim();
+    const v1Disp = v1? (/^na\b|^n\/a\b/i.test(v1)?'NA':v1) : '—';
+    const v2Disp = v2? (/^na\b|^n\/a\b/i.test(v2)?'NA':v2) : '';
+    const doorQty = doorDelivered(r) ? (hasVat2(r) ? 2 : 1) : 0;
+    const doorSz  = doorSize(r)||'—';
+    const rjtTxt  = rjtDelivered(r) ? ('Delivered' + (rjtSize(r) ? ` (${rjtSize(r)})` : '')) : '—';
+    if(doorQty || rjtDelivered(r)){
+      rubberRows.push(
+        `<div class="rb-row">
+          <div><b>#${dn}</b></div>
+          <div>Vat sizes: V1 <b>${v1Disp}</b>${v2Disp?` • V2 <b>${v2Disp}</b>`:''}</div>
+          <div>Door seals: <b>${doorQty}</b>${doorSz!=='—' ? ` (${doorSz})` : ''}</div>
+          <div>RJT: ${rjtTxt}</div>
+        </div>`
+      );
+    }
+  }
+  const rubberRowsHtml = rubberRows.join('') || '<div class="muted">No farms with rubberware deliveries</div>';
+
+  const css = `
+    body{font-family:Inter,Arial,sans-serif;padding:16px;background:#f7f8fb;color:#0f172a}
+    .owner-wrap{max-width:1100px;margin:0 auto}
+    .title{font-weight:800;font-size:1.6rem;margin:6px 0 14px}
+    .card-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .kpi{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
+    .kpi .big{font-size:1.6rem;font-weight:800}
+    .kpi .muted{color:#6b7280}
+    .breakdown{margin-top:18px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .box{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
+    .farm{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px;margin:8px 0}
+    .head{display:flex;justify-content:space-between;gap:8px}
+    .muted{color:#6b7280}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .row > div{border:1px solid #f1f3f7;border-radius:8px;padding:8px}
+    .rb-list{display:grid;grid-template-columns:1fr;gap:6px}
+    .rb-row{display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:10px;align-items:center;border:1px solid #eef1f6;border-radius:8px;padding:8px}
+    @media(max-width:900px){.card-row,.grid-2,.row{grid-template-columns:1fr}}
+    @media(max-width:900px){.rb-row{grid-template-columns:1fr}}
+  `;
+
+  // Build HTML
+  let html = `<!doctype html><meta charset="utf-8"><title>Agora Vat Pre-Check Report</title><style>${css}</style><div class="owner-wrap">`;
+
+  // Same header as app
+  html += `
+    <div class="print-head">
+      <img src="${LOGO_URL||''}" alt="logo">
+      <div>
+        <div class="print-title">Agora Vat Pre-Check Report</div>
+        <div class="print-sub">Fast field capture • Smart summary • Customer-ready output</div>
+      </div>
+    </div>
+  `;
+
+  // KPI row (no Caps OK/X card)
+  html += `
+  <div class="card-row">
+    <div class="kpi"><div class="big">${totalFarms}</div><div class="muted">Farms visited</div></div>
+    <div class="kpi"><div class="big">${totalDoorSeals}</div><div class="muted">Door seals delivered</div></div>
+    <div class="kpi"><div class="big">${rjtFarms}</div><div class="muted">RJT delivered (farms)</div></div>
+    <div class="kpi"><div class="big">${ROUTIFIC_DISTANCE}</div><div class="muted">Estimated distance</div></div>
+    <div class="kpi"><div class="big">${ROUTIFIC_WORKTIME}</div><div class="muted">Working time</div></div>
+    <div class="kpi"><div class="big">${totalPP}</div><div class="muted">Power points required</div></div>
+    <div class="kpi"><div class="big">${totalCaps}</div><div class="muted">Caps required</div></div>
+  </div>`;
+
+  // Breakdown: Vat sizes + Rubberware list
+  html += `<div class="breakdown grid-2">
+    <div class="box"><b>Vat Sizes</b><div class="mt-2">${sizeList}</div></div>
+    <div class="box">
+      <b>Rubberware detail</b>
+      <div class="mt-2">
+        <div class="muted">Per-farm sizes & delivered counts</div>
+        <div class="mt-1 rb-list">${rubberRowsHtml}</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Caps & Power point boxes
+  html += `
+    <div class="breakdown grid-2">
+      <div class="box"><b>Farms needing vat caps</b><div class="mt-2">${capsList}</div></div>
+      <div class="box"><b>Farms needing power points</b><div class="mt-2">${ppList}</div></div>
+    </div>
+  `;
+
+  html += `</div>`;
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  saveAs(blob, 'agora_vat_precheck_report.html');
+};
+
+/* ---------------------- Refresh recent brochures (by JSON timestamp) ---------------------- */
+$('btn-refresh-recent').onclick = async ()=>{
+  if(!DAIRY_KEYS.length){ await loadDairyList(); }
+  if(!SELECTED_DATE){ await refreshDateSelect(); }
+  const days = Math.max(1, Number($('recent-days').value||7));
+  const since = Date.now() - days*24*60*60*1000;
+
+  const css = document.querySelector('style').innerHTML;
+  let processed = 0, updated = 0;
+
+  for(const key of DAIRY_KEYS){
+    try{
+      const dn = key.replace('.json','');
+      const rec = await fetchRecordByDn(dn);
+      const ts = Number(rec.updated || rec.timestamp || 0);
+      if(ts && ts >= since){
+        const html = `<!doctype html><meta charset="utf-8"><title>${dn}</title><style>body{font-family:Inter,Arial,sans-serif;padding:16px}${css}</style>${brochureHTML(rec)}`;
+        await saveBrochureHtmlToDate(SELECTED_DATE, `${dn}.html`, html);
+        updated++;
+      }
+      processed++;
+      setAdminPct(processed, DAIRY_KEYS.length, `Checked ${processed}/${DAIRY_KEYS.length}; refreshed ${updated}`);
+    }catch(e){
+      processed++;
+      setAdminPct(processed, DAIRY_KEYS.length, `Checked ${processed}/${DAIRY_KEYS.length}; refreshed ${updated}`);
+    }
+  }
+  $('admin-status').textContent = `Refreshed ${updated} brochures into ${SELECTED_DATE} (last ${days} days).`;
+};
+
+/* -------------------------------- Admin: SW reset -------------------------------- */
 $('btn-clear-sw').onclick = async ()=>{
   if(!('serviceWorker' in navigator)) return alert('No SW');
   const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister();
@@ -1273,12 +1432,13 @@ $('btn-clear-sw').onclick = async ()=>{
   alert('Service Worker cache cleared. Reload the page.');
 };
 
-/* init */
+/* -------------------------------- Init -------------------------------- */
 window.addEventListener('DOMContentLoaded', async ()=>{
-  await loadDairyList();
-  await refreshDateSelect();
-  await updateQueuedCount();
-  await buildSummaryVatSizes();
+  try{ LOGO_URL = await storage.ref('Agora Logo/2F6-1YdaEP.jpeg').getDownloadURL(); $('logo').src=LOGO_URL; $('logo').style.display='block'; }catch(e){}
+  await loadDairyList();        // numbers-only list
+  await refreshDateSelect();    // pick latest or today
+  await updateQueuedCount();    // queued saves (if any)
+  await loadSummaryRecords();   // build KPIs, vat sizes, clicks
 });
 </script>
 </body>
