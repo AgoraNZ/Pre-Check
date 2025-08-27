@@ -1076,18 +1076,18 @@ $('btn-owner-report').onclick = async ()=>{
       capsNeededRows.push(`<div>${line}</div>`);
     }
 
-    // power points (required or recommended)
-const pp = parsePowerPoints(r);
-if (pp.any) {
-  powerPointsTotal += (pp.count || 0);
-  const where = pick(r,'gateway-location') || pick(r,'vat1-comments') || pick(r,'vat2-comments') || '';
-  const whereNote = where ? ` • ${where}` : '';
-  const lvl = pp.level ? pp.level : 'mentioned';
-  powerNeededRows.push(
-    `<div>#${dn} – ${pp.count} power point${pp.count>1?'s':''} • ${lvl}${whereNote}</div>`
-  );
-}
-}
+   // power points (required or recommended)
+    const pp = parsePowerPoints(r);
+    if (pp.any) {
+      powerPointsTotal += (pp.count || 0);
+      const where = pick(r,'gateway-location') || pick(r,'vat1-comments') || pick(r,'vat2-comments') || '';
+      const whereNote = where ? ` • ${where}` : '';
+      const lvl = pp.level ? pp.level : 'mentioned';
+      powerNeededRows.push(
+        `<div>#${dn} – ${pp.count} power point${pp.count>1?'s':''} • ${lvl}${whereNote}</div>`
+      );
+    }
+  }
 const doorTotalsHtml = Object.keys(doorTotalsBySize).sort().map(sz=>`<div>${sz||'—'}: <b>${doorTotalsBySize[sz]}</b></div>`).join('') || '<div class="muted">No door seal deliveries recorded</div>';
 const rubberRowsHtml = rubberRows.join('') || '<div class="muted">No farms with rubberware deliveries</div>';
 const capsNeededHtml = capsNeededRows.join('') || '<div class="muted">No farms need new vat caps</div>';
