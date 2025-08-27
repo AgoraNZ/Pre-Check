@@ -676,18 +676,6 @@ async function loadDairyList(){
 $('btn-reload').onclick = ()=>loadDairyList();
 
 /* -------------------------------- Power Point & Caps parsing -------------------------------- */
-function powerPointCount(rec){
-  const fields = [
-    rec['gateway-comments'], rec['telemetry-comments'], rec['other-notes'],
-    rec['vat1-comments'], rec['vat2-comments'], rec['current-telemetry']
-  ].filter(Boolean).join(' ').toLowerCase();
-
-  let count = 0;
-  const notes = new Set();
-
-  // Numeric phrases (2 power points, 2
-<script>
-/* -------------------------------- Power Point & Caps parsing -------------------------------- */
 function wordToNum(w){
   const map={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};
   return map[w]||0;
