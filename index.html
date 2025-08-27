@@ -528,10 +528,13 @@ function requiresPowerPoint(rec){
     pick(rec,'other-notes'),
     pick(rec,'current-telemetry')
   ].join(' '));
-  const patterns = [
-    /power ?point/,/powerpoint/,/needs power/,/no power/,/no outlet/,/no socket/,
-    /needs outlet/,/needs socket/,/install power/,/power supply/,/no plug/,
-    /add outlet/,/add socket/
+   const patterns = [
+    /power ?point/,/powerpoint/,
+    /needs power/,/power required/,/power recommended/,
+    /splitter plug/,/splitter required/,/splitter recommended/,
+    /no power/,/no outlet/,/no socket/,/no plug/,
+    /needs outlet/,/needs socket/,
+    /install power/,/power supply/,/add outlet/,/add socket/
   ];
   return patterns.some(rx=>rx.test(blob));
 }
