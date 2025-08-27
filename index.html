@@ -66,16 +66,19 @@ label.form-label{font-weight:600}
 
 /* Report styling */
 .owner-wrap{max-width:1100px;margin:0 auto}
-.card-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.card-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
 .kpi{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
 .kpi .big{font-size:1.6rem;font-weight:800}
 .kpi .muted{color:#6b7280}
+.kpi a{display:block;text-decoration:none;color:inherit}
+.kpi a:focus,.kpi a:hover{outline:none;box-shadow:0 0 0 3px #ff851b2b;border-radius:10px}
 .breakdown{margin-top:14px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:900px){.card-row,.grid-2{grid-template-columns:1fr}}
 .rb-list{display:grid;grid-template-columns:1fr;gap:6px}
 .rb-row{display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:10px;align-items:center;border:1px solid #eef1f6;border-radius:8px;padding:8px}
 @media(max-width:900px){.rb-row{grid-template-columns:1fr}}
+.anchor{scroll-margin-top:18px}
 
 .footer{color:#6b7280;text-align:center;margin:22px 0 10px}
 .hidden{display:none!important}
@@ -386,7 +389,7 @@ label.form-label{font-weight:600}
     </div>
   </div>
 
-  <div class="footer">Agora • Vat Pre-Check • v6.1</div>
+  <div class="footer">Agora • Vat Pre-Check • v6.2</div>
 </div>
 
 <!-- Libs -->
@@ -413,13 +416,25 @@ const $ = id => document.getElementById(id);
 const N = v => v==null ? '' : String(v);
 const low = s => N(s).toLowerCase();
 let LOGO_URL = '';
+let LOGO_DATA_URL = ''; // embedded base64 for offline report
 let DAIRY_KEYS = [];     // ['7001.json', ...]
 let LISTED_NUMBERS = []; // ['7001', ...] for search
 let SELECTED_DATE = '';  // brochure subfolder in use
 let ADMIN_UNLOCKED = false;
 
-/* -------------------------------- Logo -------------------------------- */
-(async()=>{ try{ LOGO_URL = await storage.ref('Agora Logo/2F6-1YdaEP.jpeg').getDownloadURL(); $('logo').src=LOGO_URL; $('logo').style.display='block'; }catch(e){} })();
+/* -------------------------------- Logo (embed for offline) -------------------------------- */
+(async()=>{
+  try{
+    const ref = storage.ref('Agora Logo/2F6-1YdaEP.jpeg');
+    LOGO_URL = await ref.getDownloadURL();
+    try{
+      const blob = await fetch(LOGO_URL, {cache:'no-store'}).then(r=>r.blob());
+      LOGO_DATA_URL = await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(blob); });
+    }catch(_){ LOGO_DATA_URL = ''; }
+    const src = LOGO_DATA_URL || LOGO_URL;
+    const img = $('logo'); img.src = src; img.style.display='block';
+  }catch(e){ /* ignore */ }
+})();
 
 /* -------------------------------- Service worker -------------------------------- */
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }
@@ -518,8 +533,9 @@ function manufacturerGuess(rec){
   if(/\blevno\b/.test(blob)) return 'Levno';
   return pick(rec,'other-brand') || '';
 }
-/* Power point requirement (keyword heuristic) */
-function requiresPowerPoint(rec){
+
+/* -------- Power point parsing (required + recommended, estimate count) -------- */
+function parsePowerPoints(rec){
   const blob = low([
     pick(rec,'vat1-comments'),
     pick(rec,'vat2-comments'),
@@ -528,15 +544,41 @@ function requiresPowerPoint(rec){
     pick(rec,'other-notes'),
     pick(rec,'current-telemetry')
   ].join(' '));
-   const patterns = [
-    /power ?point/,/powerpoint/,
-    /needs power/,/power required/,/power recommended/,
-    /splitter plug/,/splitter required/,/splitter recommended/,
-    /no power/,/no outlet/,/no socket/,/no plug/,
-    /needs outlet/,/needs socket/,
-    /install power/,/power supply/,/add outlet/,/add socket/
+
+  if(!blob.trim()) return {any:false,count:0,level:'',reason:''};
+
+  // severity
+  const requiredRxs = [
+    /power[ -]?point (?:needed|required)/, /needs power/, /power required/, /no power(?: ?point)?/,
+    /no (?:socket|outlet|power)/, /install (?:power|outlet|socket)/, /add (?:power|outlet|socket)/,
+    /splitter (?:plug )?required/, /double adaptor required/, /no plug/
   ];
-  return patterns.some(rx=>rx.test(blob));
+  const recommendedRxs = [
+    /power[ -]?point (?:recommended|recommend)/, /splitter (?:plug )?recommended/, /double adaptor (?:ok|recommended)/,
+    /might need (?:a )?power[ -]?point/
+  ];
+  let level = '';
+  if(requiredRxs.some(rx=>rx.test(blob))) level = 'required';
+  else if(recommendedRxs.some(rx=>rx.test(blob))) level = 'recommended';
+
+  // count estimation
+  let count = 0;
+  const numWord = w=>{
+    const map={one:1,two:2,three:3,four:4,1:1,2:2,3:3,4:4};
+    return map[w]||0;
+  };
+  const m1 = blob.match(/(\d+)\s*(?:x\s*)?(?:power ?points?|powerpoints?|pp|sockets?|outlets?)/);
+  if(m1){ count = Math.max(count, parseInt(m1[1],10)||0); }
+  const m2 = blob.match(/\b(one|two|three|four)\s+(?:power ?points?|powerpoints?|sockets?|outlets?)\b/);
+  if(m2){ count = Math.max(count, numWord(m2[1])); }
+  if(/double (?:power[ -]?point|pp)\b/.test(blob)) count = Math.max(count,2);
+  if(/\bsplitter\b|\bdouble adaptor\b|\bdouble adapter\b/.test(blob)) count = Math.max(count,1);
+  if(count===0 && /power ?point|powerpoint|socket|outlet/.test(blob)) count = 1;
+
+  if(level==='' && count>0) level='recommended'; // plain mention -> soft requirement
+
+  const reason = (level ? level.charAt(0).toUpperCase()+level.slice(1) : 'Mentioned') + (count?` (${count})`:'');
+  return {any: count>0, count, level, reason};
 }
 
 /* -------------------------------- Brochure builder -------------------------------- */
@@ -546,7 +588,7 @@ function brochureHTML(rec){
   return `
   <div class="print-sheet">
     <div class="print-head">
-      <img src="${LOGO_URL||''}" alt="logo">
+      <img src="${LOGO_DATA_URL||LOGO_URL||''}" alt="logo">
       <div>
         <div class="print-title">Vat Pre-Check – #${rec.dairyNumber||''}</div>
         <div class="print-sub">Brand: ${manufacturerGuess(rec)||'-'} • Spark: ${pick(rec,'spark-bars')||'-'} • One NZ: ${pick(rec,'one-bars')||'-'}</div>
@@ -822,7 +864,6 @@ $('btn-refresh-recent').onclick = async ()=>{
   let done=0, total=0;
   $('admin-status').textContent = `Scanning forms updated in last ${days} days…`;
 
-  // Pull timestamps quickly, then rebuild those above cutoff
   const nums = LISTED_NUMBERS.slice();
   const recent = [];
   for(let i=0;i<nums.length;i+=40){
@@ -975,8 +1016,11 @@ $('btn-owner-report').onclick = async ()=>{
   const rubberRows = [];
   function normSizeLabel(v){ const s=N(v).trim(); return s || '—'; }
 
-  // Caps needed list (and power point note)
+  // Caps needed list (and power point list)
   const capsNeededRows = [];
+  const powerNeededRows = [];
+  let capsNeededTotal = 0;
+  let powerPointsTotal = 0;
 
   for(const r of records){
     const dn = r.dairyNumber || '';
@@ -1004,41 +1048,54 @@ $('btn-owner-report').onclick = async ()=>{
     const need2 = normCap(pick(r,'vat2-cap'))==='unavailable';
     const needCount = (need1?1:0) + (need2?1:0);
     if(needCount){
-      const pp = requiresPowerPoint(r) ? ' • <span class="text-danger">Power point required</span>' : '';
-      const which = needCount===2 ? 'Needs 2 caps' : 'Needs 1 cap';
-      capsNeededRows.push(`<div> #${dn} – ${which}${pp} </div>`);
+      capsNeededTotal += needCount;
+      const line = `#${dn} – ${needCount===2 ? 'Needs 2 caps' : 'Needs 1 cap'}`;
+      capsNeededRows.push(`<div>${line}</div>`);
+    }
+
+    // power points (required or recommended)
+    const pp = parsePowerPoints(r);
+    if(pp.any){
+      powerPointsTotal += pp.count;
+      const srcNote = (pick(r,'gateway-location') ? ` • ${pick(r,'gateway-location')}` : '');
+      powerNeededRows.push(`<div>#${dn} – ${pp.count} power point${pp.count>1?'s':''} • ${pp.level||'mentioned'}${srcNote}</div>`);
     }
   }
-  const doorTotalsHtml = Object.keys(doorTotalsBySize).sort().map(sz=>`<div>${sz}: <b>${doorTotalsBySize[sz]}</b></div>`).join('') || '<div class="muted">No door seal deliveries recorded</div>';
+
+  const doorTotalsHtml = Object.keys(doorTotalsBySize).sort().map(sz=>`<div>${sz||'—'}: <b>${doorTotalsBySize[sz]}</b></div>`).join('') || '<div class="muted">No door seal deliveries recorded</div>';
   const rubberRowsHtml = rubberRows.join('') || '<div class="muted">No farms with rubberware deliveries</div>';
   const capsNeededHtml = capsNeededRows.join('') || '<div class="muted">No farms need new vat caps</div>';
+  const powerNeededHtml = powerNeededRows.join('') || '<div class="muted">No power points required/recommended</div>';
 
-  // CSS
+  // CSS (clean, consistent with app)
   const css = `
     body{font-family:Inter,Arial,sans-serif;padding:16px;background:#f7f8fb;color:#0f172a}
     .owner-wrap{max-width:1100px;margin:0 auto}
     .brand-header{display:flex;align-items:center;gap:16px;margin-bottom:10px}
     .brand-logo{height:44px}
     .title{font-weight:800;font-size:1.6rem;margin:6px 0 14px;color:#001F3F}
-    .card-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .card-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
     .kpi{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
     .kpi .big{font-size:1.6rem;font-weight:800}
     .kpi .muted{color:#6b7280}
+    .kpi a{display:block;text-decoration:none;color:inherit}
+    .kpi a:focus,.kpi a:hover{outline:none;box-shadow:0 0 0 3px #ff851b2b;border-radius:10px}
     .breakdown{margin-top:18px}
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .box{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:12px}
     .rb-list{display:grid;grid-template-columns:1fr;gap:6px}
     .rb-row{display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:10px;align-items:center;border:1px solid #eef1f6;border-radius:8px;padding:8px}
     .muted{color:#6b7280}
+    .anchor{scroll-margin-top:18px}
     @media(max-width:900px){.card-row,.grid-2{grid-template-columns:1fr}}
     @media(max-width:900px){.rb-row{grid-template-columns:1fr}}
   `;
 
-  // HTML (same header look + title change)
+  // HTML (logo embedded as data URL for offline)
   let html = `<!doctype html><meta charset="utf-8"><title>Agora Vat Pre-Check Report</title><style>${css}</style><div class="owner-wrap">`;
   html += `
     <div class="brand-header">
-      <img src="${LOGO_URL||''}" class="brand-logo" alt="Agora Logo">
+      <img src="${LOGO_DATA_URL||LOGO_URL||''}" class="brand-logo" alt="Agora Logo">
       <div>
         <div class="title">Agora Vat Pre-Check Report</div>
         <div class="muted">Fast field capture • Smart summary • Customer-ready output</div>
@@ -1049,6 +1106,8 @@ $('btn-owner-report').onclick = async ()=>{
       <div class="kpi"><div class="big">${totalFarms}</div><div class="muted">Farms visited</div></div>
       <div class="kpi"><div class="big">${totalDoorSealsDelivered}</div><div class="muted">Door seals delivered (total)</div></div>
       <div class="kpi"><div class="big">${rjtDeliveredCnt}</div><div class="muted">RJT delivered (farms)</div></div>
+      <div class="kpi"><a href="#caps-required" title="Jump to caps list"><div class="big">${capsNeededTotal}</div><div class="muted">Vat caps required</div></a></div>
+      <div class="kpi"><a href="#power-required" title="Jump to power list"><div class="big">${powerPointsTotal}</div><div class="muted">Power points (req/rec)</div></a></div>
       <div class="kpi"><div class="big">1,143 km</div><div class="muted">Estimated distance</div></div>
       <div class="kpi"><div class="big">195h 42m</div><div class="muted">Working time</div></div>
     </div>
@@ -1070,15 +1129,21 @@ $('btn-owner-report').onclick = async ()=>{
     </div>
   </div>`;
 
-  // Caps needed + power point box
+  // Caps needed + power point boxes (anchor targets)
   html += `<div class="breakdown">
-    <div class="box">
-      <b>Vat caps required</b>
+    <div id="caps-required" class="box anchor">
+      <b>Vat caps required (${capsNeededTotal})</b>
       <div class="mt-2">${capsNeededHtml}</div>
     </div>
   </div>`;
 
-  // Per-farm simple overview
+  html += `<div class="breakdown">
+    <div id="power-required" class="box anchor">
+      <b>Power points required / recommended (${powerPointsTotal})</b>
+      <div class="mt-2">${powerNeededHtml}</div>
+    </div>
+  </div>`;
+
   html += `</div>`;
   const blob = new Blob([html], {type:'text/html;charset=utf-8'});
   saveAs(blob, 'agora_vat_precheck_report.html');
